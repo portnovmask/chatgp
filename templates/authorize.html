@@ -1,0 +1,178 @@
+{% extends "noheader.html" %}
+
+{% block title %}Авторизация{% endblock %}
+
+{% block content %}
+<div class="pico">
+    <div class="container-fluid">
+        <section id="login-section" {% if mode =="register" %} style="display: none;" {% endif %}>
+            <article style="width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
+ position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-right: -50%;
+        transform: translate(-50%, -50%)">
+                <header><p>Войдите, чтобы продолжить</p></header>
+            <form id="login-form" method="post" action="/login">
+                <!--<label for="email">Email:</label> -->
+                <input type="email" id="email" name="email" placeholder="Email"
+        autocomplete="email"  value="">
+               <!-- <label for="password">Пароль:</label> -->
+                <input type="password" id="password" name="password" placeholder="Пароль"
+        autocomplete="пароль"  value="">
+                <button type="submit">Войти</button>
+            </form>
+                <small id="error-message"></small>
+                <hr>
+                <p><small>Еще не с нами?</small></p>
+                <input id="show-register" type="button" value="Создать аккаунт" class="secondary">
+            </article>
+        </section>
+
+        <section id="register-section" {% if mode=="login" %} style="display: none;" {% endif %}>
+            <article style="width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        margin-right: -50%;
+        transform: translate(-50%, -50%)">
+                <header><p>Зарегистрироваться</p></header>
+            <form id="register-form" method="post" action="/register">
+                <!--<label for="reg_email">Email:</label> -->
+                <input type="email" id="reg_email" name="email" placeholder="Email"
+        autocomplete="email"  value="">
+                <!--<label for="reg_password">Пароль:</label> -->
+                <input type="password" id="reg_password" name="password" placeholder="Пароль"
+        autocomplete="пароль"  value="">
+                <!--<label for="confirm-password">Повторите пароль:</label> -->
+                <input type="password" id="confirm-password" name="confirm-password" placeholder="Повторите пароль"
+        autocomplete="повтор пароля"  value="">
+                <button  type="submit">Регистрация</button>
+                <small id="error-message-reg"></small>
+            </form>
+                <hr>
+            <input id="show-login" type="button" value="Уже есть аккаунт" class="secondary">
+            </article>
+        </section>
+    </div>
+</div>
+
+<script>
+    document.getElementById("show-register").addEventListener("click", function() {
+        document.getElementById("login-section").style.display = "none";
+        document.getElementById("register-section").style.display = "block";
+        history.pushState(null, "", "/authorize?mode=register");
+    });
+
+    document.getElementById("show-login").addEventListener("click", function() {
+        document.getElementById("register-section").style.display = "none";
+        document.getElementById("login-section").style.display = "block";
+        history.pushState(null, "", "/authorize?mode=login");
+    });
+
+    document.getElementById("register-form").addEventListener("submit", async function(event) {
+    event.preventDefault(); // Останавливаем стандартную отправку формы
+
+    const form = document.getElementById("register-form");
+    const formDataReg = new FormData(form);
+    const user_email = document.getElementById("reg_email");
+    const user_password = document.getElementById("reg_password");
+    const confirmPassword = document.getElementById("confirm-password");
+    const errorDivReg = document.getElementById("error-message-reg");
+
+    const emailValue = user_email.value.trim();
+    const passwordValue = user_password.value.trim();
+    const confirmPasswordValue = confirmPassword.value.trim();
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+
+    // Сброс состояния полей и ошибок
+    errorDivReg.textContent = "";
+    errorDivReg.style.display = "none";
+    user_email.removeAttribute("aria-invalid");
+    user_password.removeAttribute("aria-invalid");
+    confirmPassword.removeAttribute("aria-invalid");
+
+    let hasError = false;
+
+    // Валидация email
+    if (!emailRegex.test(emailValue)) {
+        user_email.setAttribute("aria-invalid", "true");
+        errorDivReg.textContent = "Введите валидный email";
+        errorDivReg.style.display = "block";
+        hasError = true;
+    }
+
+    // Валидация пароля
+    if (!passwordRegex.test(passwordValue)) {
+        user_password.setAttribute("aria-invalid", "true");
+        errorDivReg.textContent = "Пароль должен содержать минимум 8 символов, хотя бы одну заглавную букву и один специальный символ";
+        errorDivReg.style.display = "block";
+        hasError = true;
+    }
+
+    // Проверка совпадения паролей
+    if (passwordValue !== confirmPasswordValue) {
+        confirmPassword.setAttribute("aria-invalid", "true");
+        errorDivReg.textContent = "Пароли не совпадают";
+        errorDivReg.style.display = "block";
+        hasError = true;
+    }
+
+    if (hasError) return; // Останавливаем выполнение, если есть ошибки
+
+    try {
+        const response = await fetch("/register", {
+            method: "POST",
+            body: formDataReg,
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            user_email.setAttribute("aria-invalid", "true");
+            errorDivReg.textContent = data.detail;  // Выводим ошибку с сервера
+            errorDivReg.style.display = "block";
+        } else {
+            form.submit(); // Отправляем форму, если все ок
+        }
+    } catch (error) {
+        console.error("Ошибка запроса:", error);
+    }
+});
+
+
+    document.getElementById("login-form").addEventListener("submit", async function(event) {
+    event.preventDefault(); // Предотвращает отправку формы по умолчанию
+    const login_form = document.getElementById("login-form");
+    const passwordInput = document.getElementById("password");
+    const errorDiv = document.getElementById("error-message");
+    const formData = new FormData(login_form);
+    // Очищаем старое сообщение
+    errorDiv.textContent = "";
+    errorDiv.style.display = "none";
+    passwordInput.removeAttribute("aria-invalid");
+    try {
+        const response = await fetch("/login", {
+            method: "POST",
+            body: formData,
+            credentials: "include"
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            passwordInput.setAttribute("aria-invalid", "true");
+            errorDiv.textContent = data.detail;  // Выводим ошибку из FastAPI
+            errorDiv.style.display = "block";
+        }
+        else {
+            login_form.submit(); // Отправляем форму, если все ок
+        }
+    } catch (error) {
+        console.error("Ошибка запроса:", error);
+    }
+});
+
+</script>
+{% endblock %}

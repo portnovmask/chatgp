@@ -1,0 +1,10 @@
+.idea
+.venv
+.env
+ads.txt
+robots.txt
+test.py
+static/img
+static/vid
+static/post
+static/site.webmanifest
