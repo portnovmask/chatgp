@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light dark" />
+    <link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.conditional.cyan.min.css"
+    >
+    <link rel="stylesheet" href="/css/style_old.css">
+    <title>{% block title %}Чат Ассистент{% endblock %}</title>
+</head>
+<body>
+   <!-- Header -->
+
+    <header>
+    <button id="open-menu-btn" onclick="toggleMenu()">☰</button>
+    </header>
+   <div class="layout">
+       <aside id="sidebar">
+   <div class="pico">
+        <nav>
+          <ul>
+              {% if user %}
+                <li><small><a href="/dashboard" >{{ user.email }}</a></small></li>
+                <li><a href="/logout">Выйти</a></li>
+            {% else %}
+                <li><a href="/authorize">Войти</a></li>
+            {% endif %}
+            <li><a href="#" >Blog</a></li>
+            <li><a href="#" >Help</a></li>
+              <li><a href="#" >Privacy</a></li>
+              <li id="username"></li>
+          </ul>
+              <ul>
+          <li>
+            <details class="dropdown">
+              <summary role="button" class="secondary">Theme</summary>
+              <ul>
+                <li><a href="#" data-theme-switcher="auto">Auto</a></li>
+                <li><a href="#" data-theme-switcher="light">Light</a></li>
+                <li><a href="#" data-theme-switcher="dark">Dark</a></li>
+              </ul>
+            </details>
+          </li>
+        </ul>
+        </nav>
+       <button onclick="toggleMenu()">Close</button>
+       <!-- Footer -->
+    <!--<div>
+        <div class="container">
+            <section>
+            <nav>
+                <img src="/static/img/svg/8.svg" alt="*">
+                <ul>
+                <li><a rel="noopener noreferrer" class="contrast" title="GitHub" href="https://github.com/picocss/pico" target="_blank"><img src="/static/img/svg/8.svg" alt="*"></a></li>
+                <li><a rel="noopener noreferrer" class="contrast" title="jsDelivr" href="https://www.jsdelivr.com/package/npm/@picocss/pico" target="_blank"><img src="/static/img/svg/11.svg" alt="*"></a></li>
+                <li><a rel="noopener noreferrer" class="contrast" title="jsDelivr" href="https://www.jsdelivr.com/package/npm/@picocss/pico" target="_blank"><img src="/static/img/svg/12.svg" alt="*"></a></li>
+                <li><a rel="noopener noreferrer" class="contrast" title="jsDelivr" href="https://www.jsdelivr.com/package/npm/@picocss/pico" target="_blank"><img src="/static/img/svg/13.svg" alt="*"></a></li>
+            </ul>
+                <aside>
+                    <ul><small>
+                    <li><strong>About</strong></li>
+                    <li><a class="secondary" data-discover="true" href="/docs/v2">What’s new?</a></li>
+                    <li><a class="secondary" data-discover="true" href="/docs/brand">Brand</a></li>
+
+                </small></ul>
+                    </aside>
+                    <aside>
+                        <ul><small>
+                    <li><strong>Docs</strong></li>
+                    <li><a class="secondary" data-discover="true" href="/docs">Quick start</a></li>
+                    <li><a class="secondary" data-discover="true" href="/docs/version-picker">Version picker</a></li>
+
+                </small></ul>
+                    </aside>
+                <aside>
+                    <ul><small>
+                    <li><strong>Community</strong></li>
+                    <li><a rel="noopener noreferrer" class="secondary" href="https://github.com/picocss/pico/issues" target="_blank">Issues</a></li>
+
+                </small></ul>
+                    </aside>
+                <aside>
+                    <ul><small>
+                    <li><strong>Examples</strong></li>
+                    <li><a rel="noopener noreferrer" class="secondary" href="https://codesandbox.io/embed/4mrnhq?view=Editor+%2B+Preview&amp;module=%2Findex.html" target="_blank">HTML</a></li>
+                    <li><a rel="noopener noreferrer" class="secondary" href="https://codesandbox.io/embed/x4qtf8?view=Editor+%2B+Preview&amp;module=%2Findex.html" target="_blank">Class-less</a></li>
+                </small></ul>
+                    </aside>
+            </nav>
+
+            </section>
+            <section><small>
+                <p class="build-info">Currently <code>v2.0.6</code>.</p>
+            </small></section>
+        </div>
+    </div> -->
+        <script> document.addEventListener("DOMContentLoaded",
+            async () => {
+                console.log("🚀 Страница загружена, вызываем fetchWithAuth...");
+                const response = await fetchWithAuth("/me");
+                if (response.ok) {
+                    console.log("✅ Данные пользователя загружены!");
+                    const data = await response.json();
+                    //document.getElementById("username").textContent = data.email;  // Например, вставляем имя пользователя в HTML
+                } else {
+                    console.error("Ошибка загрузки профиля");
+                }
+
+            });
+        async function fetchWithAuth(url, options = {}) {
+            console.log(`📡 Запрос: ${url}`);
+            if (!options.headers) options.headers = {};
+    let response = await fetch(url, {
+        ...options,
+        credentials: "include" // Передаём куки
+    });
+    console.log(`🔹 Ответ от сервера: ${response.status}`);
+    if (response.status === 401) {
+        console.log("Access token expired, refreshing...");
+        const refreshResponse = await fetch("/refresh", { method: "POST", credentials: "include" });
+        console.log(`🔹 Ответ от /refresh: ${refreshResponse.status}`);
+        if (refreshResponse.ok) {
+            // Повторяем запрос после обновления токена
+            response = await fetch(url, {
+                ...options,
+                credentials: "include"
+            });
+        } else {
+            console.log("Refresh token expired, logging out...");
+            window.location.href = "/logout";
+            return;
+        }
+    }
+
+    return response;
+    }
+
+    function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+
+        </script>
+   </div>
+       </aside>
+
+
+    <!-- ./ Header -->
+   <main id="main">
+       {% block content %}{% endblock %}
+       <noscript><div id="js-warning" style="background: #fffc00; color: black; padding: 10px; text-align: center;">
+        <p>⚠️ JavaScript отключен или ваш браузер не поддерживает JavaScript! -</p>
+           <p>Чтобы пользоваться функционалом сайта включите JS или используйте другой браузер!</p>
+        </div>
+        </noscript>
+       <!-- <div class="pico"> -->
+           <div class="container">
+       <section>
+           <h3>Выбор режима</h3>
+       <div class="grid">
+          <article>
+              <header>Переводчик</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Чат переводчик избегает скучных шаблонов и прекрасно интерпретирует нюансы живого языка.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+          <article>
+              <header>Коды ошибок</header>
+             <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Иногда знание кода ошибки на экране устройства помогает устранить проблему и не ждать мастера.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+          <article>
+              <header>Программист</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Не только разработает код, но и проверит ошибки в вашем коде с подробными пояснениями.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+           <article>
+              <header>Адвокат</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Обученный на юридических книгах ассистент составит грамотный документ и проконсультирует по вопросам права.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+           <article>
+              <header>Редактор</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Отправьте ему текст и он в считанные секунды проверит и исправит ошибки, включая семантику и стиль.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+        </div>
+           </section>
+
+               <section>
+
+       <div class="grid">
+          <article>
+              <header>Помощник</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Надежный и предупредительный ассистент поможет поддержать беседу и ответить на любые вопросы.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+          <article>
+              <header>Историк</header>
+             <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Любые известные исторические факты из нескольких источников, подкрепленные выводами.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+          <article>
+              <header>Криптолог</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Последние тенденции рынка крипты, монеты, курсы, прогнозы, советы для начинающих и бывалых.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+           <article>
+              <header>Знаменитость</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Пообщайся с любимой знаменитостью, побудь на равных, задай вопрос или попроси совета.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+           <article>
+              <header>Рецепт по фото</header>
+              <a class="secondary" href="#" onclick="event.preventDefault()">
+                  <small>
+                      Опытный шеф-повар угадает блюдо на фотографии и предложит рецепт с инструкциями.
+                  </small>
+              </a>
+              <footer>*</footer>
+          </article>
+        </div>
+           </section>
+   </div>
+   <!-- </div> -->
+
+   </main>
+   </div>
+    <!-- ./ Footer -->
+    <!-- Minimal theme switcher -->
+    <script src="/static/js/minimal-theme-switcher.js"></script>
+
+    <!-- Modal
+    <script src="/static/js/modal.js"></script>
+    -->
+</body>
+</html>

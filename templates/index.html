@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Home Page{% endblock %}
+
+{% block content %}
+{% if user %}
+
+     <div class="main-header">
+<p>Режим помощника</p>
+</div>
+        <div>
+
+       <div class="container-main">
+
+   <div id="article" >
+
+   {% if user_chat %}
+        {% for message in user_chat %}
+            <div class="query-body">{{ message.prompt }}<br></div>
+            <div class="response-body">{{ message.body }}<br></div>
+            <hr>
+        {% endfor %}
+    {% else %}
+        <p>Чат пуст</p>
+    {% endif %}
+
+       </div>
+           <section>
+               <div id="events"></div>
+               </section>
+
+           </div>
+            </div>
+
+
+  <div class="main-footer">
+      <textarea type="text" id="prompt" placeholder="Введите запрос" aria-label="Query"></textarea>
+      <button class="transparent-button" id="submit" type="submit">
+    <img src="/static/img/svg/19.svg" alt="Отправить">
+</button>
+      <div class="build-info">&copy;2025 ChatGP.Ru. Все права защищены.</div>
+  </div>
+
+
+<script src="/static/js/stream2.js" defer></script>
+
+{% else %}
+       <script>
+       window.location.href = "/authorize";
+       </script>
+{% endif %}
+{% endblock %}

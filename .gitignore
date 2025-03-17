@@ -1,5 +1,7 @@
 .idea
 .venv
+__pycache__/
+.models/__pycache__
 .env
 ads.txt
 robots.txt

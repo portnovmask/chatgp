@@ -1,0 +1,18 @@
+{% extends 'first.html' %}
+{% block main %}
+{{ super() }}
+<div class="container mt-3 text-center">
+  <h3 class="display-6 mb-5">Ошибка или превышена нагрузка на сервер, но мы уже работаем над проблемой!</h3>
+  <div class=" mt-5 mb-5 d-flex justify-content-center">
+  </div>
+  <div class="row justify-content-md-center">
+    <div class="col col-lg-2"> </div>
+    <div class="col-md-auto">
+<p class="container mt-3 mb-5 text-center">Если перезагрузка страницы не помогает, то попробуйте вернуться через 5 минут!
+Если и это не решает проблему, знайте, что наши искины уже решают проблему. Приносим извинения за неудобства, несладкий
+чай и остывший кофе...Попробуйте вернуться еще немного позже.</p>
+<a href="{{url_for('index')}}">Вернуться на главную</a>
+</div>
+<div class="col col-lg-2"> </div>
+</div>
+{% endblock %}

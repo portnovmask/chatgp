@@ -1,0 +1,120 @@
+{% extends "first.html" %}
+
+{% block main %}
+{{ super() }}
+<div class="container-fluid mt-3">
+  <h3 class="display-6 mb-5 text-center">Помощь</h3>
+<div class="row">
+    <div class="col col-lg-3">&nbsp;</div>
+    <div class="col-md-6">
+        <div class = "mt-3 mb-3">AI Chat Assistant - это чат-бот с искусственным интеллектом, созданный на базе разработок компании OpenAI,
+        который предоставляет возможность пользоваться различными функциями, такими как написание сочинений,
+        ставление медицинских диагнозов, объяснение научных концепций, создание шуток и написание программного кода.
+        <p>Он был создан на основе нейросети, одной из самых совершенных языковых моделей, и является более
+        гибким и умным, чем большинство чат-ботов с искусственным интеллектом, доступных ранее.
+        </p><p>Русскую версию помощника можно протестировать на сайте <a href="{{url_for('index')}}">AI Chat Assistant</a>&nbsp; бесплатно.
+        Однако, несмотря на все свои достоинства, AI Chat Assistant имеет недостатки и может давать неправильные
+        ответы на математические задачи и другие вопросы, основываясь на вероятностных предположениях и
+        статистической модели, обученной на миллиардах текстовых примеров из Интернета. Для более эффективной
+        работы с нейронной сетью воспользуйтесь разделами помощи ниже.</p></div>
+<div class="accordion accordion-flush" id="accordionFlushExample">
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseOne" aria-expanded="false" aria-controls="flush-collapseOne">
+        Как пользоваться?
+      </button>
+    </h2>
+    <div id="flush-collapseOne" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body">
+          <li>Напишите ваш вопрос, текст или вставьте текст из другого источника в поле ввода.</li>
+      <li>Для уточнения действий используйте подсказки или инструкции. Например: Сгруппируй ключевые слова по значению """
+      ..некий набор слов или фраз..</li>
+      <li>Еще пример: перепиши текст в продающем стиле, используй слоган  """Мой Брэнд – лучший среди моей мамы""",
+      уложись в 1000 знаков. </li>
+      <li>Если ты хочешь использовать конкретный контекст или пример задачи, то на него можно явно указать в запросе. Для выделения контекста (примера) из тела запроса используй ### или """. Например:
+      Перепиши сказку <br>### Жил-был один мудрый мастер, который умел создавать красивые керамические вазы. Однажды, подросток спросил мастера:
+      "Как ты создаешь такую красивую вазу?". <br>Мастер улыбнулся и ответил: "Я просто беру глыбу глины и начинаю удалять все, что не является вазой"
+      Подросток задумался и понял, что жизнь подобна этому процессу создания вазы. Нам нужно удалять все ненужное, чтобы обнаружить истинную красоту и
+      ценность в нашей жизни. ###<br> в стиле Эдгара По.</li></div>
+
+
+</div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseTwo" aria-expanded="false" aria-controls="flush-collapseTwo">
+        Как улучшить запрос для более точных ответов?
+      </button>
+    </h2>
+    <div id="flush-collapseTwo" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body"><li>Уточняйте и конкретизируйте ваш вопрос или запрос. Чем более ясно и точно вы сформулируете ваш вопрос, тем более точные и информативные будут ответы модели.</li>
+
+<li>Используйте контекст и контекстуальные подсказки. Вы можете предоставить модели дополнительный контекст или подсказки, чтобы помочь ей лучше понять вашу задачу. Вы можете включить предыдущие вопросы или ответы, объяснения или дополнительные детали, чтобы модель имела лучший контекст для генерации ответов.</li>
+
+<li>Используйте постобработку результатов. Выходные данные от модели могут быть дополнительно обработаны после их получения. Например, вы можете проанализировать и отформатировать результаты, чтобы получить более развернутые и структурированные ответы.</li>
+
+<li>Применяйте итеративный подход. Модель обучается на большом объеме текстовых данных и может иметь ограничения в точности и развернутости ответов. Попробуйте использовать итеративный подход (несколько похожих запросов с уточняющими командами или без них), внося коррективы в запросы и анализируя результаты, чтобы постепенно улучшать итоговые ответы.</li></div>
+    </div>
+  </div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseThree" aria-expanded="false" aria-controls="flush-collapseThree">
+        Как сохранять и использовать сгенерированные ответы?
+      </button>
+    </h2>
+    <div id="flush-collapseThree" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body">Система хранит до 100 последних вопросов и ответов, более старые перезаписываются новыми. Вы можете быстро переместиться к любому вашему запросу используя ссылки с запросами в блоке история слева (кнопка с иконкой часов на мобильных развернет историю запросов). На странице аккаунта также можно найти всю последнюю историю запросов и сгенерированных ответов. </div>
+  </div></div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFour" aria-expanded="false" aria-controls="flush-collapseFour">
+        Регистрация, управление аккаунтом и подписками
+      </button>
+    </h2>
+    <div id="flush-collapseFour" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body">Для безопасности и сохранения данных мы используем регистрацию пользователей, для &nbsp;<a href="{{url_for('reg')}}">регистрации</a>&nbsp; требуются действительные email и номер мобильного телефона. Подтверждение о регистрации автоматически отправляется на указанную электронную почту. Подробнее об использовании данных вы можете ознакомиться на странице приватность. На странице аккаунта вы можете управлять вашей подпиской. Для сброса пароля вы можете воспользоваться ссылкой "Забыл пароль"</div>
+  </div></div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFourOne" aria-expanded="false" aria-controls="flush-collapseFourOne">
+        Настройка модели на странице Аккаунт
+      </button>
+    </h2>
+    <div id="flush-collapseFourOne" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body">Модель можно настроить, изменяя параметр температуры - это параметр, используемый при генерации текста с помощью языковой модели (Generative Pre-trained Transformer) для управления уровнем случайности и разнообразия в выходных данных.
+
+Значение параметра температуры должно находиться в диапазоне от 0 до 1, где 0 означает максимальную детерминированность, то есть выходные данные будут точным повторением обучающих данных, а 1 означает максимальную степень случайности, где выходные данные будут значительно отличаться от обучающих данных.
+
+При использовании ИИ для генерации текста, установка параметра температуры позволяет
+управлять уровнем неопределенности и креативности в выходных данных. Значения параметра могут
+быть изменены пользователем в диапазоне от 0 до 1 с помощью формы "Настройка модели".
+Не забудьте нажать кнопку <button class="btn btn-primary btn-sm mb-3" disabled>Сохранить</button>,
+чтобы изменения вступили в силу. "Темперамент" нейронной сети позволяет пользователям настроить
+параметры генерации текста с учетом их конкретных потребностей на странице управления аккаунтом
+(для зарегистрированных пользователей – зеленая ссылка в меню с частью вашего email).</div></div></div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseFive" aria-expanded="false" aria-controls="flush-collapseFive">
+        В чем разница моделей ИИ
+      </button>
+    </h2>
+    <div id="flush-collapseFive" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body">У разных языковых моделей есть свои плюсы и минусы. Новые модели обладают большими параметрами на старте, в результате их интерфейс становится более дружелюбным и ответы более очеловеченными. В то время как старые модели продолжают обучаться и совершенствуют связь блоков данных с конкретными запросами пользователей, что делает их более надежными и эффективными для выполнения конкретных задач. На данный момент доступна текстовая модель 3 поколения. В ближайшее время будет также доступна более мощная модель ИИ. </div>
+  </div></div>
+  <div class="accordion-item">
+    <h2 class="accordion-header">
+      <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#flush-collapseSix" aria-expanded="false" aria-controls="flush-collapseSix">
+        Как связаться с администрацией сайта?
+      </button>
+    </h2>
+    <div id="flush-collapseSix" class="accordion-collapse collapse" data-bs-parent="#accordionFlushExample">
+      <div class="accordion-body">Для связи с администрацией сайта с вопросами, предложениями или жалобами можно связаться через контактную форму. Для этого вам нужно <a href="{{url_for('reg')}}">Зарегистрироваться</a>&nbsp; и перейти на страницу <a href="{{url_for('contact')}}">Контакты</a>.</div>
+  </div>
+  </div>
+</div>
+</div>
+<div class="col col-lg-3">&nbsp;</div>
+</div>
+</div>
+
+{% endblock %}
