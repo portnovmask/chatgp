@@ -6,24 +6,62 @@ const checkIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16
   <path d="M8.97 4.97a.75.75 0 0 1 1.07 1.05l-3.99 4.99a.75.75 0 0 1-1.08.02L2.324 8.384a.75.75 0 1 1 1.06-1.06l2.094 2.093L8.95 4.992zm-.92 5.14.92.92a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 1 0-1.091-1.028L9.477 9.417l-.485-.486z"/>
 </svg>`;
 
+
 document.addEventListener("click", async event => {
     const copyButton = event.target.closest(".copy-button");
-    if (!copyButton) return;
+    const editButton = event.target.closest(".edit-button");
+    const deleteButton = event.target.closest(".delete-button");
+    // Обработка кнопки для копирования
 
-    const codeBlock = copyButton.closest(".code-snippet")?.querySelector("code");
-    if (!codeBlock) return;
+    if (copyButton) {
+        // Первый блок для копирования (из блока с кодом)
+        const codeBlock = copyButton.closest(".code-snippet")?.querySelector("code");
+        if (codeBlock) {
+            const codeText = codeBlock.innerText;
+            try {
+                await navigator.clipboard.writeText(codeText);
+                copyButton.innerHTML = checkIcon; // Меняем иконку на успешное копирование
+            } catch (err) {
+                console.warn("Ошибка копирования:", err);
+                copyButton.innerHTML = copyIcon; // Если ошибка, оставляем иконку копирования
+            }
+            setTimeout(() => copyButton.innerHTML = copyIcon, 1500); // Восстанавливаем иконку через 1.5 секунды
+            return; // Прерываем выполнение, так как нашли блок для копирования кода
+        }
 
-    const codeText = codeBlock.innerText;
-
-    try {
-        await navigator.clipboard.writeText(codeText);
-        copyButton.innerHTML = checkIcon; // Меняем иконку
-    } catch (err) {
-        console.warn("Ошибка копирования:", err);
-        copyButton.innerHTML = copyIcon; // Если ошибка, оставляем копирование
+        // Второй блок для копирования (например, из текстового блока)
+        const textBlock = copyButton.closest(".response-body-plain");
+        if (textBlock) {
+            const textContent = textBlock.innerText;
+            try {
+                await navigator.clipboard.writeText(textContent);
+                copyButton.innerHTML = checkIcon; // Меняем иконку на успешное копирование
+            } catch (err) {
+                console.warn("Ошибка копирования:", err);
+                copyButton.innerHTML = copyIcon; // Если ошибка, оставляем иконку копирования
+            }
+            setTimeout(() => copyButton.innerHTML = copyIcon, 1500); // Восстанавливаем иконку через 1.5 секунды
+            return; // Прерываем выполнение, так как нашли блок для копирования текста
+        }
     }
 
-    setTimeout(() => copyButton.innerHTML = copyIcon, 1500);
+    if (editButton) {
+        const targetElement = deleteButton.closest(".query-container");
+        if (targetElement) {
+            targetElement.remove(); // Удаляем элемент
+            console.log("Элемент удален");
+        }
+        return; // Прерываем выполнение, так как нашли кнопку удаления
+    }
+    if (deleteButton) {
+        const targetElement = deleteButton.closest(".list-button");
+        if (targetElement) {
+            targetElement.remove(); // Удаляем элемент
+            console.log("Элемент удален");
+        }
+        return; // Прерываем выполнение, так как нашли кнопку удаления
+    }
+
 });
 
 

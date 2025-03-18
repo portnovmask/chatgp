@@ -87,6 +87,7 @@ body {
     padding: 1rem 0;
 }
 .list-button {
+    position:relative;
     background-color: transparent;
     border: none;
     border-radius: 10px;
@@ -112,6 +113,19 @@ body {
 }
 .list-button:focus {
     transform: scale(1.1);
+}
+
+.delete-button {
+    position: absolute;
+    top: -5px;
+    right: 1rem;
+    background: transparent;
+    color: #777575;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 100px;
 }
 
 /* === КНОПКА ОТКРЫТИЯ МЕНЮ === */
@@ -198,8 +212,16 @@ body {
     font-weight: bolder;
 }
 
-/* 🟢 Общие стили для ответов */
+/* Общие стили для ответов */
+
+/*.query-container {*/
+/*    position: relative;*/
+/*    display: block;*/
+/*}*/
+
+
 .query-body {
+        position: relative;
         background-color: #ecebeb; /* Лёгкий cian цвет */
         border-radius: 20px; /* Скругление углов */
         display: block; /* Чтобы контент внутри не растягивал элемент */
@@ -211,25 +233,40 @@ body {
         padding: 1rem;
     }
 
+.edit-button {
+    position: absolute;
+    bottom: 5px;
+    left: 5px;
+    background: transparent;
+    color: #a10e0e;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 14px;
+    border-radius: 100px;
+}
+
 .response-body {
     display: block;
     min-height: 40px !important;
     max-height: none;
     border-radius: 20px;
-    padding: 5px;
-    background-color: #ecebeb;
+    padding: 1rem;
+    background-color: #ffffff;
     margin-bottom: 12vh;
 }
 /*  Обычный текст (не код) */
 
 .response-body-plain {
+    position: relative;
     font-family: inherit;
     font-weight: 400;
     white-space: pre-wrap;
     overflow-wrap: break-word;
     padding: 1rem;
 }
-/* 🟢 Контейнер для кода */
+
+/*  Контейнер для кода */
 
 .code-snippet {
     position: relative;
@@ -243,7 +280,7 @@ body {
 
 }
 
-/* 🟢 Сам код */
+/*  Сам код */
 .code-body {
     margin: 0;
     font-family: "Fira Code", monospace;
@@ -257,13 +294,13 @@ body {
     overflow-wrap: break-word;
 }
 
-/* 🟢 Кнопка копирования */
+/*  Кнопка копирования */
 .copy-button {
     position: absolute;
-    top: 30px;
-    right: 10px;
+    top: 60px;
+    right: 1px;
     background: transparent;
-    color: #c2c7d0;
+    color: #afabab;
     border: none;
     padding: 5px 10px;
     cursor: pointer;
@@ -299,6 +336,34 @@ body {
 
 /*конец тела запросов*/
 
+
+/* Tooltip container */
+.tooltip {
+  position: relative;
+  display: inline-block;
+  /*border-bottom: 1px dotted black; !* If you want dots under the hoverable text *!*/
+}
+
+/* Tooltip text */
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+    bottom: 100%;
+  left: 50%;
+  margin-left: -60px;
+  background-color: #777575;
+  color: #ecebeb;
+  text-align: center;
+  padding: 5px 0;
+  border-radius: 6px;
+  position: absolute;
+  z-index: 18;
+}
+
+/* Show the tooltip text when you mouse over the tooltip container */
+.tooltip:hover .tooltiptext {
+  visibility: visible;
+}
 
 
 /*футтер    */
