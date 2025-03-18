@@ -115,17 +115,16 @@ function updateSummariesUI(summaries) {
                     promptInput.value = "";
                     const finishReason = data.finish_reason;
                     const totalTokens = data.usage;
-                    const userQuery = escapeHtml(data.user_query);
                     let chunk_id = data.id;
-
+                    const userQuery = escapeHtml(data.user_query);
+                    parent.innerHTML = `<div id="${chunk_id}"<div class="query-body">${userQuery}</div>`;
 
                     if (finishReason === "End") {
                         console.log("Closing EventSource...");
                         streamText = newElement.innerText
                         newElement.innerText = '';
-                        let chatBlock = `<div id="${chunk_id}"<div class="query-body">${userQuery}</div>
-                                                <div class="response-body">${escapeHtml(streamText)}</div>
-                                                </div><hr><br>`
+                        let chatBlock = `<div class="response-body">${escapeHtml(streamText)}</div>
+                                        </div><hr><br>`
                         console.log(totalTokens);
                         console.log(data.id);
                         eventSource.close();
