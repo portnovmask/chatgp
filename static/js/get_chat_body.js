@@ -1,13 +1,22 @@
 document.getElementById("chat-list").addEventListener("click", async (event) => {
+    // Убираем класс "active" у всех кнопок перед назначением нового активного элемента
+    document.querySelectorAll(".list-button").forEach(btn => btn.classList.remove("active"));
+
+    // Определяем, был ли клик на элемент с data-chat-id
     const selectedChat = event.target.closest("[data-chat-id]");
 
     if (selectedChat) {
         const chatId = selectedChat.getAttribute("data-chat-id");
         console.log("Выбранный чат ID:", chatId);
 
-        await fetchChatData(chatId); // Загружаем чат асинхронно
+        // Делаем кликнутую кнопку активной
+        selectedChat.classList.add('active');
+
+        // Загружаем данные чата асинхронно
+        await fetchChatData(chatId);
     }
 });
+
 
 
 document.getElementById("new-chat-btn").addEventListener("click", async () => {

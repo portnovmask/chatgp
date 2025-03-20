@@ -1,6 +1,16 @@
 const submitButton = document.querySelector('#submit');
 // const containerMain = document.querySelector(".container-main");
 
+const submitIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-send" viewBox="0 0 16 16">
+  <path d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z"/>
+</svg>`;
+
+const stopIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-stop-fill" viewBox="0 0 16 16">
+  <path d="M5 3.5h6A1.5 1.5 0 0 1 12.5 5v6a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 11V5A1.5 1.5 0 0 1 5 3.5"/>
+</svg>`;
+
+
+//Регулирование высоты поля ввода
 
     document.addEventListener("input", function (event) {
     if (event.target.tagName.toLowerCase() === "textarea") {
@@ -16,34 +26,8 @@ function isValidInput(text) {
 
 
 
-async function replaceCodeBlocksStream(text) {
 
-
-    let parts = text.split(/```([\s\S]*?)```/g);
-
-    return parts.map((part, index) => {
-        if (index % 2 === 1) {
-            // Это код -> Оставляем переносы строк
-            return `
-                <div class="code-snippet">
-                <pre class="code-body"><code class="no-keep-markup">${escapeHtml(part)}</code></pre>
-                <button class="copy-button"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-copy" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/>
-                </svg></button>
-                </div>
-                    `;
-        } else {
-
-             // return `<div class="response-body-plain"><pre>${part.replace(/^###\s*(.+)$/gm, "<strong>$1</strong>")}</pre></div>`;
-             return `<pre class="response-body-plain no-keep-markup">${part.replace(/^###\s*(.+)$/gm, "<strong>$1</strong>")
-                 .replace(/\*\*(.*?)\*\*/g, "<u>$1</u>")
-                 .replace(/ {3,}/g, "  ")
-                 .replace(/\n{2,}/g, "\n")}</pre>`;
-            // return part;
-        }
-    }).join("");
-}
-
+//Обновление списка чатов из базы
 
 async function fetchUpdatedSummaries() {
     try {
@@ -73,36 +57,45 @@ function updateSummariesUI(summaries) {
     const chatList = document.getElementById("chat-list");
     chatList.innerHTML = "";  // Очищаем список перед обновлением
 
-    summaries.forEach(summary => {
+    summaries.forEach((summary, index) => {
         const button = document.createElement("button");
-        button.classList.add("list-button");  // ✅ Добавляем нужный стиль
+        button.classList.add("list-button");  //  Добавляем нужный стиль
         button.setAttribute("data-chat-id", summary.chat_id);
 
         const smallText = document.createElement("small");
         smallText.textContent = summary.summary;
 
         button.appendChild(smallText);
-        chatList.appendChild(button);  // ✅ Добавляем в `chat-list`
-        chatList.appendChild(document.createElement("br")); // ✅ Перенос строки (если нужен)
+        chatList.appendChild(button);  //  Добавляем в `chat-list`
+        chatList.appendChild(document.createElement("br"));
+
+        if (index === 0) {
+        button.classList.add("active");
+            }
     });
 }
 
 
 
-      let eventSource;
+      let eventSource=null;
 
       submitButton.onclick = () => {
           const promptInput = document.querySelector('#prompt');
           const prompt = promptInput.value;
           let streamText = ''
+          const newElement = document.getElementById('events');
           promptInput.style.height = "auto";
 
           if (eventSource) {
               eventSource.close();
+              eventSource=null;
+              submitButton.innerHTML=submitIcon;
+              newElement.innerText = '';
           }
 
           if (isValidInput(prompt)) {
               eventSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
+              submitButton.innerHTML=stopIcon;
           }
           else {
               return;
@@ -110,7 +103,7 @@ function updateSummariesUI(summaries) {
           eventSource.onmessage = async (event) => {  // Добавляем `async`
                 if (event.data !== undefined) {
                     const parent = document.querySelector("#article");
-                    const newElement = document.getElementById('events');
+
                     const data = JSON.parse(event.data); // Парсим JSON
                     promptInput.value = "";
                     const finishReason = data.finish_reason;
@@ -129,10 +122,12 @@ function updateSummariesUI(summaries) {
                         streamText = newElement.innerText
                         newElement.innerText = '';
                         let chatBlock = `<div class="response-body">${escapeHtml(streamText)}</div>
-                                        </div><hr><br>`
+                                        </div><hr>`
                         console.log(totalTokens);
                         console.log(data.id);
                         eventSource.close();
+                        eventSource=null;
+                        submitButton.innerHTML=submitIcon;
 
                         parent.innerHTML += chatBlock;
                         // promptInput.style.height = "auto";

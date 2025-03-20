@@ -20,6 +20,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: start;
+
 }
 /* === ГЛАВНЫЙ КОНТЕЙНЕР === */
 .layout {
@@ -39,7 +40,7 @@ body {
     display: flex;
     flex-direction: column;
     /*justify-content: space-between;*/
-    background: #f4f4f4;
+    background: #ecebeb;
     background-size: cover;
     background-position: center center;
     transition: transform 0.3s ease-in-out;
@@ -94,7 +95,7 @@ body {
     cursor: pointer;
     font-size: 16px;
     text-align: left;
-    padding: 1px;
+    padding: 5px;
     width: 100%;
     height: 1.5rem;
     margin: auto;
@@ -107,12 +108,13 @@ body {
 
 .list-button:hover {
     background-color: #ddd;
+    transition: background-color 0.2s ease-in-out;
 }
 .list-button:active {
-    background-color: #ddd;
+    border: 3px dashed rgb(44, 44, 44);
 }
 .list-button:focus {
-    transform: scale(1.1);
+    border: 1px dashed #2c2c2c;
 }
 
 .delete-button {
@@ -167,7 +169,8 @@ body {
     flex-direction: column;
     height: 100vh;
     overflow: hidden;
-    z-index: 5;/* Отключаем скролл у всего main */
+    background-color: #ffffff;
+    z-index: 5;
 }
 /* Фиксированная шапка внутри main */
 
@@ -175,9 +178,9 @@ body {
     /*background: #ddd;*/
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
+    justify-content: space-between;
     padding: 2px;
-    height: 2vh;
+    /*height: 2vh;*/
     text-align: center;
     position: sticky;
     top: 5vh;
@@ -197,6 +200,7 @@ body {
     text-rendering: optimizelegibility;
     text-size-adjust: 100%;
     text-underline-offset: 2px;
+    line-height: 1.5;
     unicode-bidi: isolate;
     align-items: center; /* Центрируем содержимое по вертикали */
     max-width: 100%;
@@ -238,7 +242,7 @@ body {
     bottom: 5px;
     left: 5px;
     background: transparent;
-    color: #a10e0e;
+    color: #777575;
     border: none;
     padding: 5px 10px;
     cursor: pointer;
@@ -275,7 +279,7 @@ body {
     padding: 0;
     border-radius: 5px;
     margin: 0;
-    white-space: pre;
+    /*white-space: pre;*/
     /*overflow-wrap: break-word;*/
 
 }
@@ -297,15 +301,16 @@ body {
 /*  Кнопка копирования */
 .copy-button {
     position: absolute;
-    top: 60px;
+    top: 20px;
     right: 1px;
     background: transparent;
-    color: #afabab;
+    color: #777575;
     border: none;
     padding: 5px 10px;
     cursor: pointer;
     font-size: 14px;
     border-radius: 100px;
+    margin: 0;
 }
 
 .copy-button:hover {
@@ -347,13 +352,13 @@ body {
 /* Tooltip text */
 .tooltip .tooltiptext {
   visibility: hidden;
-  width: 120px;
-    bottom: 100%;
-  left: 50%;
-  margin-left: -60px;
+  width: 80px;
+  top: -5px;
+  left: 105%;
   background-color: #777575;
   color: #ecebeb;
   text-align: center;
+    font-size: 10px;
   padding: 5px 0;
   border-radius: 6px;
   position: absolute;
@@ -475,11 +480,18 @@ body {
         color: #f0f0f0;
     }
 
-        .main-footer > textarea {
-            background-color: #222;
-            color: #f0f0f0;
-        }
+    #main{
+        background-color: #222;
+        color: #c2c7d0;
     }
+
+
+
+    .main-footer{
+        background-color: #222;
+        color: #f0f0f0;
+    }
+}
 
 /*конец пеереключения на тёмную тему*/
 

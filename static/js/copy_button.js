@@ -46,7 +46,7 @@ document.addEventListener("click", async event => {
     }
 
     if (editButton) {
-        const targetElement = deleteButton.closest(".query-container");
+        const targetElement = editButton.closest(".query-container");
         if (targetElement) {
             targetElement.remove(); // Удаляем элемент
             console.log("Элемент удален");
