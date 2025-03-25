@@ -4,6 +4,7 @@ from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from markupsafe import Markup
 
 from auth import router as auth_router
 from users import router as users_router
@@ -29,7 +30,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 templates = Jinja2Templates(directory="templates")
 
 # @app.get("/", response_class=HTMLResponse)
@@ -37,6 +37,8 @@ templates = Jinja2Templates(directory="templates")
 #    return templates.TemplateResponse("index.html", {"request": request})
 
 client = openai.AsyncOpenAI(api_key=APY_KEY)
+
+
 #client2 = openai.AsyncOpenAI(api_key=APY_KEY)
 
 
@@ -81,10 +83,10 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
     await chat.update_token_count_db(user_tokens)
     print(f"Обновлены токены after_stream_processing: {user_tokens}")
 
+
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, response: Response, user: dict = Depends(get_user), chat_id: str = None, new_chat: int = Query(None)):
-
-
+async def index(request: Request, response: Response, user: dict = Depends(get_user), chat_id: str = None,
+                new_chat: int = Query(None)):
     if not user:
         return RedirectResponse(url="/authorize", status_code=303)
 
@@ -93,7 +95,6 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
 
     #await update_user_mode(user, param)
     user_summaries = await get_user_summaries(user)
-
 
     # Если chat_id отсутствует, пробуем взять из куки
 
@@ -105,22 +106,21 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
 
     if chat_id:
         response.set_cookie(key="chat_id_cookie", value=chat_id, path="/", httponly=False, max_age=3600)
-        user_chat =  await get_chat_body_by_id(user, chat_id)
+        user_chat = await get_chat_body_by_id(user, chat_id)
         await set_chat(user, chat_id)
-
 
     print(f"Определен пользователь на корне: {user}, param: {param}, chat_id: {chat_id}\n")
 
-
-# else:
-#     await reset_chat(user)  # Сброс текущего чата
-#     return RedirectResponse(url="/", status_code=303)
+    # else:
+    #     await reset_chat(user)  # Сброс текущего чата
+    #     return RedirectResponse(url="/", status_code=303)
 
     return templates.TemplateResponse("index.html",
-                                          {"request": request, "user": user,
-                                           "param": param,
-                                           "user_summaries": user_summaries,
-                                           "user_chat": user_chat})
+                                      {"request": request, "user": user,
+                                       "param": param,
+                                       "user_summaries": user_summaries,
+                                       "user_chat": user_chat})
+
 
 @app.get("/stream")
 async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
@@ -187,15 +187,15 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
         asyncio.create_task(after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, user_tokens))
         print(f"Запустили фоновую функцию из стрима с чат айди: {chat_id}\n")
 
-
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
+
 
 @app.get("/authorize")
 async def authorize(request: Request, mode: str = "login"):
     return templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
 
 
-@app.get("/change_param") #Ручка для выбора параметров
+@app.get("/change_param")  #Ручка для выбора параметров
 async def change_param(request: Request, user: dict = Depends(get_user), param: str = "basic"):
     response = RedirectResponse(url="/")  # Перенаправляем на корень
     #Логика получения параметра и проверки доступа пользователя к нему
@@ -212,7 +212,6 @@ async def change_param(request: Request, user: dict = Depends(get_user), param: 
     return response
 
 
-
 @app.get("/get_chat_body")
 async def get_chat_body(chat_id: str, user: dict = Depends(get_user), response: Response = None):
     chat_body = await get_chat_body_by_id(user, chat_id)
@@ -221,9 +220,10 @@ async def get_chat_body(chat_id: str, user: dict = Depends(get_user), response: 
     if chat_body is None:
         return JSONResponse({"error": "Чат не найден"}, status_code=404)
 
-    response =  JSONResponse({"chat_body": chat_body})
+    response = JSONResponse({"chat_body": chat_body})
     response.set_cookie(key="chat_id_cookie", value=chat_id, path="/", httponly=True, max_age=3600)
     return response
+
 
 @app.get("/reset_chat")
 async def reset_chat_route(response: Response, user: dict = Depends(get_user), new_chat: int = Query(None)):
@@ -233,19 +233,54 @@ async def reset_chat_route(response: Response, user: dict = Depends(get_user), n
     return RedirectResponse(url="/", status_code=303)
 
 
-
 @app.post("/update_summaries")
 async def update_summaries(
-    request: Request, user: dict = Depends(get_user)
+        request: Request, user: dict = Depends(get_user)
 ):
-
     user_summaries = await get_user_summaries(user)
-
 
     return {"summaries": user_summaries}
 
 
+import re
+import html
+import markdown2
 
+CODE_BLOCK_RE = re.compile(r"```(.*?)```", re.DOTALL)
+
+
+@app.post("/format-text/")
+async def format_text(request: Request):
+    """Получает текст от фронта и оборачивает кодовые блоки"""
+    data = await request.json()
+    raw_text = data.get("text", "")
+
+    formatted_text = format_code_blocks(raw_text)
+
+    return JSONResponse(content={"formatted_text": formatted_text})
+
+
+def format_code_blocks(text):
+    """Оборачивает кодовые блоки в <pre><code> и сохраняет остальной текст"""
+
+    def replace_code(match):
+        # Экранируем возможные HTML-символы в коде для безопасности
+        code = match.group(1)
+        escaped_code = html.escape(code)
+        return (f"<div class='code-snippet'><pre class='language-css'><code>{escaped_code}</code>"
+                f"<button class='copy-button'><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-copy' viewBox='0 0 16 16'>"
+                f"<path fill-rule='evenodd' d='M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z'/>"
+                f"</svg></button></pre></div>")
+
+    # Заменяем все кодовые блоки с помощью регулярного выражения
+    formatted_text = CODE_BLOCK_RE.sub(replace_code, text)
+    # Рендерим оставшийся Markdown в HTML (заголовки, жирный текст, списки)
+    formatted_text = markdown2.markdown(formatted_text)
+
+    # Возвращаем HTML, безопасный для вывода
+    return formatted_text
+# Регистрируем фильтр
+templates.env.filters["format_code_blocks"] = format_code_blocks
 
 if __name__ == "__main__":
     import uvicorn
