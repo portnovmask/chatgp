@@ -279,7 +279,8 @@ body {
     padding: 0;
     border-radius: 5px;
     margin: 0;
-    /*white-space: pre;*/
+    text-align: initial;
+    white-space: pre;
     /*overflow-wrap: break-word;*/
 
 }
@@ -380,7 +381,7 @@ body {
     margin-right: calc(14vw - 30px);
     margin-left: calc(14vw - 30px);
     min-height: 150px;
-    /*max-height: 350px;*/
+    max-height: 350px;
     background: #ffffff;
     padding: 5px;
     position: sticky;

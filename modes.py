@@ -7,7 +7,7 @@ async def update_user_mode(user, mode: str):
 
     await users_data_collection.update_one(
         {"email": user.get("email")},
-        {"$set": {"mode.current_mode": mode}}
+        {"$set": {"mode.$[].current_mode": mode}}
     )
 
 
@@ -15,8 +15,8 @@ async def update_user_mode(user, mode: str):
 async def set_chat(user, chat_id: str):
     if user and chat_id != "new":
         await users_data_collection.update_one(
-            {"email": user.get("email")},
-            {"$set": {"mode.current_chat": chat_id}}
+            {"email": user.get("email"), "mode.current_chat": {"$exists": True}},
+            {"$set": {"mode.$[].current_chat": chat_id}}  # ✅ Обновляем current_chat во всех объектах массива mode
         )
     else:
         print("set_chat - было выбрано создание нового чата, его айди установится после стрима\n")
@@ -26,9 +26,9 @@ async def set_chat(user, chat_id: str):
 async def reset_chat(user):
     """Обнуляет текущее значение current_chat для пользователя."""
     await users_data_collection.update_one(
-        {"email": user.get("email")},
-        {"$set": {"mode.current_chat": "new"}}
-    )
+            {"email": user.get("email"), "mode.current_chat": {"$exists": True}},
+            {"$set": {"mode.$[].current_chat": "new"}}  # ✅ Обновляем current_chat во всех объектах массива mode
+        )
 
 
 
@@ -64,11 +64,11 @@ async def get_last_chat_id(user, recent_chat = False):
     if not user or "chats" not in user or not user["chats"]:
         return None  # Если у пользователя нет чатов, возвращаем None
 
-    if user["mode"]["current_chat"]:
-        return user["mode"]["current_chat"]
+    if user["mode"][0]["current_chat"]:
+        return user["mode"][0]["current_chat"]
 
     # Получаем список чатов и сортируем по времени (если порядок не гарантирован)
-    if recent_chat and user["mode"]["current_chat"] != "new":
+    if recent_chat and user["mode"][0]["current_chat"] != "new":
         last_chat = max(user["chats"], key=lambda chat: chat["chat_time"])  # Берем самый последний
         return last_chat["chat_id"]
 
@@ -156,15 +156,16 @@ class User:
 
         return "\n".join([f"Пользователь: {msg['prompt']} \nОтвет LLM модели: {msg['body']}" for msg in chat_body])
 
-
-
-
     async def get_user_mode_from_db(self):
         me_data = await users_data_collection.find_one(
             {"email": self.user.get("email")},
-            {"mode.current_mode": 1}
+            {"mode": 1, "_id": 0}  #  Запрашиваем весь массив mode
         )
-        return me_data if me_data else None
+
+        if not me_data or not me_data.get("mode"):
+            return None  # Если mode отсутствует
+
+        return me_data["mode"][0].get("current_mode")  #  Берём current_mode из первого элемента массива
 
     async def add_to_chat_db(self, prompt: str, body: str, chat_id: str = "new", stream_id: str = None,
                              summary: str = "Без названия"):
@@ -192,7 +193,7 @@ class User:
                 await users_data_collection.update_one(
                     {"email": self.user.get("email")},
                     {
-                        "$set": {"mode.current_chat": stream_id},  # Обновляем current_chat
+                        "$set": {"mode.$[].current_chat": stream_id},  # Обновляем current_chat
                         "$push": {"chats": chat_entry}  # Добавляем новый чат в массив chats
                     }
                 )
