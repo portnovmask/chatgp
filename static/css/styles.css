@@ -111,10 +111,11 @@ body {
     transition: background-color 0.2s ease-in-out;
 }
 .active {
-    border: 3px dashed rgb(44, 44, 44);
+    border: 2px dashed rgb(44, 44, 44);
 }
 .list-button:focus {
     border: 1px dashed #2c2c2c;
+    background-color: #ddd;
 }
 
 .delete-button {
@@ -477,12 +478,12 @@ body {
 
     .response-body {
 
-        background-color: rgba(44, 44, 44, 0.62);
+        background-color: rgb(9, 9, 9);
         color: #f0f0f0;
     }
 
     #main{
-        background-color: #222;
+        background-color: rgba(44, 44, 44, 0.62);
         color: #c2c7d0;
     }
 

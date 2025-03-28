@@ -32,21 +32,36 @@ const themeSwitcher = {
 
   // Init switchers
   initSwitchers() {
-    const buttons = document.querySelectorAll(this.buttonsTarget);
-    buttons.forEach((button) => {
-      button.addEventListener(
-        "click",
-        (event) => {
-          event.preventDefault();
-          // Set scheme
-          this.scheme = button.getAttribute(this.buttonAttribute);
-          // Close dropdown
-          document.querySelector(this.menuTarget)?.removeAttribute("open");
-        },
-        false
-      );
+    const button = document.querySelector(this.buttonsTarget);
+    if (!button) return;
+
+    const icon = button.querySelector("img"); // Получаем <img> внутри кнопки
+
+    // Объект с иконками для разных тем
+    const icons = {
+        light: "static/img/icons/brightness-up.svg",
+        dark: "static/img/icons/brightness-fill.svg",
+        auto: "static/img/icons/brightness-auto.svg",
+    };
+
+    button.addEventListener("click", (event) => {
+        event.preventDefault();
+
+        // Циклическое переключение тем
+        if (this.scheme === "light") {
+            this.scheme = "dark";
+        } else if (this.scheme === "dark") {
+            this.scheme = "auto";
+        } else {
+            this.scheme = "light";
+        }
+
+        // Меняем иконку
+        icon.src = icons[this.scheme];
+        icon.alt = this.scheme;
     });
-  },
+},
+
 
   // Set scheme
   set scheme(scheme) {
