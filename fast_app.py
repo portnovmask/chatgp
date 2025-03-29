@@ -268,9 +268,7 @@ def format_code_blocks(text):
         code = match.group(1)
         escaped_code = html.escape(code)
         return (f"<div class='code-snippet'><pre class='language-css'><code>{escaped_code}</code>"
-                f"<button class='copy-button'><svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='currentColor' class='bi bi-copy' viewBox='0 0 16 16'>"
-                f"<path fill-rule='evenodd' d='M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z'/>"
-                f"</svg></button></pre></div>")
+                f"<button class='copy-button'><img src='/static/img/icons/copy.svg' width='20' height='20' alt='copy'></button></pre></div>")
 
     # Заменяем все кодовые блоки с помощью регулярного выражения
     formatted_text = CODE_BLOCK_RE.sub(replace_code, text)

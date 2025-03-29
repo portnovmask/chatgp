@@ -6,7 +6,7 @@ from passlib.context import CryptContext
 from models.users import users_collection
 from models.tokens import tokens_collection
 from models.user_data import users_data_collection
-from settings import APP_SECRET_KEY
+from settings import *
 
 router = APIRouter()
 
@@ -17,6 +17,30 @@ REFRESH_TOKEN_EXPIRE_DAYS = 7
 
 # Настройка для хеширования паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+
+# Дефолтный чат
+
+# Дефолтные сообщения для chat_body
+DEFAULT_CHAT_BODY = [
+    {"prompt": "Добро пожаловать", "body": "У вас пока нет чатов, но вы можете создать новый автоматически."}
+]
+
+
+# Дефолтный чат
+DEFAULT_CHAT = {
+    "chat_id": "default_id",
+    "chat_time": datetime.now(timezone.utc).isoformat(),
+    "chat_summary": "Здесь будут ваши чаты",
+    "chat_body": DEFAULT_CHAT_BODY  # Добавляем список сообщений в chat_body
+}
+
+
+# Дефолтный режим
+MODE = {"current_mode": "basic", "current_chat": None}
+
+
 
 def create_access_token(email: str):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -133,27 +157,15 @@ async def register(email: str = Form(...), password: str = Form(...)):
                 "status": status,
                 "tokens": tokens}
     result = await users_collection.insert_one(new_user)
-    user_id = str(result.inserted_id)  # ✅ Теперь _id точно есть
-    # Дефолтные сообщения для chat_body
-    default_chat_body = [
-        {"prompt": "Добро пожаловать", "body": "У вас пока нет чатов, но вы можете создать новый автоматически."}
-    ]
+    user_id = str(result.inserted_id)  #  Теперь _id точно есть
 
-    # Дефолтный чат
-    default_chat = {
-        "chat_id": "default_id",
-        "chat_time": datetime.now(timezone.utc).isoformat(),
-        "chat_summary": "Здесь будут ваши чаты",
-        "chat_body": default_chat_body  # Добавляем список сообщений в chat_body
-    }
-    mode = {"current_mode": "basic", "current_chat": None}
     # Данные для нового пользователя
     user_data = {
         "user_id": user_id,
         "email": email,
         "status": status,
-        "mode": [mode],
-        "chats": [default_chat]  # Добавляем дефолтный чат в массив chats
+        "mode": [MODE],
+        "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
     }
     await users_data_collection.insert_one(user_data)
 
@@ -219,3 +231,305 @@ async def logout():
     response.delete_cookie("refresh_token")
     return response
 
+
+@router.get("/auth/google")
+def google_login():
+    """Редирект на авторизацию Google"""
+    google_auth_url = (
+        f"{GOOGLE_AUTH_URL}?response_type=code&client_id={GOOGLE_CLIENT_ID}"
+        f"&redirect_uri={GOOGLE_REDIRECT_URI}&scope=openid%20email%20profile"
+    )
+    return RedirectResponse(google_auth_url)
+
+
+
+
+import requests
+
+@router.get("/auth/google/callback")
+async def google_callback(request: Request, code: str):
+    """Получаем токен и данные пользователя из Google"""
+    token_data = {
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+    token_response = requests.post(GOOGLE_TOKEN_URL, data=token_data)
+    token_json = token_response.json()
+
+    if "access_token" not in token_json:
+        raise HTTPException(status_code=400, detail="Ошибка авторизации Google")
+
+    # Получаем данные пользователя
+    user_info_response = requests.get(GOOGLE_USERINFO_URL, headers={"Authorization": f"Bearer {token_json['access_token']}"})
+    user_info = user_info_response.json()
+
+    email = user_info["email"]
+    google_id = user_info["sub"]
+
+    # Проверяем пользователя в MongoDB
+    existing_user = await users_collection.find_one({"email": email})
+
+    if existing_user:
+        if existing_user["auth_provider"] == "local":
+            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+
+        # Авторизуем пользователя, выдаём токены
+        access_token, _ = create_access_token(email)
+        refresh_token, _ = create_refresh_token(email)
+
+        response = RedirectResponse(url="/")
+        response.set_cookie("access_token", access_token, httponly=True)
+        response.set_cookie("refresh_token", refresh_token, httponly=True)
+        return response
+
+    # Регистрируем нового пользователя
+    new_user = {
+        "email": email,
+        "password": None,  # Пароль не нужен для OAuth
+        "auth_provider": "google",
+        "oauth_id": google_id,
+        "status": "trial",
+        "tokens": 0
+    }
+    result = await users_collection.insert_one(new_user)
+    existing_user_data = await users_data_collection.find_one({"email": email})
+    if not existing_user_data:
+
+        user_id = str(result.inserted_id)  # Теперь _id точно есть
+
+        # Данные для нового пользователя
+        user_data = {
+            "user_id": user_id,
+            "email": email,
+            "status": "trial",
+            "mode": [MODE],
+            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
+        }
+        await users_data_collection.insert_one(user_data)
+
+    # Выдаём токены
+    access_token, _ = create_access_token(email)
+    refresh_token, _ = create_refresh_token(email)
+
+    response = RedirectResponse(url="/")
+    response.set_cookie("access_token", access_token, httponly=True)
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
+    return response
+
+
+@router.get("/auth/yandex")
+def yandex_login():
+    """Редирект на авторизацию Яндекса"""
+    return RedirectResponse(
+        f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
+    )
+
+@router.get("/auth/yandex/callback")
+async def yandex_callback(request: Request, code: str):
+    """Обрабатываем ответ Яндекса"""
+    token_data = {
+        "grant_type": "authorization_code",
+        "code": code,
+        "client_id": YANDEX_CLIENT_ID,
+        "client_secret": YANDEX_CLIENT_SECRET
+    }
+    token_response = requests.post(YANDEX_TOKEN_URL, data=token_data)
+    token_json = token_response.json()
+    result = ''
+    if "access_token" not in token_json:
+        raise HTTPException(status_code=400, detail="Ошибка авторизации Яндекса")
+
+    # Получаем данные пользователя
+    user_info_response = requests.get(YANDEX_USERINFO_URL, headers={"Authorization": f"OAuth {token_json['access_token']}"})
+    user_info = user_info_response.json()
+
+    email = user_info.get("default_email")
+    yandex_id = str(user_info.get("id"))
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Яндекс не вернул email")
+
+    existing_user = await users_collection.find_one({"email": email})
+
+    if existing_user and existing_user["auth_provider"] == "local":
+        raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+
+    if not existing_user:
+        result = await users_collection.insert_one({
+            "email": email,
+            "password": None,
+            "auth_provider": "yandex",
+            "oauth_id": yandex_id
+        })
+
+    existing_user_data = await users_data_collection.find_one({"email": email})
+    if not existing_user_data:
+        user_id = str(result.inserted_id)  # Теперь _id точно есть
+
+        # Данные для нового пользователя
+        user_data = {
+            "user_id": user_id,
+            "email": email,
+            "status": "trial",
+            "mode": [MODE],
+            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
+        }
+        await users_data_collection.insert_one(user_data)
+
+    access_token, _ = create_access_token(email)
+    refresh_token, _ = create_refresh_token(email)
+
+    response = RedirectResponse(url="/")
+    response.set_cookie("access_token", access_token, httponly=True)
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
+    return response
+
+
+
+import hashlib
+import hmac
+
+@router.get("/auth/telegram/callback")
+async def telegram_callback(request: Request):
+    """Проверяем данные от Телеграма"""
+    data = dict(request.query_params)
+    auth_data = data.copy()
+    result = ''
+    # Проверяем подпись
+    check_hash = auth_data.pop("hash", None)
+    auth_data_str = "\n".join(f"{k}={v}" for k, v in sorted(auth_data.items()))
+    secret_key = hashlib.sha256(TELEGRAM_BOT_TOKEN.encode()).digest()
+    expected_hash = hmac.new(secret_key, auth_data_str.encode(), hashlib.sha256).hexdigest()
+
+    if check_hash != expected_hash:
+        raise HTTPException(status_code=400, detail="Недействительная подпись данных")
+
+    # Проверяем время запроса (не старше 1 мин)
+    auth_time = datetime.fromtimestamp(int(auth_data["auth_date"]), tz=timezone.utc)
+    current_time = datetime.now(timezone.utc)
+
+    if (current_time - auth_time).total_seconds() > 60:
+        raise HTTPException(status_code=400, detail="Данные устарели")
+
+    telegram_id = auth_data["id"]
+    username = auth_data["username"]
+    email = f"{username}@telegram.com"  # Условный email
+
+    # Проверяем пользователя в БД
+    existing_user = await users_collection.find_one({"email": email})
+
+    if existing_user and existing_user["auth_provider"] == "local":
+        raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+
+    if not existing_user:
+        result = await users_collection.insert_one({
+            "email": email,
+            "password": None,
+            "auth_provider": "telegram",
+            "oauth_id": telegram_id
+        })
+    existing_user_data = await users_data_collection.find_one({"email": email})
+    if not existing_user_data:
+        user_id = str(result.inserted_id)  # Теперь _id точно есть
+
+        # Данные для нового пользователя
+        user_data = {
+            "user_id": user_id,
+            "email": email,
+            "status": "trial",
+            "mode": [MODE],
+            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
+        }
+        await users_data_collection.insert_one(user_data)
+
+    access_token, _ = create_access_token(email)
+    refresh_token, _ = create_refresh_token(email)
+
+    response = RedirectResponse(url="/")
+    response.set_cookie("access_token", access_token, httponly=True)
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
+    return response
+
+
+@router.get("/auth/vk")
+def vk_login():
+    """Редирект на VK OAuth"""
+    return RedirectResponse(
+        f"{VK_AUTH_URL}?client_id={VK_CLIENT_ID}&display=page"
+        f"&redirect_uri={VK_REDIRECT_URI}&scope=email"
+        f"&response_type=code&v=5.131"
+    )
+
+
+@router.get("/auth/vk/callback")
+async def vk_callback(request: Request, code: str):
+    """Обрабатываем ответ VK"""
+    token_data = {
+        "client_id": VK_CLIENT_ID,
+        "client_secret": VK_CLIENT_SECRET,
+        "redirect_uri": VK_REDIRECT_URI,
+        "code": code
+    }
+    token_response = requests.post(VK_TOKEN_URL, data=token_data)
+    token_json = token_response.json()
+    result = ''
+
+    if "access_token" not in token_json:
+        raise HTTPException(status_code=400, detail="Ошибка авторизации VK")
+
+    access_token = token_json["access_token"]
+    user_id = token_json["user_id"]
+    email = token_json.get("email", f"vk_{user_id}@vk.com")  # Email может отсутствовать
+
+    # Получаем данные пользователя
+    user_info_response = requests.get(
+        VK_USERINFO_URL,
+        params={"user_ids": user_id, "access_token": access_token, "v": "5.131", "fields": "first_name,last_name"}
+    )
+    user_info = user_info_response.json()
+
+    if "response" not in user_info:
+        raise HTTPException(status_code=400, detail="Ошибка получения данных VK")
+
+    vk_user = user_info["response"][0]
+    full_name = f"{vk_user['first_name']} {vk_user['last_name']}"
+
+    # Проверяем пользователя в БД
+    existing_user = await users_collection.find_one({"email": email})
+
+    if existing_user and existing_user["auth_provider"] == "local":
+        raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+
+    if not existing_user:
+        result = await users_collection.insert_one({
+            "email": email,
+            "password": None,
+            "auth_provider": "vk",
+            "oauth_id": str(user_id),
+            "full_name": full_name
+        })
+
+    existing_user_data = await users_data_collection.find_one({"email": email})
+    if not existing_user_data:
+        user_id = str(result.inserted_id)  # Теперь _id точно есть
+
+        # Данные для нового пользователя
+        user_data = {
+            "user_id": user_id,
+            "email": email,
+            "status": "trial",
+            "mode": [MODE],
+            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
+        }
+        await users_data_collection.insert_one(user_data)
+
+    access_token, _ = create_access_token(email)
+    refresh_token, _ = create_refresh_token(email)
+
+    response = RedirectResponse(url="/")
+    response.set_cookie("access_token", access_token, httponly=True)
+    response.set_cookie("refresh_token", refresh_token, httponly=True)
+    return response

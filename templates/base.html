@@ -26,33 +26,35 @@
     <header class="toggles">
 
 
-    <button id="open-menu-btn" onclick="toggleMenu()"><img src="static/img/icons/menu-2.svg" width="20" height="20" alt="open"></button>
+    <button id="open-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/menu-2.svg" width="30" alt="open"></button>
     </header>
 
     <!-- Основной контейнер-->
     <div class="layout">
         <!-- Боковое меню -->
         <aside id="sidebar">
+
             <div class="side-bar-header">
                 <div class="container-icons">
-                <div class="item tooltip"><button id="new-chat-btn" class="new-chat-button"><img src="static/img/icons/square-plus.svg" width="20" height="20" alt="new chat"></button> <span class="tooltiptext">Новый чат</span></div>
-                <div class="item tooltip"><button id="find-chat-button" class="new-chat-button"><img src="static/img/icons/list-search.svg" width="20" height="20" alt="find chat"></button><span class="tooltiptext">Найти чат</span></div>
-                <div class="item tooltip"><button id="chose-mode-btn" class="new-chat-button"><img src="static/img/icons/settings.svg" width="20" height="20" alt="mode"></button><span class="tooltiptext">Модель</span></div>
-                    <div class="item">
-                        <a href="#" data-theme-switcher>
-                            <img src="static/img/icons/brightness-auto.svg" width="20" height="20" alt="auto">
-                        </a>
-                    </div>
-                <div class="item tooltip"><button id="close-menu-btn" onclick="toggleMenu()"><img src="static/img/icons/transition-left.svg" width="20" height="20" alt="close"></button><span class="tooltiptext">Закрыть</span></div>
+                <div class="item tooltip"><button id="chose-mode-btn" class="new-chat-button"><img src="/static/img/icons/settings.svg" width="30"  alt="mode"></button><span class="tooltiptext">Модель</span></div>
+                    <div class="item tooltip"><button id="find-chat-button" class="new-chat-button"><img src="/static/img/icons/list-search.svg" width="30" alt="find chat"></button><span class="tooltiptext">Найти чат</span></div>
+                  <div class="item tooltip"><button id="new-chat-btn" class="new-chat-button"><img src="/static/img/icons/square-plus.svg" width="30" alt="new chat"></button> <span class="tooltiptext">Новый чат</span></div>
+                <div class="item tooltip"><button id="close-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/transition-left.svg" width="30"  alt="close"></button><span class="tooltiptext">Закрыть</span></div>
 
             </div>
+
             </div>
+        <div class="container-icons-column">
+             <div class="item-content tooltip"><a id="home" href="/"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP.Ru</small></a><span class="tooltiptext">Новый чат</span></div>
+             <div class="item-content tooltip"><a href="#"><img src="/static/img/icons/user.svg" width="40" alt="user"><small>Дашборд</small></a><span class="tooltiptext">Пользователь</span></div>
+            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>
+        </div>
 
             <div class="sidebar-main">
 
              <div id="chat-list">
-                        {% if user_summaries %}
 
+                        {% if user_summaries %}
             {% for summary in user_summaries %}
                 <button class="list-button {% if loop.first %}active{% endif %}" data-chat-id="{{ summary['chat_id'] }}"><small>{{ summary['summary'] }}</small></button><br>
             {% endfor %}
@@ -65,18 +67,22 @@
 
             <div class="sidebar-footer">
 
-              <div class="container-icons">
+              <div class="container-icons-column">
 
-                    <div class="item"><a href="#">Dashboard</a></div>
-                  <div class="item"><a href="#">Settings</a></div>
-                    <div class="item"><a href="#">Profile</a></div>
+                    <div class="item-content"><a href="#">Приватность</a></div>
+                  <div class="item-content"><a href="#">Помощь</a></div>
+                    <div class="item-content"><a href="#">Блог</a></div>
          </div>
 
               <div class="container-icons" style="justify-content:space-evenly;">
 
-                <div class="item"><a href="#" ><img src="static/img/icons/user.svg" width="20" height="20" alt="auto"></a></div>
-                <div class="item"><a href="#" ><img src="static/img/icons/shopping-cart.svg" width="20" height="20" alt="light"></a></div>
-                <div class="item"><a href="#" ><img src="static/img/icons/mail.svg" width="20" height="20" alt="dark"></a></div>
+
+
+                 <div class="item tooltip" style="text-align: end">
+                        <a href="#" data-theme-switcher>
+                            <img src="/static/img/icons/brightness-auto.svg" width="18" alt="auto">
+                        </a><span class="tooltiptext">Свет</span>
+                    </div>
               </div>
             </div>
         </aside>

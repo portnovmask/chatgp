@@ -15,6 +15,63 @@ body {
     font-weight: 400;
 }
 
+a {
+    text-decoration: none;
+    color: initial;
+    padding: 5px;
+}
+
+
+a:hover {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: auto;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a:focus {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: auto;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a:active {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: contain;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a.visited {
+    text-decoration: none;
+    color: inherit;
+}
+
+.container-icons-column {
+    display: flex;
+    text-align: start;
+    flex-direction: column;
+    justify-content: start;
+    /*align-items: self-start;!* Выравнивает элементы по вертикали *!*/
+    /*text-decoration: none;*/
+}
+
+.item-content {
+    display: flex;
+    align-items: center;
+    line-height: 30px;
+}
+
+.item-content img {
+    width: 20px;
+    height: auto;
+    margin-right: 10px;
+}
+
 
 .toggles {
     display: flex;
@@ -47,6 +104,15 @@ body {
     margin: 0;
     padding: 0 1rem;
     z-index: 10;
+}
+.logo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    z-index: 15;
 }
 .side-bar-header{
     display: flex;
@@ -154,6 +220,7 @@ body {
 }
 .sidebar-footer{
     display: flex;
+    height: fit-content;
     flex-direction: column;
     position: sticky;
     bottom: 0;
@@ -433,18 +500,20 @@ body {
     z-index: 12;
 }
 .transparent-button:hover {
-    background-color: #ddd;
-    /*border: 1px solid #015050;*/
+    /*background-color: #ddd;*/
+    border: 1px solid #ddd;
     /* Меняем цвет при наведении */
 }
 
 .transparent-button:active {
-    color: #015050;
+    border: 1px solid #015050;
+    /*color: */
 }
 
 
 .transparent-button:focus {
-   transform: scale(1.1);
+   /*transform: scale(1.1);*/
+    background-color: #ecebeb;
 }
 
 
@@ -500,14 +569,15 @@ body {
 
 .container-icons {
 display: flex;
-justify-content: space-between; /* Распределяет элементы по горизонтали */
+justify-content: space-around; /* Распределяет элементы по горизонтали */
 align-items: center; /* Выравнивает элементы по вертикали */
 }
 
 .item {
 flex:1; /* Элементы будут занимать равное пространство */
-margin:10px; /* Отступы между элементами */
+margin: 15px; /* Отступы между элементами */
 }
+
 
 
     /* 1️⃣ Большие экраны (от 1578px и меньше) */

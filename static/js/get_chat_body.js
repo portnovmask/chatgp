@@ -67,7 +67,7 @@ async function fetchChatData(chatId) {
                 <div class="query-body">${message.prompt}
    
                 </div>
-                <div class="response-body">${filteredText}<button class="copy-button"><img src="static/img/icons/copy.svg" width="20" height="20" autofocus></button></div>
+                <div class="response-body">${filteredText}</div>
                 <hr>
             `;
         })

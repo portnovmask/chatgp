@@ -1,6 +1,6 @@
-const copyIcon = `<img src="static/img/icons/copy.svg" width="20" height="20" alt="copy">`;
+const copyIcon = `<img src="/static/img/icons/copy.svg" width="20" height="20" alt="copy">`;
 
-const checkIcon = `<img src="static/img/icons/copy-check.svg" width="20" height="20" alt="copied">`;
+const checkIcon = `<img src="/static/img/icons/copy-check.svg" width="20" height="20" alt="copied">`;
 
 
 document.addEventListener("click", async event => {
