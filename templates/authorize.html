@@ -6,38 +6,40 @@
 <div class="pico">
     <div class="container-fluid">
         <section id="login-section" {% if mode =="register" %} style="display: none;" {% endif %}>
-            <article style="width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
- position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-right: -50%;
-        transform: translate(-50%, -50%)">
-                <header><p>Войдите, чтобы продолжить</p></header>
-            <form id="login-form" method="post" action="/login">
-                <!--<label for="email">Email:</label> -->
-                <input type="email" id="email" name="email" placeholder="Email"
+            <article class="form_auth_block">
+                <header class="form_auth_block_head_text">Войдите, чтобы продолжить</header>
+            <form  class="form_auth_block_content" id="login-form" method="post" action="/login">
+
+                <input  type="email" id="email" name="email" placeholder="Email"
         autocomplete="email"  value="">
-               <!-- <label for="password">Пароль:</label> -->
-                <input type="password" id="password" name="password" placeholder="Пароль"
+
+                <input  type="password" id="password" name="password" placeholder="Пароль"
         autocomplete="пароль"  value="">
-                <button type="submit">Войти</button>
+                <button class="form_auth_button" type="submit">Войти</button>
             </form>
                 <small id="error-message"></small>
-                <hr>
-                <p><small>Еще не с нами?</small></p>
-                <input id="show-register" type="button" value="Создать аккаунт" class="secondary">
+                <label for="show-register">Еще не с нами?</label>
+                <input  id="show-register" type="button" value="Создать аккаунт">
+                <label for="vendors">Или войти с помощью:</label>
+                <div  id="vendors">
+                    <input  id="google-login" type="button" onclick="location.href='/auth/google';" value="Google" />
+                    <input  id="yandex-login" type="button" onclick="location.href='/auth/yandex';" value="Yandex" />
+                    <p class="item-content"><script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="chatgp_login_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+                    <script type="text/javascript">
+                      function onTelegramAuth(user) {
+                        alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+                      }
+                    </script>
+                        </p>
+                    <input id="vk-login" type="button" onclick="location.href='/auth/vk';" value="ВКонтакте" />
+                 </div>
             </article>
         </section>
 
         <section id="register-section" {% if mode=="login" %} style="display: none;" {% endif %}>
-            <article style="width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        margin-right: -50%;
-        transform: translate(-50%, -50%)">
-                <header><p>Зарегистрироваться</p></header>
-            <form id="register-form" method="post" action="/register">
+            <article class="form_auth_block">
+                <header class="form_auth_block_head_text">Зарегистрироваться</header>
+            <form class="form_auth_block_content" id="register-form" method="post" action="/register">
                 <!--<label for="reg_email">Email:</label> -->
                 <input type="email" id="reg_email" name="email" placeholder="Email"
         autocomplete="email"  value="">
@@ -47,13 +49,25 @@
                 <!--<label for="confirm-password">Повторите пароль:</label> -->
                 <input type="password" id="confirm-password" name="confirm-password" placeholder="Повторите пароль"
         autocomplete="повтор пароля"  value="">
-                <button  type="submit">Регистрация</button>
+                <button  class="form_auth_button" type="submit">Регистрация</button>
                 <small id="error-message-reg"></small>
             </form>
-                <hr>
-            <input id="show-login" type="button" value="Уже есть аккаунт" class="secondary">
+            <input id="show-login" type="button" value="Уже есть email аккаунт">
+                <label for="vendors2">Войти с помощью:</label>
+                <div id="vendors2">
+                    <input id="google-login" type="button" onclick="location.href='/auth/google';" value="Google" />
+                    <input id="yandex-login" type="button" onclick="location.href='/auth/yandex';" value="Yandex" />
+                    <script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="chatgp_login_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
+                    <script type="text/javascript">
+                      function onTelegramAuth(user) {
+                        alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+                      }
+                    </script>
+                    <input id="vk-login" type="button" onclick="location.href='/auth/vk';" value="ВКонтакте" />
+                 </div>
             </article>
         </section>
+
     </div>
 </div>
 
@@ -175,4 +189,5 @@
 });
 
 </script>
+
 {% endblock %}
