@@ -1,7 +1,11 @@
-import json
+#import json
+import logging
 from models.user_data import users_data_collection
 from models.users import users_collection
 from datetime import datetime, timezone
+
+
+logger = logging.getLogger("app_logger")
 
 async def update_user_mode(user, mode: str):
 
@@ -19,7 +23,7 @@ async def set_chat(user, chat_id: str):
             {"$set": {"mode.$[].current_chat": chat_id}}  # ✅ Обновляем current_chat во всех объектах массива mode
         )
     else:
-        print("set_chat - было выбрано создание нового чата, его айди установится после стрима\n")
+        logger.info("set_chat - было выбрано создание нового чата, его айди установится после стрима\n")
         return
 
 
@@ -129,7 +133,7 @@ class User:
         )
 
         if not data or "chats" not in data:
-            print(f"функция get_current_chat_id не нашла чат в базе\n")
+            logger.info(f"функция get_current_chat_id не нашла чат в базе\n")
             return None  # Если данные отсутствуют или нет поля chats
 
         # Получаем список всех chat_id у пользователя
@@ -171,9 +175,9 @@ class User:
                              summary: str = "Без названия"):
         chat_update = {"prompt": prompt, "body": body}
         current_time = datetime.now(timezone.utc).isoformat()  # Актуальное время
-        print(f"Полный ответ в функции add_to_chat_db: {body[10:20]}...\n")
-        print(f"chat_id в функции add_to_chat_db: {chat_id}\n")
-        print(f"stream_id в функции add_to_chat_db: {stream_id}\n")
+        logger.info(f"def add_to_chat_db - Полный ответ в функции add_to_chat_db: {body[0:15]}...\n")
+        logger.info(f"def add_to_chat_db - chat_id в функции add_to_chat_db: {chat_id}\n")
+        logger.info(f"def add_to_chat_db - stream_id в функции add_to_chat_db: {stream_id}\n")
         try:
             result = await users_data_collection.update_one(
                 {"email": self.user.get("email"), "chats.chat_id": chat_id},  # Проверяем, есть ли этот чат
@@ -198,9 +202,9 @@ class User:
                     }
                 )
 
-                print(f"создан новый чат add_to_chat_db {stream_id}\n")
+                logger.info(f"def add_to_chat_db - создан новый чат add_to_chat_db {stream_id}\n")
         except Exception as e:
-            print(f"ошибка добавления данных в чат: {e}")
+            logger.info(f"def add_to_chat_db - ошибка добавления данных в чат: {e}")
             return
 
 

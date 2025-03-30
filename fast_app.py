@@ -1,4 +1,6 @@
 import json
+import logging
+from logging.handlers import RotatingFileHandler
 from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException
 from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,6 +15,26 @@ import openai
 from settings import APY_KEY
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat
 import asyncio
+
+access_logger = logging.getLogger("uvicorn.access")
+
+file_handler = logging.FileHandler("access.log")
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
+access_logger.addHandler(file_handler)
+
+
+
+# Настраиваем логгер (общий для всего проекта)
+logger = logging.getLogger("app_logger")  # Уникальное имя логгера
+logger.setLevel(logging.INFO)
+
+# Обработчик для записи логов в файл с ротацией
+file_handler = RotatingFileHandler("app.log", maxBytes=5*1024*1024, backupCount=3)
+file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+
+# Добавляем обработчик (если он еще не был добавлен)
+if not logger.hasHandlers():
+    logger.addHandler(file_handler)
 
 app = FastAPI()
 
@@ -42,7 +64,7 @@ client = openai.AsyncOpenAI(api_key=APY_KEY)
 
 
 async def generate_summary(data):
-    print(f"Данные пришли в функцию generate_summary: {data}")
+    logger.info(f"Данные пришли в функцию generate_summary: {data}")
     try:
         response = await client.chat.completions.create(
             model='gpt-4o-mini',
@@ -55,32 +77,32 @@ async def generate_summary(data):
         )
 
         if not response.choices or not response.choices[0].message:
-            print("Ошибка: Пустой ответ от API OpenAI")
+            logger.info("Ошибка: Пустой ответ от API OpenAI")
             return "Ошибка генерации заголовка"
 
         reply_content = response.choices[0].message.content
-        print(f"Summary: \n{reply_content}")
+        logger.info(f"Summary: \n{reply_content}")
         return reply_content
 
     except Exception as e:
-        print(f"Ошибка в generate_summary: {e}")
+        logger.info(f"Ошибка в generate_summary: {e}")
         return "Ошибка генерации заголовка"
 
 
 async def after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, user_tokens):
-    print(f"Полный ответ after_stream_processing обрезанный: {full_reply_content[10]}")
+    logger.info(f"Полный ответ after_stream_processing обрезанный: {full_reply_content[0:15]}")
 
     if not chat_id or chat_id == "new":  # Если чат новый, создаем summary
         summary = await generate_summary(full_reply_content)  # ✅ Дожидаемся результата
-        print(f"Создан summary after_stream_processing: {summary}")
+        logger.info(f"Создан summary after_stream_processing: {summary}")
     else:
         summary = None
 
     await chat.add_to_chat_db(prompt, full_reply_content, chat_id, stream_id, summary)  # ✅ Теперь summary — строка
-    print(f"Данные сохранены в чат after_stream_processing {chat_id}")
+    logger.info(f"Данные сохранены в чат after_stream_processing {chat_id}")
 
     await chat.update_token_count_db(user_tokens)
-    print(f"Обновлены токены after_stream_processing: {user_tokens}")
+    logger.info(f"Обновлены токены after_stream_processing: {user_tokens}")
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -98,17 +120,17 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
     # Если chat_id отсутствует, пробуем взять из куки
 
     if not chat_id:
-        print(f"Чат айди нет, ищем в базе\n")
+        logger.info(f"Чат айди нет, ищем в базе\n")
         chat_id = await get_last_chat_id(user, recent_chat=True) or request.cookies.get("chat_id_cookie")
-        print(f"Чат айди есть, в куках: {request.cookies.get("chat_id_cookie")}\n")
-        print(f"Чат айди после поиска в базе и в куках: {chat_id}\n")
+        logger.info(f"Чат айди есть, в куках: {request.cookies.get("chat_id_cookie")}\n")
+        logger.info(f"Чат айди после поиска в базе и в куках: {chat_id}\n")
 
     if chat_id:
         response.set_cookie(key="chat_id_cookie", value=chat_id, path="/", httponly=False, max_age=3600)
         user_chat = await get_chat_body_by_id(user, chat_id)
         await set_chat(user, chat_id)
 
-    print(f"Определен пользователь на корне: {user}, param: {param}, chat_id: {chat_id}\n")
+    logger.info(f"Определен пользователь на корне: {user}, param: {param}, chat_id: {chat_id}\n")
 
     # else:
     #     await reset_chat(user)  # Сброс текущего чата
@@ -128,11 +150,11 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
     chat = User(user)
 
     chat_id = await get_last_chat_id(user) or None
-    print(f"Выбранный chat_id stream get_last_chat_id: {chat_id}")
+    logger.info(f"Выбранный chat_id stream get_last_chat_id: {chat_id}")
     # Достаем последние 5 сообщений для assistant_content
 
     assistant_content = await chat.get_last_chat_messages(chat_id)
-    print(f"assistant_content stream: {assistant_content[-10:-1]}\n")
+    logger.info(f"assistant_content stream: {assistant_content[0:15]}\n")
 
     user_tokens = user.get("tokens", 0)  # Предотвращаем ошибку, если у user нет "tokens"
 
@@ -143,7 +165,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
 
         # Проверка лимита токенов
         if (1000000000 - hit_limits) <= 0:
-            print(f"Токенов слишком много: {hit_limits}\n")
+            logger.info(f"Токенов слишком много: {hit_limits}\n")
             #return
 
         # GPT запрос
@@ -167,7 +189,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
 
             if chunk.usage:
                 hit_limits += chunk.usage.total_tokens
-                print(f"Обновленный лимит токенов stream: {hit_limits}\n")
+                logger.info(f"Обновленный лимит токенов stream: {hit_limits}\n")
 
             json_data = json.dumps({
                 "id": chunk.id,
@@ -180,11 +202,11 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
             yield f"data: {json_data}\n\n"
 
         full_reply_content = ''.join(collected_messages)
-        print(f"Полный ответ в стриме: {full_reply_content[-10:-1]}")
-        print(f"Айди стрима: {stream_id}\n")
+        logger.info(f"Полный ответ в стриме: {full_reply_content[0:15]}")
+        logger.info(f"Айди стрима: {stream_id}\n")
 
         asyncio.create_task(after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, user_tokens))
-        print(f"Запустили фоновую функцию из стрима с чат айди: {chat_id}\n")
+        logger.info(f"Запустили фоновую функцию из стрима с чат айди: {chat_id}\n")
 
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
 
