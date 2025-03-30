@@ -4,7 +4,6 @@ from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from markupsafe import Markup
 
 from auth import router as auth_router
 from users import router as users_router

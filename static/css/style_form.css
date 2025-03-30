@@ -1,3 +1,4 @@
+
 .form_auth_block {
     width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
     font-family: "Manrope", sans-serif;
@@ -10,33 +11,43 @@
     background-size: cover;
     border-radius: 4px;
 }
+.logo {
+    display: flex;
+    box-sizing: border-box;
+    margin: auto 0;
+}
 
 .form_auth_block_content{
-  padding-top: 15%;
+  padding-top: 2%;
 }
-.form_auth_block_head_text{
+.form_auth_block_head_text {
     display: block;
-    text-align: center;
+    height: 80px;
+    text-align: end;
     padding: 10px;
     font-size: 18px;
     font-weight: 600;
     background: #ffffff;
     opacity: 0.7;
+    background-image: url('/static/img/logo/27.svg'); /* Устанавливаем фон */
+    background-repeat: no-repeat; /* Отключаем повторение */
+    background-size: contain; /* Подгоняем размер */
+    background-position: center; /* Размещаем left */
 }
+
 .form_auth_block label{
     display: block;
     text-align: center;
     padding: 10px;
-    background: #ffffff;
-    opacity: 0.7;
-    font-weight: 600;
+    color: #ffffff;
+    font-weight: 400;
     margin-bottom: 5px;
-    margin-top: 10px;
+    margin-top: 5px;
 }
 .form_auth_block input{
       display: block;
       margin: 0 auto 10px;
-      padding-left: 10px;
+      /*padding-left: 10px;*/
       width: 80%;
       height: 45px;
       border-radius: 10px;
