@@ -19,6 +19,7 @@
 
 .form_auth_block_content{
   padding-top: 2%;
+  padding-bottom: 2%;
 }
 .form_auth_block_head_text {
     display: block;
@@ -27,11 +28,10 @@
     padding: 10px;
     font-size: 18px;
     font-weight: 600;
-    background: #ffffff;
-    opacity: 0.7;
+    background: #b3dcdc;
     background-image: url('/static/img/logo/27.svg'); /* Устанавливаем фон */
     background-repeat: no-repeat; /* Отключаем повторение */
-    background-size: contain; /* Подгоняем размер */
+    background-size: 70px auto; /* Подгоняем размер */
     background-position: center; /* Размещаем left */
 }
 
@@ -68,7 +68,11 @@ input:focus {
   border: 2px solid #436fea;
 }
 .form_auth_button{
-    display: block;
+    display: flex;
+    align-items: center; /* Выравнивание по вертикали */
+    justify-content: center; /* Центрирование содержимого */
+    gap: 10px; /* Расстояние между иконкой и текстом */
+    padding: 10px 20px;
     width: 80%;
     /*margin-top: 10px;*/
     margin: 0 auto 10px;
@@ -78,6 +82,10 @@ input:focus {
     cursor: pointer;
 }
 
+svg {
+    flex-shrink: 0; /* Запрещаем уменьшение иконки */
+}
+
 .form_auth_button:hover {
       color: #000000;
       border-radius: 10px;
@@ -85,6 +93,14 @@ input:focus {
       opacity: 0.7;
 }
 
+/*#google-login {*/
+/*    background: url('/static/img/icons/brand-google.svg') no-repeat left center;*/
+/*    background-size: 20px; !* Размер иконки *!*/
+/*    padding-left: 30px; !* Отступ, чтобы текст не накладывался *!*/
+/*    height: 40px;*/
+/*    border: 1px solid #ccc;*/
+/*    cursor: pointer;*/
+/*}*/
 
 ::-webkit-input-placeholder {color:#3f3f44; padding-left: 10px;}
 ::-moz-placeholder          {color:#3f3f44; padding-left: 10px;}
