@@ -57,7 +57,6 @@ def create_refresh_token(email: str):
 
 
 async def get_user(request: Request):
-    #print("z pltcm")
     """Проверяет access-токен в куках и валидирует его"""
     token = request.cookies.get("access_token")
     logger.info(f"def get_user - Токен в куках: {token}")  # Логируем токен из кук

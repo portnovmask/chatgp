@@ -1,0 +1,105 @@
+{% extends "noheader2.html" %}
+
+{% block title %}Авторизация{% endblock %}
+
+{% block content %}
+
+
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo"></div>
+            <h2>Выберите подходящий план подписки</h2>
+            <p><small>Quisque rutrum. Aenean imperdiet. Etiam ultricies
+                nisi vel augue. Curabitur ullamcorper ultricies nisi.
+                Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus
+                eget condimentum rhoncus, sem quam semper libero, sit amet
+                adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel,
+                luctus pulvinar, hendrerit id, lorem. Maecenas nec
+                odio et ante tincidunt tempus.</small></p>
+            <div class="links">
+                <a href="#">Блог</a>
+                <a href="#">Политика конфиденциальности</a>
+                <a href="#">Контакты</a>
+                <a href="#">Помощь</a>
+            </div>
+        </aside>
+
+        <div class="grid">
+    {% set plans = {"trial": "Базовый", "basic": "Оптимальный", "pro": "Мастер", "premium": "Элита"} %}
+
+    {% for plan, title in plans.items() %}
+        <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.status if user else '' }}');">
+            <div class="card {% if user and user.status == plan %}active{% endif %}">
+                <img src="/static/img/logo/25.svg" alt="plan logo">
+                <h3>{{ title }}</h3>
+                <p>{% if user and user.status == plan %}Текущий план{% else %}Выбрать{% endif %}</p>
+                <small>Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus,
+                    sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc,
+                    blandit vel, luctus pulvinar, hendrerit id, lorem.</small>
+            </div>
+        </a>
+    {% endfor %}
+</div>
+
+ </div>
+
+<script>
+
+async function handleSubscription(event, selectedPlan, currentPlan) {
+    event.preventDefault();
+
+    if (selectedPlan === currentPlan) {
+        alert("Вы уже на этом тарифе!");
+        return;
+    }
+
+    try {
+        const response = await fetch(`/subscribe/?level=${selectedPlan}`, { method: "POST" });
+        const data = await response.json();
+
+        if (response.ok) {
+            if (data.redirect) {
+                window.location.href = data.redirect;
+            } else {
+                alert(data.message);
+            }
+        } else {
+            alert("Ошибка: " + data.message);
+        }
+    } catch (error) {
+        console.error("Ошибка подписки:", error);
+        alert("Ошибка подключения. Попробуйте еще раз.");
+    }
+}
+
+
+async function subscribe(level) {
+    const token = localStorage.getItem("access_token");  //  Получаем токен из локального хранилища
+    const response = await fetch(`/subscribe/?level=${level}`, {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`  //  Передаем токен вместо email
+        }
+    });
+
+    const data = await response.json();
+    console.log(data.message);
+}
+
+async function checkSubscription() {
+    const token = localStorage.getItem("access_token");  //  Получаем токен
+
+    const response = await fetch(`/subscription/`, {  //  Email не нужен в URL
+        method: "GET",
+        headers: {
+            "Authorization": `Bearer ${token}`  //  Передаем токен
+        }
+    });
+
+    const data = await response.json();
+    console.log("Текущая подписка:", data);
+}
+
+    </script>
+
+{% endblock %}

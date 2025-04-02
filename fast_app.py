@@ -10,11 +10,13 @@ from fastapi.templating import Jinja2Templates
 from auth import router as auth_router
 from users import router as users_router
 from products import router as products_router
+from subscriptions import router as subscription_router, renew_subscriptions
 from auth import get_user
 import openai
 from settings import APY_KEY
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat
 import asyncio
+# from fastapi_utils.tasks import repeat_every
 
 access_logger = logging.getLogger("uvicorn.access")
 
@@ -42,6 +44,8 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(products_router)
+
+app.include_router(subscription_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -215,6 +219,11 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
 async def authorize(request: Request, mode: str = "login"):
     return templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
 
+@app.get("/price")
+async def price(request: Request, user: dict = Depends(get_user)):
+    return templates.TemplateResponse("price.html", {"request": request, "user": user})
+
+
 
 @app.get("/change_param")  #Ручка для выбора параметров
 async def change_param(request: Request, user: dict = Depends(get_user), param: str = "basic"):
@@ -300,6 +309,16 @@ def format_code_blocks(text):
     return formatted_text
 # Регистрируем фильтр
 templates.env.filters["format_code_blocks"] = format_code_blocks
+
+
+
+# Запуск фонового обновления подписок
+# @app.on_event("startup")
+# @repeat_every(seconds=86400)  # Раз в сутки
+# async def auto_renew_subscriptions():
+#     await renew_subscriptions()
+
+
 
 if __name__ == "__main__":
     import uvicorn
