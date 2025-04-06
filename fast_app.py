@@ -95,7 +95,7 @@ async def generate_summary(data):
 
 async def after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, user_tokens):
     logger.info(f"Полный ответ after_stream_processing обрезанный: {full_reply_content[0:15]}")
-
+    logger.info(f"def after_stream_processing user tokens: {user_tokens}")
     if not chat_id or chat_id == "new":  # Если чат новый, создаем summary
         summary = await generate_summary(full_reply_content)  # ✅ Дожидаемся результата
         logger.info(f"Создан summary after_stream_processing: {summary}")

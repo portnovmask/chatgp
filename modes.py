@@ -231,7 +231,7 @@ class User:
                     "$set": {"chats.$.chat_time": current_time}  # Обновляем chat_time
                 }
             )
-            await self.refresh()
+            #await self.refresh()
 
             if result.matched_count == 0 and stream_id:  # Если чат не найден, создаем новый
                 chat_entry = {
@@ -247,7 +247,7 @@ class User:
                         "$push": {"chats": chat_entry}  # Добавляем новый чат в массив chats
                     }
                 )
-                await self.refresh()
+                #await self.refresh()
 
                 logger.info(f"def add_to_chat_db - создан новый чат add_to_chat_db {stream_id}\n")
         except Exception as e:
@@ -260,12 +260,12 @@ class User:
 
     async def update_token_count_db(self, token_count: int):
         now = datetime.now(timezone.utc)
-
+        logger.info(f"def update_token_count_db token_count: {token_count}")
         if not self.user:
             return
         updates = []
         stat = self.user.get("status")
-        token_limit  = self.modes[stat].get("token_limits")
+        token_limit = self.modes.get(stat, {}).get("token_limit", 0)
         tokens = self.user.get("tokens", 0)
         email = self.user.get("email")
         original_status = self.user.get("original_status", "trial")
@@ -285,6 +285,9 @@ class User:
 
         # Проверяем, нужно ли перевести пользователя в trial
         new_token_count = (tokens or 0) + (token_count or 0)
+
+        logger.info(f"def update_token_count_db new_token_count: {new_token_count}")
+
         if new_token_count >= token_limit and stat != "trial":
             end_of_day = now.replace(hour=11, minute=59, second=59, microsecond=0)
             updates.append(UpdateOne(
@@ -299,7 +302,7 @@ class User:
 
         if updates:
             await users_collection.bulk_write(updates)
-            await self.refresh()
+            #await self.refresh()
 
     async def request_params(self, status):
 

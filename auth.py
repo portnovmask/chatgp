@@ -170,7 +170,9 @@ async def register(email: str = Form(...), password: str = Form(...)):
                 "auth_provider": "local",
                 "oauth_id": None,
                 "status": status,
-                "tokens": tokens}
+                "tokens": tokens,
+                "original_status": status,
+                "trial_expires_at": None}
     result = await users_collection.insert_one(new_user)
     logger.info(f"/register  - def register - пользователь: {new_user['email']} создан\n")
     user_id = str(result.inserted_id)  #  Теперь _id точно есть
