@@ -192,7 +192,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
                 #print(f"Стрим-фрагмент: {chunk.choices[0].delta.content}")  # Логируем потоковые данные
 
             if chunk.usage:
-                hit_limits += chunk.usage.total_tokens
+                hit_limits += int(chunk.usage.total_tokens)
                 logger.info(f"Обновленный лимит токенов stream: {hit_limits}\n")
 
             json_data = json.dumps({
@@ -209,7 +209,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
         logger.info(f"Полный ответ в стриме: {full_reply_content[0:15]}")
         logger.info(f"Айди стрима: {stream_id}\n")
 
-        asyncio.create_task(after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, user_tokens))
+        asyncio.create_task(after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, hit_limits))
         logger.info(f"Запустили фоновую функцию из стрима с чат айди: {chat_id}\n")
 
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")

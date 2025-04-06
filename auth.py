@@ -79,7 +79,12 @@ async def get_user(request: Request):
 
         user = await users_collection.find_one({"email": email})
         logger.info(f"def get_user - Пользователь {user['email']} авторизован: {token}")
-        return {"email": user["email"], "id": str(user["_id"]), "status": str(user["status"]), "tokens": int(user["tokens"])} if user else None
+        return {"email": user["email"],
+                "id": str(user["_id"]),
+                "status": str(user["status"]),
+                "tokens": int(user["tokens"]),
+                "original_status": str(user["original_status"]),
+                "trial_expires_at": user["trial_expires_at"]} if user else None
     except JWTError:
         return None
 

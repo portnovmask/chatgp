@@ -1,4 +1,4 @@
-#import json
+from pymongo import UpdateOne
 import logging
 from models.user_data import users_data_collection
 from models.users import users_collection
@@ -86,9 +86,9 @@ async def get_chat_body_by_id(user, chat_id):
     )
 
     if not data or "chats" not in data:
-        return None  # ✅ Возвращаем None, если чатов нет
+        return None  #  Возвращаем None, если чатов нет
 
-    # ✅ Безопасно проверяем наличие chat_id перед сравнением
+    #  Безопасно проверяем наличие chat_id перед сравнением
     chat_body = next((chat.get("chat_body") for chat in data["chats"] if chat.get("chat_id") == chat_id), None)
 
     return chat_body
@@ -103,27 +103,72 @@ class User:
 
     def __init__(self, user):
         self.user = user
-        # self.details = []
-    #     self.history = []  # Глобальный список для хранения данных
-    #     self.MAX_SIZE = 5  # Ограничение по количеству элементов
-    #
-    # async def add_to_history(self, prompt, response):
-    #     """Добавляет новый элемент в список, удаляя старые по FIFO."""
-    #     current_time = datetime.now(timezone.utc).isoformat()
-    #     value = f"Пользователь:{prompt} \n Ответ ЛЛМ модели: {response} \n временная метка: {current_time}"
-    #     if len(self.history) >= self.MAX_SIZE:
-    #         self.history.pop(0)  # Удаляем первый элемент (FIFO)
-    #     self.history.append(value)  # Добавляем новый элемент
-    #     print (f"Сам текст: {value} \n")
-    #
-    #     #return "\n".join(reversed(self.history))
-    #
-    # async def get_formatted_history(self):
-    #     """Возвращает элементы в порядке LIFO, разделённые переносами строк."""
-    #     print("\n".join(reversed(self.history)) if self.history else 'no history')
-    #     print(f"Сам список: {self.history} \n")
-    #     return "\n".join(reversed(self.history)) if self.history else ''  # Возвращаем элементы в порядке LIFO
-    #
+        self.modes = {
+            "trial": {
+                "model": "gpt-4o-mini",
+                "system": "Ты ассистент, но стараешься отвечать кратко и только по делу. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
+                "token_limit": 10000000,
+                "temperature": 0.3,
+                "4o_usage": 0
+            },
+            "basic": {
+                "model": "gpt-4o-mini",
+                "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
+                "token_limit": 100000000,
+                "temperature": 0.2,
+                "4o_usage": 5
+            },
+            "pro": {
+                "model": "gpt-4o",
+                "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
+                "token_limit": 10000000,
+                "temperature": 0.2,
+                "4o_usage": 40
+            },
+            "premium": {
+                "model": "gpt-4o",
+                "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
+                "token_limit": 100000000,
+                "temperature": 0.2,
+                "4o_usage": 150
+            },
+            "error_code": {
+                "model": "gpt-4o-mini",
+                "system": "Ты ассистент",
+                "token_limit": 1000000,
+                "temperature": 0.2
+            },
+            "attorney": {
+                "model": "gpt-4o-mini",
+                "system": "Ты адвокат, опытный советник по вопросам права. Пользователь - твой клиент и ты защищаешь его интересы в правовом поле.",
+                "token_limit": 1000000,
+                "temperature": 0.4
+            },
+            "coder": {
+                "model": "gpt-4o-mini",
+                "system": "Ты практикующий программист с опытом, чётко определяешь задачу, подходящий алгоритм и пишешь код. Ты используешь как проверенные методы, так и новые подходы. А главное - ты можешь доступно объяснить свой код.",
+                "token_limit": 1000000,
+                "temperature": 0.1
+            },
+            "translator": {
+                "model": "gpt-4o-mini",
+                "system": "Ты профессиональный переводчик и знаешь многие популярные языки. Пожалуйста, всегда уточняй задание: язык исходника и язык перевода. Будь в меру точен и креативен, будь внимателен к терминам, именам, датам и прочим важным деталям. Прошу тебя использовать стиль в соответствие с исходным текстом. Для общения с пользователем твой базовый язык - русский, переходи на английский только при необходимости или по запросу пользователя. Если уточнения не требуются, то в ответе пользователю должен быть только текст перевода согласно заданию.",
+                "token_limit": 1000000,
+                "temperature": 0.5,
+
+             },
+            "creator": {
+                "model": "gpt-4o-mini",
+                "system": "Ты креативщик, редактор, писатель. Ты предлагаешь улучшения текста, исправления синтаксиса, пунктуации и стилистики. Твой язык по умолчанию - русский. Если язык запроса отличается от русского, то ты продолжаешь на языке запроса. Твоя основная задача сделать текст более читаемым, захватывающим внимание и передающим идею.",
+                "token_limit": 1000000,
+                "temperature": 0.9
+            },
+        }
+
+    async def refresh(self):
+        """синхронизирует изменения в бд с объектами в оперативной памяти"""
+        email = self.user.get("email")
+        self.user = await users_collection.find_one({"email": email})
 
 
     async def get_current_chat_id(self, chat_id: str):
@@ -186,6 +231,7 @@ class User:
                     "$set": {"chats.$.chat_time": current_time}  # Обновляем chat_time
                 }
             )
+            await self.refresh()
 
             if result.matched_count == 0 and stream_id:  # Если чат не найден, создаем новый
                 chat_entry = {
@@ -201,6 +247,7 @@ class User:
                         "$push": {"chats": chat_entry}  # Добавляем новый чат в массив chats
                     }
                 )
+                await self.refresh()
 
                 logger.info(f"def add_to_chat_db - создан новый чат add_to_chat_db {stream_id}\n")
         except Exception as e:
@@ -212,45 +259,59 @@ class User:
 
 
     async def update_token_count_db(self, token_count: int):
+        now = datetime.now(timezone.utc)
 
-        await users_collection.update_one(
-            {"email": self.user.get("email")},
+        if not self.user:
+            return
+        updates = []
+        stat = self.user.get("status")
+        token_limit  = self.modes[stat].get("token_limits")
+        tokens = self.user.get("tokens", 0)
+        email = self.user.get("email")
+        original_status = self.user.get("original_status", "trial")
+        if stat == "trial" and self.user.get("trial_expires_at"):
+            trial_end = self.user["trial_expires_at"]
+            if now > trial_end:
+                updates.append(UpdateOne(
+                    {"email": email},
+                    {"$set": {"status": original_status},
+                     "$unset": {"original_status": "", "trial_expires_at": ""}}
+                ))
+
+        updates.append(UpdateOne(
+            {"email": email},
             {"$inc": {"tokens": token_count}}
-        )
+        ))
 
-    # async def format_request_str(self, params: dict, user_content: str = "Представься и поздоровайся"):
-    #
-    #     request_str = f'''model="{params.get("model", "gpt-4o-mini")}",
-    # messages={json.dumps([
-    #     {"role": "system", "content": params.get("content", "Ты ассистент")},
-    #     {"role": "user", "content": user_content}
-    # ], ensure_ascii=False)},
-    # temperature={params.get("temperature", 0.2)}'''
-    #
-    #     if params.get("stream", True):  # Если stream=True, добавляем stream и stream_options
-    #         request_str += f''',
-    # stream=True,
-    # stream_options={json.dumps(params.get("stream_options", {"include_usage": True}), ensure_ascii=False)}'''
-    #
-    #     return request_str
+        # Проверяем, нужно ли перевести пользователя в trial
+        new_token_count = (tokens or 0) + (token_count or 0)
+        if new_token_count >= token_limit and stat != "trial":
+            end_of_day = now.replace(hour=11, minute=59, second=59, microsecond=0)
+            updates.append(UpdateOne(
+                {"email": email},
+                {"$set": {
+                    "tokens": 0,
+                    "status": "trial",
+                    "original_status": stat,
+                    "trial_expires_at": end_of_day
+                }}
+            ))
 
-# self.modes = {
-#         "basic" : {
-#             "model": "gpt-4o-mini",
-#             "messages": [
-#                 {"role": "system", "content": "Ты ассистент."}
-#             ],
-#             "temperature": 0.5,
-#             "stream": True,
-#             "stream_options": {"include_usage": True}
-#         },
-#         "translator" : {
-#             "model": "gpt-4o-mini",
-#             "messages": [
-#                 {"role": "system", "content": "Ты профессиональный переводчик и знаешь многие популярные языки. Пожалуйста, всегда уточняй задание: язык исходника и язык перевода. Будь в меру точен и креативен, будь внимателен к терминам, именам, датам и прочим важным деталям. Прошу тебя использовать стиль в соответствие с исходным текстом. Для общения с пользователем твой базовый язык - русский, переходи на английский только при необходимости или по запросу пользователя. Если уточнения не требуются, то в ответе пользователю должен быть только текст перевода согласно заданию."}
-#             ],
-#             "temperature": 0.4,
-#             "stream": True,
-#             "stream_options": {"include_usage": True}
-#         }
-# }
+        if updates:
+            await users_collection.bulk_write(updates)
+            await self.refresh()
+
+    async def request_params(self, status):
+
+        params=self.modes.get(status)
+        model=params.get("model", "gpt-4o-mini")
+        system=params.get("content", "Ты ассистент")
+        token_limits=params.get("tokens", 1000000)
+        temp=params.get("temperature", 0.2)
+        reasoning=params.get("4o_usage", 0)
+
+        request_params = {"model":model, "system":system, "token_limits":token_limits, "temperature":temp, "reasoning":reasoning}
+
+
+        return request_params
+
