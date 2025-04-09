@@ -107,14 +107,14 @@ class User:
             "trial": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент, но стараешься отвечать кратко и только по делу. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
-                "token_limit": 10000000,
+                "token_limit": 200,
                 "temperature": 0.3,
                 "4o_usage": 0
             },
             "basic": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
-                "token_limit": 100000000,
+                "token_limit": 100,
                 "temperature": 0.2,
                 "4o_usage": 5
             },
@@ -231,7 +231,6 @@ class User:
                     "$set": {"chats.$.chat_time": current_time}  # Обновляем chat_time
                 }
             )
-            #await self.refresh()
 
             if result.matched_count == 0 and stream_id:  # Если чат не найден, создаем новый
                 chat_entry = {
@@ -247,9 +246,9 @@ class User:
                         "$push": {"chats": chat_entry}  # Добавляем новый чат в массив chats
                     }
                 )
-                #await self.refresh()
 
                 logger.info(f"def add_to_chat_db - создан новый чат add_to_chat_db {stream_id}\n")
+            await self.refresh()
         except Exception as e:
             logger.info(f"def add_to_chat_db - ошибка добавления данных в чат: {e}")
             return
@@ -269,19 +268,52 @@ class User:
         tokens = self.user.get("tokens", 0)
         email = self.user.get("email")
         original_status = self.user.get("original_status", "trial")
-        if stat == "trial" and self.user.get("trial_expires_at"):
-            trial_end = self.user["trial_expires_at"]
-            if now > trial_end:
+        trial_expires_at = self.user.get("trial_expires_at")
+        trial_blocked = self.user.get("trial_blocked")
+
+        # Переход в оригинальный статус, если время trial бана вышло
+
+        if stat == "trial" and original_status != "trial" and trial_expires_at:
+            if trial_expires_at and trial_expires_at.tzinfo is None:
+                trial_expires_at = trial_expires_at.replace(tzinfo=timezone.utc)
+
+            if now > trial_expires_at:
                 updates.append(UpdateOne(
                     {"email": email},
-                    {"$set": {"status": original_status},
-                     "$unset": {"original_status": "", "trial_expires_at": ""}}
+                    {"$set": {"status": original_status, "tokens": 0},
+                     "$unset": {"trial_expires_at": ""}}
                 ))
 
+
+        # Инкремент токенов
         updates.append(UpdateOne(
             {"email": email},
             {"$inc": {"tokens": token_count}}
         ))
+
+        # Логика блокировки превышения/обнуления токенов на trial
+
+        if stat == "trial" and original_status == "trial":
+            if tokens >= token_limit and not trial_blocked:
+                block_until = now.replace(hour=11, minute=59, second=59, microsecond=0)
+                updates.append(UpdateOne(
+                    {"email": email},
+                    {"$set": {"trial_blocked": block_until}}
+                ))
+                return False
+
+            if trial_blocked and trial_blocked.tzinfo is None:
+                trial_blocked = trial_blocked.replace(tzinfo=timezone.utc)
+
+            if trial_blocked and trial_blocked < now:
+                updates.append(UpdateOne(
+                    {"email": email},
+                    {"$set": {"tokens": 0},
+                     "$unset": {"trial_blocked": ""}}
+                ))
+
+
+
 
         # Проверяем, нужно ли перевести пользователя в trial
         new_token_count = (tokens or 0) + (token_count or 0)
@@ -302,7 +334,9 @@ class User:
 
         if updates:
             await users_collection.bulk_write(updates)
-            #await self.refresh()
+            await self.refresh()
+        return True
+
 
     async def request_params(self, status):
 

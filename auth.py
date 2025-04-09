@@ -84,7 +84,8 @@ async def get_user(request: Request):
                 "status": str(user["status"]),
                 "tokens": int(user["tokens"]),
                 "original_status": str(user["original_status"]),
-                "trial_expires_at": user["trial_expires_at"]} if user else None
+                "trial_expires_at": user.get("trial_expires_at"),
+                "trial_blocked": user.get("trial_blocked")} if user else None
     except JWTError:
         return None
 
