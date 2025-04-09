@@ -270,14 +270,17 @@ class User:
         original_status = self.user.get("original_status", "trial")
         trial_expires_at = self.user.get("trial_expires_at")
         trial_blocked = self.user.get("trial_blocked")
-
+        logger.info(f"def update_token_count_db now: {now}")
+        logger.info(f"def update_token_count_db trial_expires_at: {trial_expires_at}")
+        logger.info(f"def update_token_count_db trial_blocked: {trial_blocked}")
         # Переход в оригинальный статус, если время trial бана вышло
 
         if stat == "trial" and original_status != "trial" and trial_expires_at:
-            if trial_expires_at and trial_expires_at.tzinfo is None:
+            if trial_expires_at.tzinfo is None:
                 trial_expires_at = trial_expires_at.replace(tzinfo=timezone.utc)
 
             if now > trial_expires_at:
+                logger.info(f"def update_token_count_db now > trial_expires_at: {now-trial_expires_at}")
                 updates.append(UpdateOne(
                     {"email": email},
                     {"$set": {"status": original_status, "tokens": 0},
@@ -295,7 +298,7 @@ class User:
 
         if stat == "trial" and original_status == "trial":
             if tokens >= token_limit and not trial_blocked:
-                block_until = now.replace(hour=11, minute=59, second=59, microsecond=0)
+                block_until = now.replace(hour=23, minute=59, second=59, microsecond=0)
                 updates.append(UpdateOne(
                     {"email": email},
                     {"$set": {"trial_blocked": block_until}}
@@ -321,7 +324,7 @@ class User:
         logger.info(f"def update_token_count_db new_token_count: {new_token_count}")
 
         if new_token_count >= token_limit and stat != "trial":
-            end_of_day = now.replace(hour=11, minute=59, second=59, microsecond=0)
+            end_of_day = now.replace(hour=23, minute=59, second=59, microsecond=0)
             updates.append(UpdateOne(
                 {"email": email},
                 {"$set": {
