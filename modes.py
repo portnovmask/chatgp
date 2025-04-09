@@ -341,8 +341,8 @@ class User:
         return True
 
 
-    async def request_params(self, status):
-
+    async def request_params(self):
+        status=self.user.get("status")
         params=self.modes.get(status)
         model=params.get("model", "gpt-4o-mini")
         system=params.get("content", "Ты ассистент")

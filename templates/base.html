@@ -36,8 +36,8 @@
 
             <div class="side-bar-header">
                 <div class="container-icons">
-                <div class="item tooltip"><button id="chose-mode-btn" class="new-chat-button"  onclick="window.location.href='/price'"><img src="/static/img/icons/settings.svg" width="30"  alt="mode"></button><span class="tooltiptext">Модель</span></div>
-                    <div class="item tooltip"><button id="find-chat-button" class="new-chat-button"><img src="/static/img/icons/list-search.svg" width="30" alt="find chat"></button><span class="tooltiptext">Найти чат</span></div>
+                <div class="item tooltip"><button id="chose-mode-btn" class="new-chat-button"  onclick="window.location.href='/price'"><img src="/static/img/icons/settings.svg" width="30"  alt="mode"></button><span class="tooltiptext">Настройки</span></div>
+                    <div class="item tooltip"><button id="find-chat-button" class="new-chat-button"><img src="/static/img/icons/user.svg" width="30" alt="user"></button><span class="tooltiptext">Пользователь</span></div>
                   <div class="item tooltip"><button id="new-chat-btn" class="new-chat-button"><img src="/static/img/icons/square-plus.svg" width="30" alt="new chat"></button> <span class="tooltiptext">Новый чат</span></div>
                 <div class="item tooltip"><button id="close-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/transition-left.svg" width="30"  alt="close"></button><span class="tooltiptext">Закрыть</span></div>
 
@@ -45,9 +45,23 @@
 
             </div>
         <div class="container-icons-column">
-             <div class="item-content tooltip"><a id="home" href="/"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP.Ru</small></a><span class="tooltiptext">Новый чат</span></div>
-             <div class="item-content tooltip"><a href="#"><img src="/static/img/icons/user.svg" width="40" alt="user"><small>Дашборд</small></a><span class="tooltiptext">Пользователь</span></div>
-            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>
+             <div class="item-content tooltip"><a id="home" href="/"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP.Ru ассистент</small></a><span class="tooltiptext">О сервисе</span></div>
+             <div class="item-content tooltip"><a href="/price"><img src="/static/img/icons/blocks.svg" width="40" alt="user">
+
+                 {% if user %}
+                     {% if user.trial_expires_at %}
+                     <small>
+                        <b style="text-transform: uppercase;">{{ user.status }} </b>&nbsp; до конца дня
+                     </small>
+                     {% else %}
+                     <small>
+                        <b style="text-transform: uppercase;">{{ user.status }} </b>&nbsp; текущий план
+                     </small>
+                    {% endif %}
+                 {% endif %}
+
+                 </a><span class="tooltiptext">Текущий план</span></div>
+{#            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>#}
         </div>
 
             <div class="sidebar-main">

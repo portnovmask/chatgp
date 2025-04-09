@@ -161,7 +161,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
     logger.info(f"assistant_content stream: {assistant_content[0:15]}\n")
 
     user_tokens = user.get("tokens", 0)  # Предотвращаем ошибку, если у user нет "tokens"
-
+    request_params = await chat.request_params()
     async def generate_stream(context, hit_limits):
         collected_messages = []
         stream_id = None
@@ -174,13 +174,13 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
 
         # GPT запрос
         completion = await client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=request_params.get("model", "gpt-4o-mini"),
             messages=[
-                {"role": "system", "content": system_content},
+                {"role": "system", "content": request_params.get("content", system_content)},
                 {"role": "assistant", "content": context},
                 {"role": "user", "content": prompt}
             ],
-            temperature=0.2,
+            temperature=request_params.get("temperature", 0.2),
             stream=True,
             stream_options={"include_usage": True},
         )
