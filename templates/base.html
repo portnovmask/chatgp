@@ -47,15 +47,20 @@
         <div class="container-icons-column">
              <div class="item-content tooltip"><a id="home" href="/"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP.Ru ассистент</small></a><span class="tooltiptext">О сервисе</span></div>
              <div class="item-content tooltip"><a href="/price"><img src="/static/img/icons/blocks.svg" width="40" alt="user">
-
+                {% set plans = {
+                        "trial": "Базовый",
+                        "basic": "Оптимум",
+                        "pro": "Мыслитель",
+                        "premium": "Премиум"
+                    } %}
                  {% if user %}
                      {% if user.trial_expires_at %}
                      <small>
-                        <b style="text-transform: uppercase;">{{ user.status }} </b>&nbsp; до конца дня
+                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; до конца дня
                      </small>
                      {% else %}
                      <small>
-                        <b style="text-transform: uppercase;">{{ user.status }} </b>&nbsp; текущий план
+                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; текущий план
                      </small>
                     {% endif %}
                  {% endif %}

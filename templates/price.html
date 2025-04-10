@@ -7,8 +7,8 @@
 
     <div class="container">
         <aside class="sidebar">
-            <div class="logo"></div>
-            <h2>Выберите подходящий план подписки</h2>
+            <a href="/" class="logo"></a>
+            <h2>Уровни подписки</h2>
             <p><small>Quisque rutrum. Aenean imperdiet. Etiam ultricies
                 nisi vel augue. Curabitur ullamcorper ultricies nisi.
                 Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus
@@ -25,20 +25,43 @@
         </aside>
 
         <div class="grid">
-    {% set plans = {"trial": "Базовый", "basic": "Оптимальный", "pro": "Мастер", "premium": "Элита"} %}
+{% set plans = {
+    "trial": "Базовый",
+    "basic": "Оптимум",
+    "pro": "Мыслитель",
+    "premium": "Премиум"
+} %}
 
-    {% for plan, title in plans.items() %}
-        <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.status if user else '' }}');">
-            <div class="card {% if user and user.status == plan %}active{% endif %}">
-                <img src="/static/img/logo/25.svg" alt="plan logo">
-                <h3>{{ title }}</h3>
-                <p>{% if user and user.status == plan %}Текущий план{% else %}Выбрать{% endif %}</p>
-                <small>Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus eget condimentum rhoncus,
-                    sem quam semper libero, sit amet adipiscing sem neque sed ipsum. Nam quam nunc,
-                    blandit vel, luctus pulvinar, hendrerit id, lorem.</small>
-            </div>
-        </a>
-    {% endfor %}
+{% set descriptions = {
+    "trial": "Бесплатный доступ с ограничениями. Идеален для знакомства с сервисом и повседневных задач.",
+    "basic": "Лучший выбор для интенсивного использования. Максимум производительности - минимум ограничений.",
+    "pro": "Думающая логическая модель. Специально создана для интеллектуальных задач, проектирования и программирования.",
+    "premium": "Максимум возможностей, доступ к одной из самых обширных и мощных моделей на сегодняшний день."
+} %}
+
+
+ {% set prices = {
+    "trial": "0 USDT / неделя",
+    "basic": "4 USDT / неделя",
+    "pro": "12 USDT / неделя",
+    "premium": "32 USDT / неделя"
+} %}
+
+{% for plan, title in plans.items() %}
+    <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.status if user else '' }}');">
+        <div class="card {% if user and user.original_status == plan %}active{% endif %}">
+            <img src="/static/img/logo/28.svg" alt="plan logo">
+            <h3>{{ title }}</h3>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}</div>
+                <div class="card-small">-текущий план</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}</div>
+                <div class="card-small">&nbsp;</div>
+            {% endif %}
+            <div class="card-medium">{{ descriptions[plan] }}</div>
+        </div>
+    </a>
+{% endfor %}
+
 </div>
 
  </div>
