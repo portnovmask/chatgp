@@ -64,9 +64,10 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
         await users_collection.update_one({"email": email}, {
             "$set": {
                 "status": level,
+                "original_status": level,
                 "subscription.level": level,
-                "subscription.expires_at": new_expiry.isoformat(),
-                "subscription.next_billing_date": new_expiry.isoformat(),
+                "subscription.expires_at": new_expiry,
+                "subscription.next_billing_date": new_expiry,
                 "subscription.is_active": True,
                 "subscription.transaction_id": tx_id,
             },
@@ -74,7 +75,7 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
                 "subscription.payment_history": {
                     "tx_id": tx_id,
                     "amount": 10,  # Реальная сумма
-                    "date": datetime.now(timezone.utc).isoformat()
+                    "date": datetime.now(timezone.utc)
                 }
             }
         })
@@ -96,7 +97,7 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
 # 🔹 Автоматическое продление подписки
 @router.post("/renew-subscriptions/")
 async def renew_subscriptions():
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
 
     users = await users_collection.find({"subscription.pending_activation_date": {"$lte": now}}).to_list(None)
 
@@ -105,14 +106,14 @@ async def renew_subscriptions():
         new_level = user["subscription"]["pending_level"]
 
         tx_id = "mock_tx_id"
-        new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
+        new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
 
         await users_collection.update_one({"email": email}, {
             "$set": {
                 "status": new_level,
                 "subscription.level": new_level,
-                "subscription.expires_at": new_expiry.isoformat(),
-                "subscription.next_billing_date": new_expiry.isoformat(),
+                "subscription.expires_at": new_expiry,
+                "subscription.next_billing_date": new_expiry,
                 "subscription.is_active": True,
                 "subscription.transaction_id": tx_id,
             },
@@ -124,7 +125,7 @@ async def renew_subscriptions():
                 "subscription.payment_history": {
                     "tx_id": tx_id,
                     "amount": 10,  # Реальная сумма
-                    "date": datetime.now(timezone.utc).isoformat()
+                    "date": datetime.now(timezone.utc)
                 }
             }
         })

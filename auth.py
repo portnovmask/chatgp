@@ -1,4 +1,5 @@
 import logging
+import uuid
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
 from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime, timedelta, timezone
@@ -46,14 +47,28 @@ MODE = {"current_mode": "basic", "current_chat": None}
 
 def create_access_token(email: str):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    return jwt.encode({"sub": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM), expire
-
+    now = datetime.now(timezone.utc)
+    jti = str(uuid.uuid4())
+    to_encode = {
+        "sub": email,
+        "exp": expire,
+        "iat": now,
+        "jti": jti
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire, jti
 
 
 def create_refresh_token(email: str):
-    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
-    return jwt.encode({"sub": email, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM), expire
-
+    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    now = datetime.now(timezone.utc)
+    jti = str(uuid.uuid4())
+    to_encode = {
+        "sub": email,
+        "exp": expire,
+        "iat": now,
+        "jti": jti
+    }
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire, jti
 
 
 async def get_user(request: Request):
@@ -85,7 +100,8 @@ async def get_user(request: Request):
                 "tokens": int(user["tokens"]),
                 "original_status": str(user["original_status"]),
                 "trial_expires_at": user.get("trial_expires_at"),
-                "trial_blocked": user.get("trial_blocked")} if user else None
+                "trial_blocked": user.get("trial_blocked"),
+                "subscription": user.get("subscription", {})} if user else None
     except JWTError:
         return None
 
@@ -129,20 +145,21 @@ async def refresh_token(request: Request):
     try:
         payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
         email = payload.get("sub")
+        jti = payload.get("jti")
 
         # Проверяем, есть ли refresh-токен в БД
-        token_in_db = await tokens_collection.find_one({"email": email, "refresh_token": refresh_token})
+        token_in_db = await tokens_collection.find_one({"email": email,  "refresh_jti": jti})
         if not token_in_db:
             logger.info(f"/refresh  - def refresh_token - refresh token не найден в бд\n")
             raise HTTPException(status_code=401, detail="Недействительный токен  - время истекло")
 
         # Генерируем новый access-токен
-        new_access_token, access_expires = create_access_token(email)
+        new_access_token, access_expires, access_jti = create_access_token(email)
 
         # Обновляем токен в БД
         await tokens_collection.update_one(
             {"email": email, "refresh_token": refresh_token},
-            {"$set": {"access_token": new_access_token}}
+            {"$set": {"access_token": new_access_token, "access_jti": access_jti}},
         )
         logger.info(f"/refresh  - def refresh_token - токены в бд обновлены\n")
         response = JSONResponse({"message": "Токен обновлен"})
@@ -188,14 +205,16 @@ async def register(email: str = Form(...), password: str = Form(...)):
     }
     await users_data_collection.insert_one(user_data)
     logger.info(f"/register  - def register - создан чат по умолчанию для пользователя: {new_user['email']}\n")
-    access_token, access_expires = create_access_token(email)
-    refresh_token, refresh_expires = create_refresh_token(email)
+    access_token, access_expires, access_jti = create_access_token(email)
+    refresh_token, refresh_expires, refresh_jti = create_refresh_token(email)
     await tokens_collection.insert_one({
         "user_id": user_id,
         "email": email,
         "access_token": access_token,
+        "access_jti": access_jti,
         "refresh_token": refresh_token,
-        "expires_at": refresh_expires
+        "refresh_jti": refresh_jti,
+        "created_at": datetime.now(timezone.utc)
     })
     logger.info(f"/register  - def register - пользователь успешно зарегистрирован, токены добавлены в бд\n")
     response = RedirectResponse(url="/", status_code=303)
@@ -211,8 +230,8 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     if not user or not pwd_context.verify(password, user["password"]):
         logger.info(f"/login  - def login - Для ввода: {email} - пароль или email не верны\n")
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
-    access_token, access_expires = create_access_token(str(user["email"]))
-    refresh_token, refresh_expires = create_refresh_token(str(user["email"]))
+    access_token, access_expires, access_jti = create_access_token(str(user["email"]))
+    refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
 
     # Удаляем старые токены пользователя
     await tokens_collection.delete_many({"email": str(user["email"])})
@@ -220,10 +239,12 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     # Записываем новые токены в БД
     await tokens_collection.insert_one({
         "user_id": str(user["_id"]),
-        "email": str(user["email"]),
-        "access_token": access_token,
-        "refresh_token": refresh_token,
-        "expires_at": refresh_expires
+        "email": email,
+    "access_token": access_token,
+    "access_jti": access_jti,
+    "refresh_token": refresh_token,
+    "refresh_jti": refresh_jti,
+    "created_at": datetime.now(timezone.utc)
     })
     logger.info(f"/login  - def login - Для пользователя: {email} - созданы новые токены\n")
 
@@ -240,20 +261,56 @@ async def dashboard(user: dict = Depends(get_user)):
     return {"message": f"Привет, {user['email']}! Это твоя панель управления."}
 
 @router.get("/logout")
-async def logout():
+async def logout(request: Request):
     """Выход и удаление токенов из БД"""
+    refresh_token = request.cookies.get("refresh_token")
     response = RedirectResponse(url="/authorize")
 
-    # Получаем токен из куки
-    refresh_token = response.delete_cookie("refresh_token")
+    if not refresh_token:
+        logger.info(f"/logout - refresh_token не найден в куках")
+        return response
 
-    # Удаляем токены из БД
-    await tokens_collection.delete_many({"refresh_token": refresh_token})
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        jti = payload.get("jti")
 
+        if jti:
+            # Удаляем конкретную сессию по refresh_jti
+            await tokens_collection.delete_one({"refresh_jti": jti})
+            logger.info(f"/logout - удалён токен с jti={jti}")
+        else:
+            logger.warning(f"/logout - jti не найден в payload")
+
+    except JWTError:
+        logger.warning(f"/logout - недействительный или просроченный refresh_token")
+
+    # Удаляем куки на клиенте
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
-    logger.info(f"/logout  - def logout - Пользователь вышел, токены удалены в бд и куках\n")
     return response
+
+
+@router.post("/logout_all")
+async def logout_all(request: Request):
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Вы не авторизованы")
+
+    try:
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+
+        # Удаляем все токены этого пользователя
+        await tokens_collection.delete_many({"email": email})
+        logger.info(f"⛔ Пользователь {email} вышел со всех устройств")
+
+        response = JSONResponse({"message": "Вышли со всех устройств"})
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
+        return response
+
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
 
 
 @router.get("/auth/google")

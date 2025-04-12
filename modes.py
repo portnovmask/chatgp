@@ -273,6 +273,8 @@ class User:
         logger.info(f"def update_token_count_db now: {now}")
         logger.info(f"def update_token_count_db trial_expires_at: {trial_expires_at}")
         logger.info(f"def update_token_count_db trial_blocked: {trial_blocked}")
+
+
         # Переход в оригинальный статус, если время trial бана вышло
 
         if stat == "trial" and original_status != "trial" and trial_expires_at:

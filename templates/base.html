@@ -54,7 +54,7 @@
                         "premium": "Премиум"
                     } %}
                  {% if user %}
-                     {% if user.trial_expires_at %}
+                     {% if user.stat == 'trial' and user.original_status != "trial" and user.trial_expires_at %}
                      <small>
                         <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; до конца дня
                      </small>
