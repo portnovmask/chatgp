@@ -7,7 +7,7 @@ const stopIcon = `<img src="/static/img/icons/player-stop.svg" width="18" height
 
 
 async function filterText(text) {
-    const response = await fetch("/format-text/", {
+    const response = await fetchWithAuth("/format-text/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text })
@@ -37,7 +37,7 @@ function isValidInput(text) {
 
 async function fetchUpdatedSummaries() {
     try {
-        const response = await fetch("/update_summaries", {
+        const response = await fetchWithAuth("/update_summaries", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"

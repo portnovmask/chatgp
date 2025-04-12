@@ -36,7 +36,7 @@ document.getElementById("new-chat-btn").addEventListener("click", async () => {
 
 async function fetchChatData(chatId) {
     try {
-        const response = await fetch(`/get_chat_body?chat_id=${chatId}`);
+        const response = await fetchWithAuth(`/get_chat_body?chat_id=${chatId}`);
 
         if (!response.ok) {
             throw new Error(`Ошибка сервера: ${response.status}`);

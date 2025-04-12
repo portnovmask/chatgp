@@ -16,10 +16,10 @@
                 adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel,
                 luctus pulvinar, hendrerit id, lorem. Maecenas nec
                 odio et ante tincidunt tempus.</small></p>
-            <div class="links">
-                <a href="#">Блог</a>
-                <a href="#">Политика конфиденциальности</a>
-                <a href="#">Контакты</a>
+             <div class="links-row">
+                <a href="#">Блог&nbsp;</a>
+                <a href="#">Приватность&nbsp;</a>
+                <a href="#">Контакты&nbsp;</a>
                 <a href="#">Помощь</a>
             </div>
         </aside>
@@ -35,27 +35,33 @@
 {% set descriptions = {
     "trial": "Бесплатный доступ с ограничениями. Идеален для знакомства с сервисом и повседневных задач.",
     "basic": "Лучший выбор для интенсивного использования. Максимум производительности - минимум ограничений.",
-    "pro": "Думающая логическая модель. Специально создана для интеллектуальных задач, проектирования и программирования.",
+    "pro": "Когнитивная модель. Специально создана для интеллектуальных задач, проектирования и программирования.",
     "premium": "Максимум возможностей, доступ к одной из самых обширных и мощных моделей на сегодняшний день."
 } %}
 
 
  {% set prices = {
-    "trial": "0 USDT / неделя",
-    "basic": "4 USDT / неделя",
-    "pro": "12 USDT / неделя",
-    "premium": "32 USDT / неделя"
+    "trial": "0 USDT/в неделю",
+    "basic": "4 USDT/в неделю",
+    "pro": "12 USDT/в неделю",
+    "premium": "32 USDT/в неделю"
+} %}
+{% set clues = {
+    "trial": "Бесплатно навсегда",
+    "basic": "Есть ограничения",
+    "pro": "Узко специализированный",
+    "premium": "Модель 2025 года"
 } %}
 
 {% for plan, title in plans.items() %}
-    <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.status if user else '' }}');">
+    <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.original_status if user else '' }}');">
         <div class="card {% if user and user.original_status == plan %}active{% endif %}">
             <img src="/static/img/logo/28.svg" alt="plan logo">
             <h3>{{ title }}</h3>
             {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}</div>
-                <div class="card-small">-текущий план</div>
+                <div class="card-small" style="color: #ff5757;">текущий план</div>
             {% else %}<div class="card-price">{{ prices[plan] }}</div>
-                <div class="card-small">&nbsp;</div>
+                <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
             <div class="card-medium">{{ descriptions[plan] }}</div>
         </div>
@@ -63,8 +69,9 @@
 {% endfor %}
 
 </div>
-
  </div>
+
+<script src="/static/js/token.js"></script>
 
 <script>
 
@@ -77,7 +84,7 @@ async function handleSubscription(event, selectedPlan, currentPlan) {
     }
 
     try {
-        const response = await fetch(`/subscribe/?level=${selectedPlan}`, { method: "POST" });
+        const response = await fetchWithAuth(`/subscribe/?level=${selectedPlan}`, { method: "POST" });
         const data = await response.json();
 
         if (response.ok) {
@@ -98,7 +105,7 @@ async function handleSubscription(event, selectedPlan, currentPlan) {
 
 async function subscribe(level) {
     const token = localStorage.getItem("access_token");  //  Получаем токен из локального хранилища
-    const response = await fetch(`/subscribe/?level=${level}`, {
+    const response = await fetchWithAuth(`/subscribe/?level=${level}`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`  //  Передаем токен вместо email
@@ -112,7 +119,7 @@ async function subscribe(level) {
 async function checkSubscription() {
     const token = localStorage.getItem("access_token");  //  Получаем токен
 
-    const response = await fetch(`/subscription/`, {  //  Email не нужен в URL
+    const response = await fetchWithAuth(`/subscription/`, {  //  Email не нужен в URL
         method: "GET",
         headers: {
             "Authorization": `Bearer ${token}`  //  Передаем токен
