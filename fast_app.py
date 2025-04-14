@@ -271,6 +271,30 @@ async def update_summaries(
 
     return {"summaries": user_summaries}
 
+@app.get("/feedback", response_class=HTMLResponse)
+async def feedback_page(
+    request: Request,
+    message: str = "Что-то произошло.",
+    status: str = "info",
+    action_label: str = None,
+    action_url: str = None,
+    action_method: str = "get"
+):
+    action = None
+    if action_label and action_url:
+        action = {
+            "label": action_label,
+            "url": action_url,
+            "method": action_method.lower()
+        }
+
+    return templates.TemplateResponse("feedback.html", {
+        "request": request,
+        "message": message,
+        "status": status,
+        "action": action
+    })
+
 
 import re
 import html

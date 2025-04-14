@@ -52,10 +52,11 @@
     "pro": "Узко специализированный",
     "premium": "Модель 2025 года"
 } %}
-
+{% if user %}
 {% for plan, title in plans.items() %}
+
     <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.original_status if user else '' }}');">
-        <div class="card {% if user and user.original_status == plan %}active{% endif %}">
+        <div class="card {% if user.original_status == plan %}active{% endif %}">
             <img src="/static/img/logo/28.svg" alt="plan logo">
             <h3>{{ title }}</h3>
             {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}</div>
@@ -67,11 +68,34 @@
         </div>
     </a>
 {% endfor %}
+{% else %}
+    {% for plan, title in plans.items() %}
+
+    <a href="#" onclick="await showModal('Для продолжения выполните вход', 'warning', {
+            label: 'Вход',
+            url: '/authorize',
+            method: 'get'
+            });">{{title}}
+        <div class="card">
+            <img src="/static/img/logo/28.svg" alt="plan logo">
+            <h3>{{ title }}</h3>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}</div>
+                <div class="card-small" style="color: #ff5757;">текущий план</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}</div>
+                <div class="card-small">{{ clues[plan] }}</div>
+            {% endif %}
+            <div class="card-medium">{{ descriptions[plan] }}</div>
+        </div>
+    </a>
+    {% endfor %}
+ {% endif %}
+
 
 </div>
  </div>
 
 <script src="/static/js/token.js"></script>
+<script src="/static/js/modal.js" defer></script>
 
 <script>
 
@@ -79,7 +103,11 @@ async function handleSubscription(event, selectedPlan, currentPlan) {
     event.preventDefault();
 
     if (selectedPlan === currentPlan) {
-        alert("Вы уже на этом тарифе!");
+        await showModal("Вы уже на этой подписке", "info", {
+        label: "Сменить план?",
+        url: "/price",
+         method: "get"
+            });
         return;
     }
 
@@ -88,17 +116,22 @@ async function handleSubscription(event, selectedPlan, currentPlan) {
         const data = await response.json();
 
         if (response.ok) {
+            await showModal(data.message, data.status, {
+            label: "Начать чат?",
+            url: "/",
+            method: "get"
+            });
             if (data.redirect) {
                 window.location.href = data.redirect;
             } else {
-                alert(data.message);
+                await showModal(data.message, data.status);
             }
         } else {
-            alert("Ошибка: " + data.message);
+            await showModal("Ошибка: " + data.message, data.status);
         }
     } catch (error) {
         console.error("Ошибка подписки:", error);
-        alert("Ошибка подключения. Попробуйте еще раз.");
+        await showModal("Ошибка подключения. Попробуйте еще раз", "error");
     }
 }
 
@@ -130,6 +163,34 @@ async function checkSubscription() {
     console.log("Текущая подписка:", data);
 }
 
+async function showModal(message, status = "info", action = null) {
+  const modal = document.getElementById("modal-feedback");
+
+  // Установить данные
+  modal.querySelector("h3").textContent = message;
+  modal.classList.remove("success", "error", "warning", "info");
+  modal.classList.add(status);
+
+  // Обработка action
+  const formWrapper = modal.querySelector(".modal-actions");
+  formWrapper.innerHTML = "";
+  if (action) {
+    const form = document.createElement("form");
+    form.method = action.method || "get";
+    form.action = action.url;
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = action.label;
+    button.classList.add("action-button");
+    form.appendChild(button);
+    formWrapper.appendChild(form);
+  }
+
+  openModal(modal); // из твоего modal.js
+}
+
     </script>
+{% include "modal_base.html" %}
+
 
 {% endblock %}

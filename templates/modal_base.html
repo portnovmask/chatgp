@@ -1,0 +1,56 @@
+<dialog id="modal-feedback" class="modal info">
+  <article>
+    <button class="close-button" aria-label="Закрыть" onclick="closeModal(this.closest('dialog'))" style="position:absolute; top:1rem; right:1rem; background:none; border:none; font-size:1.2rem; cursor:pointer;">✕</button>
+    <h3>Сообщение</h3>
+    <div class="modal-actions" style="margin-top: 1rem;"></div>
+  </article>
+</dialog>
+
+<style>
+  dialog {
+    max-width: 500px;
+    width: auto;
+    padding: 2rem;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  dialog article h3 {
+    margin-top: 0;
+    text-wrap: pretty;
+    margin-bottom: 1rem;
+  }
+
+  .action-button {
+        display: flex;
+        align-items: center; /* Выравнивание по вертикали */
+        justify-content: center; /* Центрирование содержимого */
+        gap: 10px; /* Расстояние между иконкой и текстом */
+        padding: 10px 20px;
+        width: 80%;
+        /*margin-top: 10px;*/
+        margin: 0 auto 10px;
+        border-radius: 10px;
+        height: 45px;
+        border: none;
+        cursor: pointer;
+  }
+
+  dialog.success article {
+    border-left: 5px solid #4caf50;
+    padding-left: 10px;
+  }
+  dialog.error article {
+      border-left: 5px solid #f44336;
+      padding-left: 10px;
+  }
+  dialog.warning article {
+      border-left: 5px solid #ff9800;
+      padding-left: 10px;
+  }
+  dialog.info article {
+      border-left: 5px solid #2196f3;
+      padding-left: 10px;
+  }
+</style>

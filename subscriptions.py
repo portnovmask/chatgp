@@ -4,10 +4,17 @@ from datetime import datetime, timedelta, timezone
 import requests
 import random
 from auth import get_user
+import locale
 
 router = APIRouter()
 
-
+pretty_names = {
+    "trial": "Базовый",
+    "basic": "Оптимум",
+    "pro": "Мыслитель",
+    "premium": "Премиум"
+}
+locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 TON_WALLET = "YOUR_TON_WALLET_ADDRESS"
 
@@ -17,6 +24,11 @@ TON_WALLET = "YOUR_TON_WALLET_ADDRESS"
 #     url = f"https://tonapi.io/v2/accounts/{TON_WALLET}/transactions"
 #     response = requests.get(url)
 #     return response.json() if response.status_code == 200 else None
+
+# Функция отображения человеческого времени
+def format_datetime_pretty(dt: datetime) -> str:
+    return dt.strftime("%-d %B %Yг в %H:%M")
+
 
 # Функция эмуляции транзакций
 def mock_get_ton_transactions():
@@ -59,12 +71,13 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
     # 📌 Повышение подписки – списать оплату сразу
     if new_index > current_index:
         tx_id = "mock_tx_id"  # Здесь должна быть реальная транзакция TON
-        new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
+        new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
 
         await users_collection.update_one({"email": email}, {
             "$set": {
                 "status": level,
                 "original_status": level,
+                "tokens": 0,
                 "subscription.level": level,
                 "subscription.expires_at": new_expiry,
                 "subscription.next_billing_date": new_expiry,
@@ -79,7 +92,7 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
                 }
             }
         })
-        return {"message": f"Подписка '{level}' активирована сразу!", "redirect": "/success"}
+        return {"message": f"Поздравляем! План '{pretty_names[level]}' будет активирован сразу после подтверждения оплаты!", "status": "success"}
 
     # 📌 Понижение подписки – активируем позже
     elif new_index < current_index:
@@ -89,9 +102,9 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
                 "subscription.pending_activation_date": current_expiry,
             }
         })
-        return {"message": f"Подписка '{level}' вступит в силу после {current_expiry}."}
+        return {"message": f"Вы успешно сменили подписку! План '{pretty_names[level]}' будет активирован после подтверждения оплаты и вступит в силу после истечения текущей подписки:\n {format_datetime_pretty(current_expiry)}." , "status": "success"}
 
-    return {"message": "Вы уже на этом уровне подписки!"}
+    return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
 
 
 # 🔹 Автоматическое продление подписки
@@ -111,6 +124,8 @@ async def renew_subscriptions():
         await users_collection.update_one({"email": email}, {
             "$set": {
                 "status": new_level,
+                "original_status": new_level,
+                "tokens": 0,
                 "subscription.level": new_level,
                 "subscription.expires_at": new_expiry,
                 "subscription.next_billing_date": new_expiry,

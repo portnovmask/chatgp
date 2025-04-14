@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Сообщение</title>
+  <style>
+    dialog {
+      width: 400px;
+      padding: 2rem;
+      border: none;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    }
+    dialog article h3 {
+      margin-top: 0;
+    }
+    dialog.success article {
+      border-left: 5px solid #4caf50;
+    }
+    dialog.error article {
+      border-left: 5px solid #f44336;
+    }
+    dialog.warning article {
+      border-left: 5px solid #ff9800;
+    }
+    dialog.info article {
+      border-left: 5px solid #2196f3;
+    }
+
+    .close-button {
+      position: absolute;
+      top: 8px;
+      right: 12px;
+      background: transparent;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 1.5rem;
+    }
+  </style>
+</head>
+<body>
+
+<dialog id="modal" class="{{ status | default('info') }}">
+  <form method="dialog">
+    <button class="close-button" aria-label="Закрыть">&times;</button>
+  </form>
+  <article>
+    <h3>Уведомление</h3>
+    <p>{{ message }}</p>
+
+    {% if action %}
+  <div class="modal-actions">
+    <form method="{{ action.method | default('get') }}" action="{{ action.url }}">
+      <button type="submit">{{ action.label }}</button>
+    </form>
+  </div>
+{% endif %}
+  </article>
+</dialog>
+
+<script>
+  // Автооткрытие модалки при загрузке
+  window.addEventListener("DOMContentLoaded", () => {
+    const modal = document.getElementById("modal");
+    if (modal) modal.showModal();
+  });
+
+  // Закрытие по кнопке "X"
+  document.querySelector(".close-button")?.addEventListener("click", () => {
+    document.getElementById("modal").close();
+  });
+</script>
+
+</body>
+</html>
+
