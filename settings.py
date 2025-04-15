@@ -35,6 +35,8 @@ VK_REDIRECT_URI = os.environ['VK_REDIRECT_URI']
 VK_AUTH_URL = os.environ['VK_AUTH_URL']
 VK_TOKEN_URL = os.environ['VK_TOKEN_URL']
 VK_USERINFO_URL = os.environ['VK_USERINFO_URL']
+TON_SECRET_KEY = os.environ['TON_SECRET_KEY']
+TON_WALLET = os.environ['TON_WALLET']
 
 def pri():
 

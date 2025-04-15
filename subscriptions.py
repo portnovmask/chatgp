@@ -1,13 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
+#from fastapi.responses import RedirectResponse
+from fastapi.templating import Jinja2Templates
+import uuid
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
-import requests
 import random
 from auth import get_user
 import locale
 
 router = APIRouter()
-
+templates = Jinja2Templates(directory="templates")
 pretty_names = {
     "trial": "Базовый",
     "basic": "Оптимум",
@@ -96,36 +98,176 @@ async def get_subscription(user: dict = Depends(get_user)):
     return user.get("subscription", {})
 
 
-# 🔹 Покупка подписки
+#  Покупка подписки
+# # @router.post("/subscribe/")
+# # async def subscribe(level: str, user: dict = Depends(get_user)):
+# #     email = user["email"]
+# #     current_status = user.get("status", "trial")
+# #     current_expiry = user.get("subscription", {}).get("expires_at")
+# #     tx_id, sender, amount_ton = None, None, 0
+# #
+# #     current_index = levels.index(current_status)
+# #     new_index = levels.index(level)
+# #     new_price = prices[new_index]
+# #
+# #     transactions = get_ton_transactions(new_price).get("transactions", [])
+# #
+# #     if transactions:
+# #         for tx in transactions:
+# #             tx_id = tx.get("hash")
+# #             in_msg = tx.get("in_msg", {})
+# #
+# #             sender = in_msg.get("source") if sender else None
+# #             value = in_msg.get("value")  # в наноTON (1 TON = 1_000_000_000)
+# #
+# #             # Преобразуем значение из строкового в числовой формат (в TON)
+# #             amount_ton = int(value) / 1_000_000_000 if value else 0
+# #
+# #     #  Повышение подписки – списать оплату сразу
+# #     if new_index > current_index:
+# #        # Здесь должна быть реальная транзакция TON
+# #         new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
+# #
+# #         await users_collection.update_one({"email": email}, {
+# #             "$set": {
+# #                 "status": level,
+# #                 "original_status": level,
+# #                 "tokens": 0,
+# #                 "subscription.level": level,
+# #                 "subscription.expires_at": new_expiry,
+# #                 "subscription.next_billing_date": new_expiry,
+# #                 "subscription.is_active": True,
+# #                 "subscription.transaction_id": tx_id,
+# #             },
+# #             "$push": {
+# #                 "subscription.payment_history": {
+# #                     "tx_id": tx_id,
+# #                     "amount": amount_ton, # Реальная сумма
+# #                     "source": sender, # контрагент
+# #                     "date": datetime.now(timezone.utc)
+# #                 }
+# #             }
+# #         })
+# #         return {"message": f"Поздравляем! План '{pretty_names[level]}' будет активирован сразу после подтверждения оплаты!", "status": "success"}
+#
+#     #  Понижение подписки – активируем позже
+#     elif new_index < current_index:
+#         await users_collection.update_one({"email": email}, {
+#             "$set": {
+#                 "subscription.pending_level": level,
+#                 "subscription.pending_activation_date": current_expiry,
+#             }
+#         })
+#         return {"message": f"Вы успешно сменили подписку! План '{pretty_names[level]}' будет активирован после подтверждения оплаты и вступит в силу после истечения текущей подписки:\n {format_datetime_pretty(current_expiry)}." , "status": "success"}
+#
+#     return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
+
 @router.post("/subscribe/")
 async def subscribe(level: str, user: dict = Depends(get_user)):
     email = user["email"]
+
+    if level not in levels:
+        return {"message": "Подписка на этот уровень невозможна на данный момент!", "status": "error"}
+    if level == "trial":
+        return {"message": "Для отмены текущей подписки...!", "status": "info"}
+
+    payment_id = str(uuid.uuid4())
+
+    # Можно временно сохранить payment_id в БД пользователя, если нужно
+    await users_collection.update_one({"email": email}, {
+        "$set": {"subscription.pending_payment_id": payment_id}
+    })
+
+    # Вставка URL параметров в редирект
+    return {"redirect": f"/payment/{payment_id}?level={level}"}
+
+
+
+# routes/ton.py
+from ton_links import generate_payment_link
+from qr_utils import generate_qr_base64
+
+@router.get("/payment/{payment_id}")
+async def payment_page(request: Request, payment_id: str, level: str, user: dict = Depends(get_user)):
+    email = user["email"]
+    price = prices[levels.index(level)]
+    payment = generate_payment_link(email, level, price, payment_id)
+    qr = generate_qr_base64(payment["url"])
+
+    return templates.TemplateResponse("payment.html", {
+        "request": request,
+        "payment_url": payment["url"],
+        "qr_base64": qr,
+        "level": level,
+        "payment_id": payment_id,
+        "pretty_name": pretty_names[level]
+    })
+
+# @router.get("/ton/prepare-payment/")
+# async def prepare_payment(level: str, user: dict = Depends(get_user)):
+#     email = user["email"]
+#     amount_map = {
+#         "basic": 1,
+#         "advanced": 4,
+#         "business": 8,
+#         "pro": 12,
+#         "premium": 32,
+#     }
+#
+#     if level not in amount_map:
+#         return {"error": "Invalid level"}
+#
+#     amount = amount_map[level]
+#     payment = generate_payment_link(email, level, amount)
+#     qr = generate_qr_base64(payment["url"])
+#
+#     return {
+#         "payment_url": payment["url"],
+#         "payment_id": payment["payment_id"],
+#         "qr_base64": qr
+#     }
+
+
+
+@router.post("/ton/verify-payment/")
+async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
+    if level not in levels:
+        raise HTTPException(status_code=400, detail="Некорректный уровень подписки")
+
+    email = user["email"]
     current_status = user.get("status", "trial")
     current_expiry = user.get("subscription", {}).get("expires_at")
-    sender, amount_ton = None, 0
-
     current_index = levels.index(current_status)
     new_index = levels.index(level)
-    new_price = prices[new_index]
 
-    transactions = get_ton_transactions(new_price).get("transactions", [])
+    if new_index == current_index:
+        return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
 
-    if transactions:
-        for tx in transactions:
-            tx_id = tx.get("hash")
-            in_msg = tx.get("in_msg", {})
+    price = prices[new_index]
+    transactions = get_ton_transactions(price).get("transactions", [])
 
-            sender = in_msg.get("source") if sender else None
-            value = in_msg.get("value")  # в наноTON (1 TON = 1_000_000_000)
+    if not transactions:
+        raise HTTPException(status_code=402, detail="Платеж не найден или не подтверждён")
 
-            # Преобразуем значение из строкового в числовой формат (в TON)
-            amount_ton = int(value) / 1_000_000_000 if value else 0
+    tx = transactions[0]
+    tx_id = tx.get("hash")
+    in_msg = tx.get("in_msg", {})
+    sender = in_msg.get("source")
+    value = in_msg.get("value")
+    amount_ton = int(value) / 1_000_000_000 if value else 0
 
-    # 📌 Повышение подписки – списать оплату сразу
+    # 🔸 Проверка на повтор транзакции
+    existing_tx = await users_collection.find_one({
+        "subscription.payment_history.tx_id": tx_id
+    })
+    if existing_tx:
+        return {"message": "Эта транзакция уже была использована.", "status": "warning"}
+
+    now = datetime.now(timezone.utc)
+    new_expiry = now + timedelta(days=7)
+
+    # 🔼 Повышение — активируем сразу
     if new_index > current_index:
-       # Здесь должна быть реальная транзакция TON
-        new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
-
         await users_collection.update_one({"email": email}, {
             "$set": {
                 "status": level,
@@ -140,25 +282,36 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
             "$push": {
                 "subscription.payment_history": {
                     "tx_id": tx_id,
-                    "amount": amount_ton, # Реальная сумма
-                    "source": sender, # контрагент
-                    "date": datetime.now(timezone.utc)
+                    "amount": amount_ton,
+                    "source": sender,
+                    "date": now
                 }
             }
         })
-        return {"message": f"Поздравляем! План '{pretty_names[level]}' будет активирован сразу после подтверждения оплаты!", "status": "success"}
+        return {"message": f"Подписка '{pretty_names[level]}' активирована!", "status": "success"}
 
-    # 📌 Понижение подписки – активируем позже
+    # 🔽 Понижение — активируем позже
     elif new_index < current_index:
         await users_collection.update_one({"email": email}, {
             "$set": {
                 "subscription.pending_level": level,
                 "subscription.pending_activation_date": current_expiry,
+            },
+            "$push": {
+                "subscription.payment_history": {
+                    "tx_id": tx_id,
+                    "amount": amount_ton,
+                    "source": sender,
+                    "date": now
+                }
             }
         })
-        return {"message": f"Вы успешно сменили подписку! План '{pretty_names[level]}' будет активирован после подтверждения оплаты и вступит в силу после истечения текущей подписки:\n {format_datetime_pretty(current_expiry)}." , "status": "success"}
+        return {
+            "message": f"Оплата принята! Новый уровень подписки '{pretty_names[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
+            "status": "success"
+        }
 
-    return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
+
 
 
 # 🔹 Автоматическое продление подписки
@@ -214,75 +367,3 @@ async def renew_subscriptions():
         })
 
     return {"message": "Все отложенные подписки обновлены!"}
-
-
-
-from fastapi import Query
-
-def generate_ton_payment_link(level: str) -> str:
-    if level not in levels:
-        return None
-    price = prices[levels.index(level)]
-    return f"https://tonkeeper.link/transfer/{TON_WALLET}?amount={price * 1_000_000_000}"
-
-
-
-@router.post("/ton/verify-payment/")
-async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
-    if level not in levels:
-        raise HTTPException(status_code=400, detail="Некорректный уровень подписки")
-
-    current_status = user.get("status", "trial")
-    current_index = levels.index(current_status)
-    new_index = levels.index(level)
-
-    if new_index == current_index:
-        return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
-
-    price = prices[new_index]
-    transactions = get_ton_transactions(price).get("transactions", [])
-
-    if not transactions:
-        raise HTTPException(status_code=402, detail="Платеж не найден или не подтверждён")
-
-    tx = transactions[0]
-    tx_id = tx.get("hash")
-    in_msg = tx.get("in_msg", {})
-    sender = in_msg.get("source")
-    value = in_msg.get("value")
-    amount_ton = int(value) / 1_000_000_000 if value else 0
-
-    # 🔸 Проверка, использовался ли уже этот tx_id по всей базе
-    existing_tx = await users_collection.find_one({
-        "subscription.payment_history.tx_id": tx_id
-    })
-
-    if existing_tx:
-        return {"message": "Эта транзакция уже была использована ранее другим пользователем.", "status": "warning"}
-
-    expiry = datetime.now(timezone.utc) + timedelta(days=7)
-
-    await users_collection.update_one({"email": user["email"]}, {
-        "$set": {
-            "status": level,
-            "original_status": level,
-            "tokens": 0,
-            "subscription.level": level,
-            "subscription.expires_at": expiry,
-            "subscription.next_billing_date": expiry,
-            "subscription.is_active": True,
-            "subscription.transaction_id": tx_id,
-        },
-        "$push": {
-            "subscription.payment_history": {
-                "tx_id": tx_id,
-                "amount": amount_ton,
-                "source": sender,
-                "date": datetime.now(timezone.utc)
-            }
-        }
-    })
-
-    return {"message": f"Платёж подтверждён! Подписка '{pretty_names[level]}' активирована.", "status": "success"}
-
-
