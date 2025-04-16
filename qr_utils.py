@@ -10,7 +10,7 @@ def generate_qr_base64(url: str) -> str:
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/png;base64,{img_str}"
 
-
-qr = generate_qr_base64("https://example.com")
-with open("test_qr.html", "w") as f:
-    f.write(f'<img src="{qr}">')
+# проверка создания qr кода
+# qr = generate_qr_base64("https://example.com")
+# with open("test_qr.html", "w") as f:
+#     f.write(f'<img src="{qr}">')

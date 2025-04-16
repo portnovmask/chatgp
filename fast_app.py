@@ -108,7 +108,22 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
     await chat.update_token_count_db(user_tokens)
     logger.info(f"Обновлены токены after_stream_processing: {user_tokens}")
 
+import requests
 
+# def get_ton_usdt_price():
+#     url = "https://api.coingecko.com/api/v3/simple/price"
+#     params = {"ids": "toncoin", "vs_currencies": "usdt"}
+#
+#     response = requests.get(url, params=params)
+#     print("Status Code:", response.status_code)
+#     print("Raw Response:", response.text)
+#     response.raise_for_status()  # выбрасывает исключение при ошибке HTTP
+#     data = response.json()
+#     print(data)
+#
+#     return float(data["toncoin"]["usdt"])
+
+ton_to_usdt = 2.91
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, response: Response, user: dict = Depends(get_user), chat_id: str = None,
                 new_chat: int = Query(None)):
@@ -221,7 +236,7 @@ async def authorize(request: Request, mode: str = "login"):
 
 @app.get("/price")
 async def price(request: Request, user: dict = Depends(get_user)):
-    return templates.TemplateResponse("price.html", {"request": request, "user": user})
+    return templates.TemplateResponse("price.html", {"request": request, "user": user, "ton_to_usdt": ton_to_usdt})
 
 
 

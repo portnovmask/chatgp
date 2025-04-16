@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 import random
 from auth import get_user
 import locale
-
+from settings import TON_WALLET
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 pretty_names = {
@@ -20,14 +20,11 @@ pretty_names = {
 }
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
-TON_WALLET = "YOUR_TON_WALLET_ADDRESS"
-
 logger = logging.getLogger("app_logger")
 
 # 🔹 Функция для проверки платежа через TON API, когда он будет
 import requests
 
-TON_WALLET = "YOUR_WALLET_ADDRESS_HERE"  # замени на адрес своего кошелька
 
 # def get_ton_transaction(min_amount_ton: float = 1.0):
 #     url = f"https://tonapi.io/v2/accounts/{TON_WALLET}/transactions"

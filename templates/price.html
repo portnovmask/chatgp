@@ -8,14 +8,15 @@
     <div class="container">
         <aside class="sidebar">
             <a href="/" class="logo"></a>
-            <h2>Уровни подписки</h2>
-            <p><small>Quisque rutrum. Aenean imperdiet. Etiam ultricies
-                nisi vel augue. Curabitur ullamcorper ultricies nisi.
-                Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus
-                eget condimentum rhoncus, sem quam semper libero, sit amet
-                adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel,
-                luctus pulvinar, hendrerit id, lorem. Maecenas nec
-                odio et ante tincidunt tempus.</small></p>
+            <h2>Выберите подходящий план</h2>
+            <p><small>Подписка оформляется на неделю.
+                Цены приведены в USDT,
+                но расчеты производятся в Тон.
+                При оплате за месяц, пол года или год вперед
+                предоставляются скидки - индивидуально.
+                Доступна подписка через Бусти,
+                обращайтесь в поддержку. Отменить подписку
+                до истечения 7 дней со дня оплаты невозможно.</small></p>
              <div class="links-row">
                 <a href="#">Блог&nbsp;</a>
                 <a href="#">Приватность&nbsp;</a>
@@ -28,30 +29,40 @@
 {% set plans = {
     "trial": "Базовый",
     "basic": "Оптимум",
+    "advanced": "Фрилансер",
+    "business": "Бизнес",
     "pro": "Мыслитель",
     "premium": "Премиум"
 } %}
 
 {% set descriptions = {
     "trial": "Бесплатный доступ с ограничениями. Идеален для знакомства с сервисом и повседневных задач.",
-    "basic": "Лучший выбор для интенсивного использования. Максимум производительности - минимум ограничений.",
+    "basic": "Лучший выбор для повседневного использования. Максимум производительности - минимум ограничений.",
+    "advanced": "Подойдёт для фрилансеров и активного регулярного использования. Более более структурированные ответы.",
+    "business": "Подойдёт для группового использования в организациях. Оптовая цена для групп из 3 - 5 пользователей.",
     "pro": "Когнитивная модель. Специально создана для интеллектуальных задач, проектирования и программирования.",
     "premium": "Максимум возможностей, доступ к одной из самых обширных и мощных моделей на сегодняшний день."
 } %}
 
 
  {% set prices = {
-    "trial": "0 USDT/в неделю",
-    "basic": "4 USDT/в неделю",
-    "pro": "12 USDT/в неделю",
-    "premium": "32 USDT/в неделю"
+    "trial": 0,
+    "basic": 3 ,
+    "advanced": 12,
+    "business": 33,
+    "pro": 36,
+    "premium": 96
 } %}
 {% set clues = {
     "trial": "Бесплатно навсегда",
-    "basic": "Есть ограничения",
-    "pro": "Узко специализированный",
-    "premium": "Модель 2025 года"
+    "basic": (prices['basic'] / ton_to_usdt) | round(2) ~ " TON",
+    "advanced": (prices['advanced'] / ton_to_usdt) | round(2) ~ " TON",
+    "business": (prices['business'] / ton_to_usdt) | round(2) ~ " TON",
+    "pro": (prices['pro'] / ton_to_usdt) | round(2) ~ " TON",
+    "premium": (prices['premium'] / ton_to_usdt) | round(2) ~ " TON"
 } %}
+
+
 {% if user %}
 {% for plan, title in plans.items() %}
 
@@ -59,9 +70,9 @@
         <div class="card {% if user.original_status == plan %}active{% endif %}">
             <img src="/static/img/logo/28.svg" alt="plan logo">
             <h3>{{ title }}</h3>
-            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}</div>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
-            {% else %}<div class="card-price">{{ prices[plan] }}</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
             <div class="card-medium">{{ descriptions[plan] }}</div>
