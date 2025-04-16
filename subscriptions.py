@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Request
-#from fastapi.responses import RedirectResponse
+import logging
 from fastapi.templating import Jinja2Templates
 import uuid
 from models.users import users_collection
@@ -22,6 +22,7 @@ locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 TON_WALLET = "YOUR_TON_WALLET_ADDRESS"
 
+logger = logging.getLogger("app_logger")
 
 # 🔹 Функция для проверки платежа через TON API, когда он будет
 import requests
@@ -33,6 +34,7 @@ TON_WALLET = "YOUR_WALLET_ADDRESS_HERE"  # замени на адрес свое
 #     response = requests.get(url)
 #
 #     if response.status_code != 200:
+#         logger.info(f"get_ton_transaction - Не удалось подключиться к tonapi.io, ошибка: {response.status_code}")
 #         return None
 #
 #     data = response.json()
@@ -52,6 +54,7 @@ TON_WALLET = "YOUR_WALLET_ADDRESS_HERE"  # замени на адрес свое
 #                     "source": in_msg.get("source"),
 #                 }
 #         except (TypeError, ValueError):
+#             logger.info(f"get_ton_transaction - Не удалось проверить транзакцию")
 #             continue
 #
 #     return None
@@ -94,6 +97,7 @@ prices = [0, 1, 4, 8, 12, 32]
 async def get_subscription(user: dict = Depends(get_user)):
     # email = user["email"]
     if not user:
+        logger.info(f"get_subscription - пользователь не найден, email: {user.get("email")}")
         raise HTTPException(status_code=404, detail="Пользователь не найден")
     return user.get("subscription", {})
 
@@ -189,7 +193,8 @@ from qr_utils import generate_qr_base64
 
 @router.get("/payment/{payment_id}")
 async def payment_page(request: Request, payment_id: str, level: str, user: dict = Depends(get_user)):
-    email = user["email"]
+    email = user.get("email")
+
     price = prices[levels.index(level)]
     payment = generate_payment_link(email, level, price, payment_id)
     qr = generate_qr_base64(payment["url"])
@@ -232,6 +237,7 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
 @router.post("/ton/verify-payment/")
 async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
     if level not in levels:
+        logger.info(f"verify_ton_payment - Некорректный уровень подписки, email: {user.get("email")}, level: {level}")
         raise HTTPException(status_code=400, detail="Некорректный уровень подписки")
 
     email = user["email"]
@@ -247,6 +253,7 @@ async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
     transactions = get_ton_transactions(price).get("transactions", [])
 
     if not transactions:
+        logger.info(f"verify_ton_payment - Платеж не найден или не подтверждён, email: {user.get("email")}, level: {level}")
         raise HTTPException(status_code=402, detail="Платеж не найден или не подтверждён")
 
     tx = transactions[0]
@@ -288,6 +295,7 @@ async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
                 }
             }
         })
+        logger.info(f"verify_ton_payment - Подписка активирована, email: {user.get("email")}, level: {level}")
         return {"message": f"Подписка '{pretty_names[level]}' активирована!", "status": "success"}
 
     # 🔽 Понижение — активируем позже
@@ -306,6 +314,7 @@ async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
                 }
             }
         })
+        logger.info(f"verify_ton_payment - Подписка будет активирована по истечение текущей подписки: {format_datetime_pretty(current_expiry)}, email: {user.get("email")}, level: {level}")
         return {
             "message": f"Оплата принята! Новый уровень подписки '{pretty_names[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
             "status": "success"
@@ -365,5 +374,5 @@ async def renew_subscriptions():
                 }
             }
         })
-
+    logger.info(f"renew_subscriptions - все отложенные подписки обновлены, на: {datetime.now(timezone.utc)}")
     return {"message": "Все отложенные подписки обновлены!"}

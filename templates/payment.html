@@ -1,17 +1,36 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Оплата подписки {{ pretty_name }}</title>
-</head>
-<body>
-    <h2>Оплата подписки "{{ pretty_name }}"</h2>
-    <p>Отсканируйте QR-код или перейдите по ссылке:</p>
-    <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR-код">
-    <p><a href="{{ payment_url }}" target="_blank">Перейти к оплате</a></p>
+{% extends "noheader2.html" %}
+
+{% block title %}Авторизация{% endblock %}
+
+{% block content %}
+
+    <div class="container">
+        <aside class="sidebar">
+            <a href="/" class="logo"></a>
+            <h2>Уровни подписки</h2>
+            <p><small>Quisque rutrum. Aenean imperdiet. Etiam ultricies
+                nisi vel augue. Curabitur ullamcorper ultricies nisi.
+                Nam eget dui. Etiam rhoncus. Maecenas tempus, tellus
+                eget condimentum rhoncus, sem quam semper libero, sit amet
+                adipiscing sem neque sed ipsum. Nam quam nunc, blandit vel,
+                luctus pulvinar, hendrerit id, lorem. Maecenas nec
+                odio et ante tincidunt tempus.</small></p>
+
+        </aside>
+    <div class="right-side">
+        <div class="card" style="max-width: 500px; height: 500px;">
+        <div>
+    <h3>Оплата подписки "{{ pretty_name }}"</h3>
+    <p class="card-small" style="text-align: center">Отсканируйте QR-код</p>
+    <img style="width: 180px; height: 180px; border-radius: unset; margin: 1rem auto 1rem;" src="{{ qr_base64 }}" alt="QR-код">
+    <p class="card-small" style="text-align: center">Или перейдите по ссылке:</p>
+     <a style="text-align: center" href="{{ payment_url }}" target="_blank">Оплатить по ссылке</a>
 
     <form action="/ton/verify-payment/?level={{ level }}" method="post">
-        <button type="submit">Я оплатил</button>
+        <button class="form_button" type="submit">Я оплатил</button>
     </form>
-</body>
-</html>
+        </div>
+    </div>
+    </div>
+    </div>
+{% endblock %}

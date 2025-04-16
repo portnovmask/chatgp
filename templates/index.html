@@ -36,7 +36,6 @@
 
 
   <div class="main-footer">
-  <script>document.getElementById("upgrade").style.display = "none";</script>
       {% if user.trial_blocked %}
       <div class="user_text">Вы исчерпали лимит токенов на сегодня, возвращайтесь завтра или
           <a href="/price">Перейдите на повышенный план.</a></div>
@@ -47,7 +46,6 @@
       <button class="transparent-button" id="submit" type="submit">
       <img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">
       </button>
-      <script>document.getElementById("upgrade").style.display = "block";</script>
 
 {#      <script> showModal("Вы исчерпали лимит токенов на сегодня и автоматически переключились на базовый тариф до конца дня", "info", {#}
 {#            label: "Снять ограничения до конца дня?",#}

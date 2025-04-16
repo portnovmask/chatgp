@@ -168,6 +168,33 @@ body {
             margin-bottom: 0;
         }
 
+        .right-side {
+            position: relative;
+        }
+
+        .form_button{
+    display: flex;
+    align-items: center; /* Выравнивание по вертикали */
+    justify-content: center; /* Центрирование содержимого */
+    gap: 10px; /* Расстояние между иконкой и текстом */
+    padding: 10px 20px;
+    width: 80%;
+    background-color: lightcyan;
+    margin: 1rem auto 1rem;
+    border-radius: 10px;
+    height: 45px;
+    border: none;
+    cursor: pointer;
+}
+
+        .form_button:hover {
+      color: #000000;
+      border-radius: 10px;
+      background: cyan;
+      opacity: 0.7;
+}
+
+
         @media (max-width: 1024px) {
             .container {
                 grid-template-columns: 1fr;
