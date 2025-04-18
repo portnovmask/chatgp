@@ -1,6 +1,6 @@
 {% extends "noheader2.html" %}
 
-{% block title %}Авторизация{% endblock %}
+{% block title %}Результат{% endblock %}
 
 {% block content %}
 
@@ -38,4 +38,33 @@
     </div>
     </div>
     </div>
+    <script src="/static/js/token.js"></script>
+    <script src="/static/js/modal.js" defer></script>
+
+    <script> async function showModal(message, status = "info", action = null) {
+  const modal = document.getElementById("modal-feedback");
+
+  // Установить данные
+  modal.querySelector("h3").textContent = message;
+  modal.classList.remove("success", "error", "warning", "info");
+  modal.classList.add(status);
+
+  // Обработка action
+  const formWrapper = modal.querySelector(".modal-actions");
+  formWrapper.innerHTML = "";
+  if (action) {
+    const form = document.createElement("form");
+    form.method = action.method || "get";
+    form.action = action.url;
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = action.label;
+    button.classList.add("action-button");
+    form.appendChild(button);
+    formWrapper.appendChild(form);
+  }
+
+  openModal(modal); // из твоего modal.js
+    }</script>
+{% include "modal_base.html" %}
 {% endblock %}

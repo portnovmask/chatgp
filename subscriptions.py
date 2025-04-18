@@ -2,6 +2,9 @@ from fastapi import APIRouter, HTTPException, Depends, Request
 import logging
 from fastapi.templating import Jinja2Templates
 import uuid
+
+from starlette.responses import RedirectResponse
+
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
 import random
@@ -165,6 +168,8 @@ async def get_subscription(user: dict = Depends(get_user)):
 
 @router.post("/subscribe/")
 async def subscribe(level: str, user: dict = Depends(get_user)):
+    if not user:
+        return RedirectResponse(url="/authorize")
     email = user["email"]
 
     if level not in levels:
@@ -190,6 +195,8 @@ from qr_utils import generate_qr_base64
 
 @router.get("/payment/{payment_id}")
 async def payment_page(request: Request, payment_id: str, level: str, user: dict = Depends(get_user)):
+    if not user:
+        return RedirectResponse(url="/authorize")
     email = user.get("email")
 
     price = prices[levels.index(level)]
@@ -232,7 +239,9 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
 
 
 @router.post("/ton/verify-payment/")
-async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
+async def verify_ton_payment(request: Request, level: str, user: dict = Depends(get_user)):
+    if not user:
+        return RedirectResponse(url="/authorize")
     if level not in levels:
         logger.info(f"verify_ton_payment - Некорректный уровень подписки, email: {user.get("email")}, level: {level}")
         raise HTTPException(status_code=400, detail="Некорректный уровень подписки")
@@ -265,7 +274,16 @@ async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
         "subscription.payment_history.tx_id": tx_id
     })
     if existing_tx:
-        return {"message": "Эта транзакция уже была использована.", "status": "warning"}
+        return templates.TemplateResponse("feedback.html", {
+            "request": request,
+            "message": "Эта транзакция уже была использована.",
+            "status": "warning",
+            "action": {
+                "label": "Попробовать еще раз",
+                "url": "/price",
+                "method": "get"
+            }
+        })
 
     now = datetime.now(timezone.utc)
     new_expiry = now + timedelta(days=7)
@@ -293,7 +311,17 @@ async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
             }
         })
         logger.info(f"verify_ton_payment - Подписка активирована, email: {user.get("email")}, level: {level}")
-        return {"message": f"Подписка '{pretty_names[level]}' активирована!", "status": "success"}
+        return templates.TemplateResponse("feedback.html", {
+            "request": request,
+            "message": f"Подписка '{pretty_names[level]}' активирована!",
+            "status": "success",
+            "action": {
+                "label": "Начать чат",
+                "url": "/",
+                "method": "get"
+            }
+
+        })
 
     # 🔽 Понижение — активируем позже
     elif new_index < current_index:
@@ -312,10 +340,18 @@ async def verify_ton_payment(level: str, user: dict = Depends(get_user)):
             }
         })
         logger.info(f"verify_ton_payment - Подписка будет активирована по истечение текущей подписки: {format_datetime_pretty(current_expiry)}, email: {user.get("email")}, level: {level}")
-        return {
+        return templates.TemplateResponse("feedback.html", {
+            "request": request,
             "message": f"Оплата принята! Новый уровень подписки '{pretty_names[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
-            "status": "success"
-        }
+            "status": "success",
+            "action": {
+                "label": "Начать чат",
+                "url": "/",
+                "method": "get"
+            }
+
+        })
+
 
 
 
