@@ -71,15 +71,19 @@
 
             <div class="sidebar-main">
 
-             <div id="chat-list">
+                         <div id="chat-list">
+              {% if user_summaries %}
+                {% for summary in user_summaries %}
+                  <div class="chat-entry" data-chat-id="{{ summary['chat_id'] }}">
+                    <button class="list-button {% if loop.first %}active{% endif %}">
+                      <small>{{ summary['summary'] }}</small>
+                    </button>
+                    <button class="delete-chat" title="Удалить чат">×</button>
+                  </div>
+                {% endfor %}
+              {% endif %}
+            </div>
 
-                        {% if user_summaries %}
-            {% for summary in user_summaries %}
-                <button class="list-button {% if loop.first %}active{% endif %}" data-chat-id="{{ summary['chat_id'] }}"><small>{{ summary['summary'] }}</small></button><br>
-            {% endfor %}
-
-                        {% endif %}
-                            </div>
 
 
         </div>

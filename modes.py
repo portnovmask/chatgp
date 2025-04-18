@@ -16,6 +16,42 @@ async def update_user_mode(user, mode: str):
 
 
 
+async def delete_chat(user, chat_id):
+    email = user.get("email")
+
+    # Сначала проверяем, есть ли чат с таким chat_id
+    user_data = await users_data_collection.find_one(
+        {"email": email, "chats.chat_id": chat_id}
+    )
+
+    if not user_data:
+        logger.info(f"delete_chat - пользователь {email} - попытка удаления несуществующего чата: {chat_id}\n")
+        return False  # Чат не найден, ничего не удаляем
+
+    # Удаляем чат
+    await users_data_collection.update_one(
+        {"email": email},
+        {
+            "$pull": {
+                "chats": {"chat_id": chat_id}
+            }
+        }
+    )
+
+    # Обновляем поле current_chat во всех режимах
+    await users_data_collection.update_one(
+        {"email": email},
+        {
+            "$set": {
+                "mode.$[].current_chat": "new"
+            }
+        }
+    )
+    logger.info(f"delete_chat - пользователь {email} удалил чат {chat_id}\n")
+    return True  # Успешно удалено
+
+
+
 async def set_chat(user, chat_id: str):
     if user and chat_id != "new":
         await users_data_collection.update_one(

@@ -14,7 +14,7 @@ from subscriptions import router as subscription_router, renew_subscriptions
 from auth import get_user
 import openai
 from settings import APY_KEY
-from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat
+from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat
 import asyncio
 # from fastapi_utils.tasks import repeat_every
 
@@ -352,6 +352,24 @@ def format_code_blocks(text):
 # Регистрируем фильтр
 templates.env.filters["format_code_blocks"] = format_code_blocks
 
+@app.post("/delete-chat/")
+async def delete_chat_route(request: Request, user=Depends(get_user)):
+
+    if not user:
+        return JSONResponse(status_code=401, content={"error": "Unauthorized"})
+
+    data = await request.json()
+    chat_id = data.get("chat_id")
+    if not chat_id:
+        return {"deletion_status": "missing chat_id"}
+
+
+    deleted = await delete_chat(user, chat_id)
+
+    if deleted:
+        return {"chat_id": chat_id, "deletion_status": "deleted"}
+    else:
+        return {"chat_id": chat_id, "deletion_status": "not found"}
 
 
 # Запуск фонового обновления подписок

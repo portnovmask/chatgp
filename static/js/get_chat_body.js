@@ -1,21 +1,51 @@
 document.getElementById("chat-list").addEventListener("click", async (event) => {
-    // Убираем класс "active" у всех кнопок перед назначением нового активного элемента
-    document.querySelectorAll(".list-button").forEach(btn => btn.classList.remove("active"));
+    const deleteBtn = event.target.closest(".delete-chat");
+    const chatButton = event.target.closest("[data-chat-id]");
 
-    // Определяем, был ли клик на элемент с data-chat-id
-    const selectedChat = event.target.closest("[data-chat-id]");
+    // 👉 Удаление чата
+    if (deleteBtn && chatButton) {
+        const chatId = chatButton.getAttribute("data-chat-id");
 
-    if (selectedChat) {
-        const chatId = selectedChat.getAttribute("data-chat-id");
+        const confirmDelete = confirm("Вы уверены, что хотите удалить этот чат?");
+        if (!confirmDelete) return;
+
+        try {
+            const response = await fetchWithAuth("/delete-chat/", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ chat_id: chatId }),
+            });
+
+            const result = await response.json();
+
+            if (result.deletion_status === "deleted") {
+                chatButton.remove();
+            } else {
+                alert("Не удалось удалить чат.");
+            }
+        } catch (error) {
+            console.error("Ошибка удаления чата:", error);
+            alert("Произошла ошибка при удалении чата.");
+        }
+        return;
+    }
+
+    // 👉 Переключение чата
+    if (chatButton) {
+        // Убираем класс "active" у всех кнопок
+        document.querySelectorAll(".list-button").forEach(btn => btn.classList.remove("active"));
+
+        // Назначаем новый активный чат
+        chatButton.classList.add('active');
+
+        const chatId = chatButton.getAttribute("data-chat-id");
         console.log("Выбранный чат ID:", chatId);
-
-        // Делаем кликнутую кнопку активной
-        selectedChat.classList.add('active');
-
-        // Загружаем данные чата асинхронно
         await fetchChatData(chatId);
     }
 });
+
 
 
 
