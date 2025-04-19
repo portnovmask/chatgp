@@ -58,16 +58,16 @@
                  {% if user %}
                      {% if user.stat == 'trial' and user.original_status != "trial" and user.trial_expires_at %}
                      <small>
-                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; до конца дня
+                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; временно
                      </small>
                      {% else %}
                      <small>
-                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; текущий план
+                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; оплачен
                      </small>
                     {% endif %}
                  {% endif %}
 
-                 </a><span class="tooltiptext">Текущий план</span></div>
+                 </a><span class="tooltiptext">оплачен</span></div>
 {#            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>#}
         </div>
 
@@ -76,11 +76,11 @@
                          <div id="chat-list">
               {% if user_summaries %}
                 {% for summary in user_summaries %}
-                  <div class="chat-entry" data-chat-id="{{ summary['chat_id'] }}">
-                    <button class="list-button {% if loop.first %}active{% endif %}">
+                  <div class="chat-entry {% if loop.first %}active{% endif %}" data-chat-id="{{ summary['chat_id'] }}">
+                    <button class="list-button">
                       <small>{{ summary['summary'] }}</small>
                     </button>
-                    <button class="delete-chat" title="Удалить чат">×</button>
+                    <button class="delete-chat" title="Удалить чат"><img src="/static/img/icons/x.svg" width="14" alt="delete"></button>
                   </div>
                 {% endfor %}
               {% endif %}

@@ -64,19 +64,29 @@ function updateSummariesUI(summaries) {
     chatList.innerHTML = "";  // Очищаем список перед обновлением
 
     summaries.forEach((summary, index) => {
+        const chat_entry = document.createElement("div");
         const button = document.createElement("button");
-        button.classList.add("list-button");  //  Добавляем нужный стиль
-        button.setAttribute("data-chat-id", summary.chat_id);
-
+        const deleteBtn = document.createElement("button");
+        const img = document.createElement("img");
+        img.src = "/static/img/icons/x.svg";
+        img.width = 14;
+        img.alt = "Удалить чат";
+        deleteBtn.appendChild(img);
+        deleteBtn.classList.add("delete-chat")
+        button.classList.add("list-button");
+        chat_entry.setAttribute("data-chat-id", summary.chat_id);
+        chat_entry.classList.add("chat-entry");
         const smallText = document.createElement("small");
         smallText.textContent = summary.summary;
 
         button.appendChild(smallText);
-        chatList.appendChild(button);  //  Добавляем в `chat-list`
-        chatList.appendChild(document.createElement("br"));
+        chat_entry.appendChild(button);
+        chat_entry.appendChild(deleteBtn);
+        chatList.appendChild(chat_entry);  //  Добавляем в `chat-list`
 
         if (index === 0) {
-        button.classList.add("active");
+        document.querySelectorAll(".chat-entry").forEach(btn => btn.classList.remove("active"));
+        chat_entry.classList.add("active");
             }
     });
 }

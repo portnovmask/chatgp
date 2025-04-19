@@ -200,14 +200,14 @@ a.visited {
     z-index: 12;
 }
 
-.list-button:hover {
+.chat-entry:hover {
     background-color: #ddd;
     transition: background-color 0.2s ease-in-out;
 }
 .active {
     background-color: #ddd;
 }
-.list-button:focus {
+.chat-entry:focus {
     /*border: 1px dashed #2c2c2c;*/
     background-color: #ddd;
 }

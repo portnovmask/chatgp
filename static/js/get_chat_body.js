@@ -1,10 +1,10 @@
 document.getElementById("chat-list").addEventListener("click", async (event) => {
     const deleteBtn = event.target.closest(".delete-chat");
-    const chatButton = event.target.closest("[data-chat-id]");
+    const chatEntry = event.target.closest("[data-chat-id]");
 
     // 👉 Удаление чата
-    if (deleteBtn && chatButton) {
-        const chatId = chatButton.getAttribute("data-chat-id");
+    if (deleteBtn && chatEntry) {
+        const chatId = chatEntry.getAttribute("data-chat-id");
 
         const confirmDelete = confirm("Вы уверены, что хотите удалить этот чат?");
         if (!confirmDelete) return;
@@ -21,7 +21,7 @@ document.getElementById("chat-list").addEventListener("click", async (event) => 
             const result = await response.json();
 
             if (result.deletion_status === "deleted") {
-                chatButton.remove();
+                chatEntry.remove();
             } else {
                 alert("Не удалось удалить чат.");
             }
@@ -33,14 +33,14 @@ document.getElementById("chat-list").addEventListener("click", async (event) => 
     }
 
     // 👉 Переключение чата
-    if (chatButton) {
+    if (chatEntry) {
         // Убираем класс "active" у всех кнопок
-        document.querySelectorAll(".list-button").forEach(btn => btn.classList.remove("active"));
+        document.querySelectorAll(".chat-entry").forEach(btn => btn.classList.remove("active"));
 
         // Назначаем новый активный чат
-        chatButton.classList.add('active');
+        chatEntry.classList.add('active');
 
-        const chatId = chatButton.getAttribute("data-chat-id");
+        const chatId = chatEntry.getAttribute("data-chat-id");
         console.log("Выбранный чат ID:", chatId);
         await fetchChatData(chatId);
     }

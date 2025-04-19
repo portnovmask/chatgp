@@ -49,14 +49,14 @@ document.addEventListener("click", async event => {
         }
         return; // Прерываем выполнение, так как нашли кнопку удаления
     }
-    if (deleteButton) {
-        const targetElement = deleteButton.closest(".list-button");
-        if (targetElement) {
-            targetElement.remove(); // Удаляем элемент
-            console.log("Элемент удален");
-        }
-        return; // Прерываем выполнение, так как нашли кнопку удаления
-    }
+    // if (deleteButton) {
+    //     const targetElement = deleteButton.closest(".list-button");
+    //     if (targetElement) {
+    //         targetElement.remove(); // Удаляем элемент
+    //         console.log("Элемент удален");
+    //     }
+    //     return; // Прерываем выполнение, так как нашли кнопку удаления
+    // }
 
 });
 
