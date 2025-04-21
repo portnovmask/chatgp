@@ -59,7 +59,7 @@ def create_access_token(email: str):
 
 
 def create_refresh_token(email: str):
-    expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
     now = datetime.now(timezone.utc)
     jti = str(uuid.uuid4())
     to_encode = {
@@ -240,12 +240,12 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     await tokens_collection.insert_one({
         "user_id": str(user["_id"]),
         "email": email,
-    "access_token": access_token,
-    "access_jti": access_jti,
-    "refresh_token": refresh_token,
-    "refresh_jti": refresh_jti,
-    "created_at": datetime.now(timezone.utc)
-    })
+        "access_token": access_token,
+        "access_jti": access_jti,
+        "refresh_token": refresh_token,
+        "refresh_jti": refresh_jti,
+        "created_at": datetime.now(timezone.utc)
+        })
     logger.info(f"/login  - def login - Для пользователя: {email} - созданы новые токены\n")
 
     response = RedirectResponse(url="/", status_code=303)
@@ -312,6 +312,72 @@ async def logout_all(request: Request):
     except JWTError:
         raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
 
+async def vendor_user_login(user, vendor):
+    # Авторизуем пользователя, выдаём токены
+
+    access_token, access_expires, access_jti = create_access_token(str(user["email"]))
+    refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
+
+    # Удаляем старые токены пользователя
+    await tokens_collection.delete_many({"email": str(user["email"])})
+
+    # Записываем новые токены в БД
+    await tokens_collection.insert_one({
+        "user_id": str(user["_id"]),
+        "email": str(user["email"]),
+        "access_token": access_token,
+        "access_jti": access_jti,
+        "refresh_token": refresh_token,
+        "refresh_jti": refresh_jti,
+        "created_at": datetime.now(timezone.utc)
+    })
+    logger.info(f"/{vendor}_callback  - def {vendor}_callback - Для пользователя: {user["email"]} - созданы новые токены\n")
+    return access_token, refresh_token
+
+async def vendor_user_register(email, vendor, vendor_id):
+    # Регистрируем нового пользователя
+    new_user = {
+        "email": email,
+        "password": None,  # Пароль не нужен для OAuth
+        "registered_at": datetime.now(timezone.utc),
+        "auth_provider": vendor,
+        "oauth_id": vendor_id,
+        "status": "trial",
+        "tokens": 0
+    }
+    result = await users_collection.insert_one(new_user)
+    existing_user_data = await users_data_collection.find_one({"email": email})
+    if not existing_user_data:
+        logger.info(
+            f"/auth/google/callback  - Новый пользователь: {email} - выполнил вход через Гугл, создаём чат по умолчанию\n")
+        user_id = str(result.inserted_id)  # Теперь _id точно есть
+
+        # Данные для нового пользователя
+        user_data = {
+            "user_id": user_id,
+            "email": email,
+            "status": "trial",
+            "mode": [MODE],
+            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
+        }
+        await users_data_collection.insert_one(user_data)
+
+    # Выдаём токены
+    access_token, access_expires, access_jti = create_access_token(str(email))
+    refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(email))
+    user_id = str(result.inserted_id)
+    await tokens_collection.insert_one({
+        "user_id": user_id,
+        "email": email,
+        "access_token": access_token,
+        "access_jti": access_jti,
+        "refresh_token": refresh_token,
+        "refresh_jti": refresh_jti,
+        "created_at": datetime.now(timezone.utc)
+    })
+    logger.info(f"/{vendor}_callback  - def {vendor}_callback - Для пользователя: {email} - созданы новые токены в бд\n")
+    return access_token, refresh_token
+
 
 @router.get("/auth/google")
 def google_login():
@@ -352,6 +418,11 @@ async def google_callback(request: Request, code: str):
 
     email = user_info["email"]
     google_id = user_info["sub"]
+    if not email and google_id:
+        logger.info(
+            f"/auth/google/callback  - Ошибка авторизации Google нет email или айди\n")
+        raise HTTPException(status_code=400, detail="Ошибка авторизации Google, no email or id")
+
     logger.info(
         f"/auth/google/callback  - Получены данные пользователя Google: {email}\n")
     # Проверяем пользователя в MongoDB
@@ -364,8 +435,7 @@ async def google_callback(request: Request, code: str):
             raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
 
         # Авторизуем пользователя, выдаём токены
-        access_token, _ = create_access_token(email)
-        refresh_token, _ = create_refresh_token(email)
+        access_token, refresh_token = await vendor_user_login(existing_user, "google")
 
         response = RedirectResponse(url="/")
         response.set_cookie("access_token", access_token, httponly=True)
@@ -375,35 +445,7 @@ async def google_callback(request: Request, code: str):
         return response
 
     # Регистрируем нового пользователя
-    new_user = {
-        "email": email,
-        "password": None,  # Пароль не нужен для OAuth
-        "registered_at": datetime.now(timezone.utc),
-        "auth_provider": "google",
-        "oauth_id": google_id,
-        "status": "trial",
-        "tokens": 0
-    }
-    result = await users_collection.insert_one(new_user)
-    existing_user_data = await users_data_collection.find_one({"email": email})
-    if not existing_user_data:
-        logger.info(
-            f"/auth/google/callback  - Новый пользователь: {email} - выполнил вход через Гугл, создаём чат по умолчанию\n")
-        user_id = str(result.inserted_id)  # Теперь _id точно есть
-
-        # Данные для нового пользователя
-        user_data = {
-            "user_id": user_id,
-            "email": email,
-            "status": "trial",
-            "mode": [MODE],
-            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
-        }
-        await users_data_collection.insert_one(user_data)
-
-    # Выдаём токены
-    access_token, _ = create_access_token(email)
-    refresh_token, _ = create_refresh_token(email)
+    access_token, refresh_token = await vendor_user_register(email, "google", google_id)
 
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
@@ -452,37 +494,23 @@ async def yandex_callback(request: Request, code: str):
 
     existing_user = await users_collection.find_one({"email": email})
 
-    if existing_user and existing_user["auth_provider"] == "local":
+    if existing_user:
+        if existing_user["auth_provider"] == "local":
+            logger.info(
+                f"/auth/yandex/callback  - Этот email: {email} - уже зарегистрирован через пароль.\n")
+            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+        # Авторизуем пользователя, выдаём токены
+        access_token, refresh_token = await vendor_user_login(existing_user, "yandex")
+
+        response = RedirectResponse(url="/")
+        response.set_cookie("access_token", access_token, httponly=True)
+        response.set_cookie("refresh_token", refresh_token, httponly=True)
         logger.info(
-            f"/auth/yandex/callback  - Этот email: {email} - уже зарегистрирован через пароль.\n")
-        raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+            f"/auth/yandex/callback  - Пользователь: {email} - выполнен вход через Yandex, обновляем токены в куках и в бд\n")
+        return response
 
-    if not existing_user:
-        result = await users_collection.insert_one({
-            "email": email,
-            "password": None,
-            "registered_at": datetime.now(timezone.utc),
-            "auth_provider": "yandex",
-            "oauth_id": yandex_id
-        })
-
-    existing_user_data = await users_data_collection.find_one({"email": email})
-    if not existing_user_data:
-        user_id = str(result.inserted_id)  # Теперь _id точно есть
-        logger.info(
-            f"/auth/yandex/callback  - Новый пользователь: {email} - вошёл через Яндекс, создаём чат по умолчанию.\n")
-        # Данные для нового пользователя
-        user_data = {
-            "user_id": user_id,
-            "email": email,
-            "status": "trial",
-            "mode": [MODE],
-            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
-        }
-        await users_data_collection.insert_one(user_data)
-
-    access_token, _ = create_access_token(email)
-    refresh_token, _ = create_refresh_token(email)
+    # Регистрируем нового пользователя
+    access_token, refresh_token = await vendor_user_register(email, "yandex", yandex_id)
 
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
@@ -528,35 +556,22 @@ async def telegram_callback(request: Request):
     # Проверяем пользователя в БД
     existing_user = await users_collection.find_one({"email": email})
 
-    if existing_user and existing_user["auth_provider"] == "local":
-        logger.info(f"/auth/telegram/callback  - Этот email уже зарегистрирован через пароль для входа через Телеграм\n")
-        raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+    if existing_user:
+        if existing_user["auth_provider"] == "local":
+            logger.info(f"/auth/telegram/callback  - Этот email уже зарегистрирован через пароль для входа через Телеграм\n")
+            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
 
-    if not existing_user:
-        result = await users_collection.insert_one({
-            "email": email,
-            "password": None,
-            "registered_at": datetime.now(timezone.utc),
-            "auth_provider": "telegram",
-            "oauth_id": telegram_id
-        })
-    existing_user_data = await users_data_collection.find_one({"email": email})
-    if not existing_user_data:
-        user_id = str(result.inserted_id)  # Теперь _id точно есть
+        # Авторизуем пользователя, выдаём токены
+        access_token, refresh_token = await vendor_user_login(existing_user, "telegram")
+        response = RedirectResponse(url="/")
+        response.set_cookie("access_token", access_token, httponly=True)
+        response.set_cookie("refresh_token", refresh_token, httponly=True)
         logger.info(
-            f"/auth/telegram/callback  - Новый пользователь: {username} - выполнен вход через Телеграм\n")
-        # Данные для нового пользователя
-        user_data = {
-            "user_id": user_id,
-            "email": email,
-            "status": "trial",
-            "mode": [MODE],
-            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
-        }
-        await users_data_collection.insert_one(user_data)
+            f"/auth/telegram/callback  - Пользователь: {email} - выполнен вход через telegram, обновляем токены в куках и в бд\n")
+        return response
 
-    access_token, _ = create_access_token(email)
-    refresh_token, _ = create_refresh_token(email)
+    # Регистрируем нового пользователя
+    access_token, refresh_token = await vendor_user_register(email, "telegram", telegram_id)
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
@@ -617,39 +632,22 @@ async def vk_callback(request: Request, code: str):
     # Проверяем пользователя в БД
     existing_user = await users_collection.find_one({"email": email})
 
-    if existing_user and existing_user["auth_provider"] == "local":
+    if existing_user:
+        if existing_user["auth_provider"] == "local":
+            logger.info(
+                f"/auth/vk/callback  - Этот email: {email} -  уже зарегистрирован через пароль.\n")
+            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+        # Авторизуем пользователя, выдаём токены
+        access_token, refresh_token = await vendor_user_login(existing_user, "vk")
+
+        response = RedirectResponse(url="/")
+        response.set_cookie("access_token", access_token, httponly=True)
+        response.set_cookie("refresh_token", refresh_token, httponly=True)
         logger.info(
-            f"/auth/vk/callback  - Этот email: {email} -  уже зарегистрирован через пароль.\n")
-        raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
-
-    if not existing_user:
-        result = await users_collection.insert_one({
-            "email": email,
-            "password": None,
-            "registered_at": datetime.now(timezone.utc),
-            "auth_provider": "vk",
-            "oauth_id": str(user_id),
-            "full_name": full_name
-        })
-
-    existing_user_data = await users_data_collection.find_one({"email": email})
-    if not existing_user_data:
-        user_id = str(result.inserted_id)  # Теперь _id точно есть
-        logger.info(
-            f"/auth/vk/callback  - Новый пользователь: {email} - авторизовался через Вконтакте, создаём чат по умолчанию.\n")
-        # Данные для нового пользователя
-        user_data = {
-            "user_id": user_id,
-            "email": email,
-            "status": "trial",
-            "mode": [MODE],
-            "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
-        }
-        await users_data_collection.insert_one(user_data)
-
-    access_token, _ = create_access_token(email)
-    refresh_token, _ = create_refresh_token(email)
-
+            f"/auth/vk/callback  - Пользователь: {email} - выполнен вход через VK, обновляем токены в куках и в бд\n")
+        return response
+    # Регистрируем нового пользователя
+    access_token, refresh_token = await vendor_user_register(email, "vk", user_id)
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)

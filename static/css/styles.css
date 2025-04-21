@@ -168,17 +168,24 @@ a.visited {
   }
 
   .delete-chat {
+    opacity: 0;
+    transition: opacity 0.2s ease;
     background: none;
     border: none;
     color: #888;
     cursor: pointer;
     font-size: 16px;
+    z-index: 18;
     /*padding: 0 1rem;*/
   }
 
   .delete-chat:hover {
     color: red;
   }
+
+  .chat-entry:hover .delete-chat {
+  opacity: 1;
+}
 
 .list-button {
     position:relative;
@@ -708,4 +715,11 @@ margin: 15px; /* Отступы между элементами */
 
         }
     }
+
+@media (hover: none) {
+  .delete-chat {
+    opacity: 1;
+  }
+}
+
 

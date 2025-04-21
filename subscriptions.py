@@ -1,15 +1,15 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 import logging
 from fastapi.templating import Jinja2Templates
 import uuid
-
 from starlette.responses import RedirectResponse
-
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
 import random
 from auth import get_user
 import locale
+from email.message import EmailMessage
+import aiosmtplib
 from settings import TON_WALLET
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -409,3 +409,66 @@ async def renew_subscriptions():
         })
     logger.info(f"renew_subscriptions - все отложенные подписки обновлены, на: {datetime.now(timezone.utc)}")
     return {"message": "Все отложенные подписки обновлены!"}
+
+
+class EmailTemplate:
+    def __init__(self, **kwargs):
+        self.data = {
+            "logo_url": kwargs.get("logo_url"),
+            "header_link": kwargs.get("header_link"),
+            "header_text": kwargs.get("header_text"),
+            "description": kwargs.get("description"),
+            "recipient_name": kwargs.get("recipient_name"),
+            "body_text": kwargs.get("body_text"),
+            "action_label": kwargs.get("action_label"),
+            "action_url": kwargs.get("action_url"),
+            "footer_text": kwargs.get("footer_text"),
+            "date": kwargs.get("date") or datetime.utcnow().strftime("%B %d, %Y")
+        }
+
+    def render(self) -> str:
+        template = templates.get_template("email_template.html")
+        return template.render(**self.data)
+
+
+async def send_email(to_email: str, subject: str, html_content: str):
+    message = EmailMessage()
+    message["From"] = "noreply@example.com"
+    message["To"] = to_email
+    message["Subject"] = subject
+    message.set_content("HTML only email", subtype="plain")
+    message.add_alternative(html_content, subtype="html")
+
+    # await aiosmtplib.send(
+    #     message,
+    #     hostname="smtp.example.com",
+    #     port=587,
+    #     start_tls=True,
+    #     username="your_username",
+    #     password="your_password",
+    # )
+
+    await aiosmtplib.send(
+        message,
+        hostname="localhost",
+        port=1025,  # порт MailHog
+    )
+
+
+@router.post("/send-email/")
+async def send_email_route(background_tasks: BackgroundTasks):
+    email = EmailTemplate(
+        logo_url="https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png",
+        header_link="https://example.com",
+        header_text="Добро пожаловать!",
+        description="Это письмо содержит важную информацию.",
+        recipient_name="Иван Иванов",
+        body_text="Спасибо за регистрацию на нашем сервисе. Пожалуйста, подтвердите вашу почту.",
+        action_label="Подтвердить Email",
+        action_url="https://example.com/confirm?token=abc123",
+        footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+    )
+
+    html = email.render()
+    background_tasks.add_task(send_email, "ivan@example.com", "Добро пожаловать!", html)
+    return {"message": "Письмо отправлено"}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ header_text }}</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #f2f2f2;
+        }
+
+        table {
+            width: 100%;
+            max-width: 600px;
+            background-color: #ffffff;
+            margin: auto;
+            border-spacing: 0;
+        }
+
+        .header {
+            background-color: darkcyan;
+            color: #ffffff;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header img {
+            max-height: 50px;
+            margin: 0 10px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .menu a {
+            color: #ffffff;
+            margin: 0 10px;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .content {
+            padding: 30px 20px;
+            color: #333333;
+        }
+
+        .content h2 {
+            text-align: center;
+            color: darkcyan;
+        }
+
+        .content p {
+            line-height: 1.6;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background-color: #cce8b6;
+            color: #2a2a2a;
+            text-decoration: none;
+            padding: 12px 20px;
+            font-weight: bold;
+            border-radius: 5px;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .footer {
+            background-color: #333333;
+            color: #aaaaaa;
+            text-align: center;
+            font-size: 12px;
+            padding: 20px;
+        }
+
+        .footer a {
+            color: #aaaaaa;
+            margin: 0 5px;
+            text-decoration: none;
+            border-right: 1px solid #666;
+            padding-right: 5px;
+        }
+
+        .footer a:last-child {
+            border-right: none;
+        }
+
+        .img-container {
+            text-align: center;
+            margin: 0;
+        }
+
+        .img-container img {
+            max-width: 100%;
+            height: auto;
+
+        }
+
+        @media only screen and (max-width: 600px) {
+            .menu {
+                display: block;
+                margin-top: 10px;
+            }
+
+            .menu a {
+                display: block;
+                margin: 5px 0;
+            }
+
+            .cta-button {
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .content {
+                padding: 20px 10px;
+            }
+
+            .footer {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<table>
+    <tr>
+        <td class="header">
+
+            <h1>ChatGP.Ru - {{ header_text }}</h1>
+            <div class="menu">
+                <a href="{{ header_link }}">
+                <img src="{{ logo_url }}" alt="Logo">
+                </a>
+                <a href="https://chatgp.ru/about">О проекте</a>
+                <a href="https://chatgp.ru/contact">Контакты</a>
+            </div>
+        </td>
+    </tr>
+
+    <tr>
+        <td class="content">
+            <h2>{{ description }}</h2>
+            <p>Здравствуйте, <strong>{{ recipient_name }}</strong>,</p>
+            <p>{{ body_text }}</p>
+
+            {% if action_url %}
+                <div style="text-align: center;">
+                    <a href="{{ action_url }}" class="cta-button">{{ action_label }}</a>
+                </div>
+            {% endif %}
+
+        </td>
+    </tr>
+         <tr>
+             <td class="footer">
+             <div class="img-container">
+                <img src="https://ketome.ru/wp-content/uploads/2025/04/email-poster.png" alt="chatgp.ru">
+            </div>
+             </td>
+         </tr>
+    <tr>
+        <td class="footer">
+            <p>{{ footer_text }}</p>
+            <p style="margin-top: 10px;">
+                <a href="https://chatgp.ru/links">Ссылки</a>
+                <a href="https://chatgp.ru/donate">Донаты</a>
+                <a href="https://chatgp.ru/blog">Блог</a>
+            </p>
+            <p style="margin-top: 10px;">Дата: {{ date }}</p>
+            <p style="margin-top: 10px;"><small>&copy;2019г. ChatGP.Ru - все права защищены.</small></p>
+        </td>
+    </tr>
+</table>
+
+</body>
+</html>
+
