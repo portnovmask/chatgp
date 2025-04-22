@@ -42,9 +42,10 @@ document.addEventListener("click", async event => {
     }
 
     if (editButton) {
-        const targetElement = editButton.closest(".query-container");
+        const targetElement = editButton.closest(".query-body");
         if (targetElement) {
-            targetElement.remove(); // Удаляем элемент
+            targetElement.remove();
+            promptInput.value = "";// Удаляем элемент
             console.log("Элемент удален");
         }
         return; // Прерываем выполнение, так как нашли кнопку удаления

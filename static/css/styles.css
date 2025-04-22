@@ -235,17 +235,19 @@ a.visited {
 /* === КНОПКА ОТКРЫТИЯ МЕНЮ === */
 #open-menu-btn {
     display: none;
-    font-size: larger;
+    /*font-size: larger;*/
     width: fit-content;
     height: fit-content;
-    border: none;/* По умолчанию скрыта */
+    border: none;
+    /*margin-right: 20px!* По умолчанию скрыта *!*/
 }
 
 #close-menu-btn {
     display: none;
     width: fit-content;
     height: fit-content;
-    border: none;/* По умолчанию скрыта */
+    border: none;
+    /*margin: auto!* По умолчанию скрыта *!*/
 }
 
 /* === ОТКРЫТЫЙ САЙДБАР === */

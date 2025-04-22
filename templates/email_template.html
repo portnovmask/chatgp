@@ -25,6 +25,9 @@
         }
 
         .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             background-color: darkcyan;
             color: #ffffff;
             padding: 20px;
@@ -32,18 +35,18 @@
         }
 
         .header img {
-            max-height: 50px;
-            margin: 0 10px;
+            max-height: 100px;
+            margin: auto;
         }
 
         .header h1 {
-            margin: 0;
             font-size: 24px;
+
         }
 
         .menu a {
             color: #ffffff;
-            margin: 0 10px;
+            line-height: 18px;
             text-decoration: none;
             font-size: 14px;
         }
@@ -54,7 +57,6 @@
         }
 
         .content h2 {
-            text-align: center;
             color: darkcyan;
         }
 
@@ -138,14 +140,12 @@
 <table>
     <tr>
         <td class="header">
-
-            <h1>ChatGP.Ru - {{ header_text }}</h1>
-            <div class="menu">
-                <a href="{{ header_link }}">
+            <a href="{{ header_link }}">
                 <img src="{{ logo_url }}" alt="Logo">
                 </a>
-                <a href="https://chatgp.ru/about">О проекте</a>
-                <a href="https://chatgp.ru/contact">Контакты</a>
+            <h1>ChatGP.Ru - {{ header_text }}</h1>
+            <div class="menu">
+                <a href="https://chatgp.ru/about">Узнать больше >>></a>
             </div>
         </td>
     </tr>
@@ -161,6 +161,7 @@
                     <a href="{{ action_url }}" class="cta-button">{{ action_label }}</a>
                 </div>
             {% endif %}
+        <p style="margin-top: 10px;">Сегодня: {{ date }}</p>
 
         </td>
     </tr>
@@ -175,12 +176,13 @@
         <td class="footer">
             <p>{{ footer_text }}</p>
             <p style="margin-top: 10px;">
-                <a href="https://chatgp.ru/links">Ссылки</a>
+                <a href="https://chatgp.ru/contact">Контакты</a>
+                <a href="https://chatgp.ru/links">Телеграм канал</a>
                 <a href="https://chatgp.ru/donate">Донаты</a>
                 <a href="https://chatgp.ru/blog">Блог</a>
             </p>
-            <p style="margin-top: 10px;">Дата: {{ date }}</p>
-            <p style="margin-top: 10px;"><small>&copy;2019г. ChatGP.Ru - все права защищены.</small></p>
+
+            <p style="margin-top: 20px;"><small>&copy;2019г. ChatGP.Ru - все права защищены.</small></p>
         </td>
     </tr>
 </table>
