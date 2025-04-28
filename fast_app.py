@@ -13,7 +13,7 @@ from products import router as products_router
 from subscriptions import router as subscription_router, renew_subscriptions
 from auth import get_user
 import openai
-from settings import APY_KEY
+from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat
 import asyncio
 # from fastapi_utils.tasks import repeat_every
@@ -130,7 +130,7 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
         return RedirectResponse(url="/authorize", status_code=303)
 
     user_chat = []
-    param = request.cookies.get("param", "basic")
+    param = request.cookies.get("param", "stream")
 
     #await update_user_mode(user, param)
     user_summaries = await get_user_summaries(user)
@@ -164,6 +164,7 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
 @app.get("/stream")
 async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
     if not user:
+        logger.info(f" def stream: Пользователь не авторизован")
         raise HTTPException(status_code=401, detail="Пользователь не авторизован")
     chat = User(user)
 
@@ -228,6 +229,33 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
 
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
 
+@app.get("/search")
+async def search(request: Request, response: Response, query: str, location: dict = None, user: dict = Depends(get_user)):
+    if not user:
+        return RedirectResponse('/authorize', status_code=302)
+    search_chat = User(user)
+
+    search_chat_id = await get_last_chat_id(user) or None
+
+    status = user.get("status", "tral")
+    attempts = user.get("attempts", 0)
+    country = location.get("country", "RU")
+    city = location.get("city", "Moscow")
+    region = location.get("region", "Moscow")
+
+    level_index = LEVELS.index(status)
+
+    # Проверка, если уровень слишком низкий
+    if level_index < 2:
+        return {"message": "Поиск недоступен на вашем уровне подписки!", "status": "error"}
+
+    # Проверка лимита попыток
+    if attempts <= ATTEMPT_LIMITS[level_index]:
+        return {"message": "Вы исчерпали лимиты поиска на сегодня!", "status": "info"}
+
+    async def generate_search(query, country, city, region, attempts):
+        pass
+
 
 @app.get("/authorize")
 async def authorize(request: Request, mode: str = "login"):
@@ -242,14 +270,17 @@ async def price(request: Request, user: dict = Depends(get_user)):
 
 
 @app.get("/change_param")  #Ручка для выбора параметров
-async def change_param(request: Request, user: dict = Depends(get_user), param: str = "basic"):
+async def change_param(request: Request, user: dict = Depends(get_user), param: str = "stream"):
     response = RedirectResponse(url="/")  # Перенаправляем на корень
     #Логика получения параметра и проверки доступа пользователя к нему
     if user:
         status = await user.get("status")
-
-        if status != "advanced" and param != "basic":
-            mode = "basic"
+        attempts = await user.get("attempts")
+        level_index = LEVELS.index(status)
+        if level_index < 2 and param != "stream":
+            mode = "stream"
+        elif attempts < 1:
+            mode = "stream"
         else:
             mode = param
         response.set_cookie(key="param", value=mode, httponly=True, max_age=3600)  # Меняем куки
@@ -259,7 +290,10 @@ async def change_param(request: Request, user: dict = Depends(get_user), param: 
 
 
 @app.get("/get_chat_body")
-async def get_chat_body(chat_id: str, user: dict = Depends(get_user), response: Response = None):
+async def get_chat_body(chat_id: str, user: dict = Depends(get_user)):
+    if not user:
+        logger.info(f" get_chat_body: Пользователь не авторизован")
+        raise HTTPException(status_code=401, detail="Пользователь не авторизован")
     chat_body = await get_chat_body_by_id(user, chat_id)
     await set_chat(user, chat_id)
 

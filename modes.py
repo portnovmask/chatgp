@@ -145,42 +145,42 @@ class User:
                 "system": "Ты ассистент, но стараешься отвечать кратко и только по делу. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 10000000,
                 "temperature": 0.3,
-                "4o_usage": 0
+                "search": 0
             },
             "basic": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 5000000,
                 "temperature": 0.2,
-                "4o_usage": 5
+                "search": 0
             },
             "advanced": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 5000000,
                 "temperature": 0.2,
-                "4o_usage": 5
+                "search": 10
             },
             "business": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 5000000,
                 "temperature": 0.2,
-                "4o_usage": 5
+                "search": 50
             },
             "pro": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 10000000,
                 "temperature": 0.2,
-                "4o_usage": 40
+                "search": 100
             },
             "premium": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 100000000,
                 "temperature": 0.2,
-                "4o_usage": 150
+                "search": 150
             },
             "error_code": {
                 "model": "gpt-4o-mini",
@@ -400,9 +400,9 @@ class User:
         system=params.get("content", "Ты ассистент")
         token_limits=params.get("tokens", 1000000)
         temp=params.get("temperature", 0.2)
-        reasoning=params.get("4o_usage", 0)
+        search=params.get("search", 0)
 
-        request_params = {"model":model, "system":system, "token_limits":token_limits, "temperature":temp, "reasoning":reasoning}
+        request_params = {"model":model, "system":system, "token_limits":token_limits, "temperature":temp, "search":search}
 
 
         return request_params

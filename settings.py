@@ -38,6 +38,18 @@ VK_USERINFO_URL = os.environ['VK_USERINFO_URL']
 TON_SECRET_KEY = os.environ['TON_SECRET_KEY']
 TON_WALLET = os.environ['TON_WALLET']
 
+LEVELS = ["trial", "basic", "advanced", "business", "pro", "premium"]
+ATTEMPT_LIMITS = [0, 0, 10, 50, 100, 150]
+PRETTY_NAMES = {
+    "trial": "Базовый",
+    "basic": "Оптимум",
+    "advanced": "Фрилансер",
+    "business": "Бизнес",
+    "pro": "Мыслитель",
+    "premium": "Премиум"
+}
+PRICES = [0, 1, 4, 8, 12, 32]
+
 def pri():
 
     print(os.environ)

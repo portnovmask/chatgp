@@ -10,17 +10,10 @@ from auth import get_user
 import locale
 from email.message import EmailMessage
 import aiosmtplib
-from settings import TON_WALLET
+from settings import TON_WALLET, LEVELS, PRETTY_NAMES, PRICES
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
-pretty_names = {
-    "trial": "Базовый",
-    "basic": "Оптимум",
-    "advanced": "Фрилансер",
-    "business": "Бизнес",
-    "pro": "Мыслитель",
-    "premium": "Премиум"
-}
+
 locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 logger = logging.getLogger("app_logger")
@@ -89,8 +82,8 @@ def mock_get_ton_transactions(expected_amount_ton: float):
 # Подменяем функцию
 get_ton_transactions = mock_get_ton_transactions
 
-levels = ["trial", "basic", "advanced", "business", "pro", "premium"]
-prices = [0, 1, 4, 8, 12, 32]
+
+
 
 # 🔹 Получение подписки пользователя
 @router.get("/subscription/")
@@ -110,9 +103,9 @@ async def get_subscription(user: dict = Depends(get_user)):
 # #     current_expiry = user.get("subscription", {}).get("expires_at")
 # #     tx_id, sender, amount_ton = None, None, 0
 # #
-# #     current_index = levels.index(current_status)
-# #     new_index = levels.index(level)
-# #     new_price = prices[new_index]
+# #     current_index = LEVELS.index(current_status)
+# #     new_index = LEVELS.index(level)
+# #     new_price = PRICES[new_index]
 # #
 # #     transactions = get_ton_transactions(new_price).get("transactions", [])
 # #
@@ -152,7 +145,7 @@ async def get_subscription(user: dict = Depends(get_user)):
 # #                 }
 # #             }
 # #         })
-# #         return {"message": f"Поздравляем! План '{pretty_names[level]}' будет активирован сразу после подтверждения оплаты!", "status": "success"}
+# #         return {"message": f"Поздравляем! План '{PRETTY_NAMES[level]}' будет активирован сразу после подтверждения оплаты!", "status": "success"}
 #
 #     #  Понижение подписки – активируем позже
 #     elif new_index < current_index:
@@ -162,7 +155,7 @@ async def get_subscription(user: dict = Depends(get_user)):
 #                 "subscription.pending_activation_date": current_expiry,
 #             }
 #         })
-#         return {"message": f"Вы успешно сменили подписку! План '{pretty_names[level]}' будет активирован после подтверждения оплаты и вступит в силу после истечения текущей подписки:\n {format_datetime_pretty(current_expiry)}." , "status": "success"}
+#         return {"message": f"Вы успешно сменили подписку! План '{PRETTY_NAMES[level]}' будет активирован после подтверждения оплаты и вступит в силу после истечения текущей подписки:\n {format_datetime_pretty(current_expiry)}." , "status": "success"}
 #
 #     return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
 
@@ -172,7 +165,7 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
         return RedirectResponse(url="/authorize")
     email = user["email"]
 
-    if level not in levels:
+    if level not in LEVELS:
         return {"message": "Подписка на этот уровень невозможна на данный момент!", "status": "error"}
     if level == "trial":
         return {"message": "Для отмены текущей подписки...!", "status": "info"}
@@ -199,7 +192,7 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
         return RedirectResponse(url="/authorize")
     email = user.get("email")
 
-    price = prices[levels.index(level)]
+    price = PRICES[LEVELS.index(level)]
     payment = generate_payment_link(email, level, price, payment_id)
     qr = generate_qr_base64(payment["url"])
 
@@ -209,7 +202,7 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
         "qr_base64": qr,
         "level": level,
         "payment_id": payment_id,
-        "pretty_name": pretty_names[level]
+        "pretty_name": PRETTY_NAMES[level]
     })
 
 # @router.get("/ton/prepare-payment/")
@@ -242,20 +235,20 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
 async def verify_ton_payment(request: Request, level: str, user: dict = Depends(get_user)):
     if not user:
         return RedirectResponse(url="/authorize")
-    if level not in levels:
+    if level not in LEVELS:
         logger.info(f"verify_ton_payment - Некорректный уровень подписки, email: {user.get("email")}, level: {level}")
         raise HTTPException(status_code=400, detail="Некорректный уровень подписки")
 
     email = user["email"]
     current_status = user.get("status", "trial")
     current_expiry = user.get("subscription", {}).get("expires_at")
-    current_index = levels.index(current_status)
-    new_index = levels.index(level)
+    current_index = LEVELS.index(current_status)
+    new_index = LEVELS.index(level)
 
     if new_index == current_index:
         return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
 
-    price = prices[new_index]
+    price = PRICES[new_index]
     transactions = get_ton_transactions(price).get("transactions", [])
 
     if not transactions:
@@ -313,7 +306,7 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
         logger.info(f"verify_ton_payment - Подписка активирована, email: {user.get("email")}, level: {level}")
         return templates.TemplateResponse("feedback.html", {
             "request": request,
-            "message": f"Подписка '{pretty_names[level]}' активирована!",
+            "message": f"Подписка '{PRETTY_NAMES[level]}' активирована!",
             "status": "success",
             "action": {
                 "label": "Начать чат",
@@ -342,7 +335,7 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
         logger.info(f"verify_ton_payment - Подписка будет активирована по истечение текущей подписки: {format_datetime_pretty(current_expiry)}, email: {user.get("email")}, level: {level}")
         return templates.TemplateResponse("feedback.html", {
             "request": request,
-            "message": f"Оплата принята! Новый уровень подписки '{pretty_names[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
+            "message": f"Оплата принята! Новый уровень подписки '{PRETTY_NAMES[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
             "status": "success",
             "action": {
                 "label": "Начать чат",
@@ -369,8 +362,8 @@ async def renew_subscriptions():
 
         tx_id = "mock_tx_id"
         new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
-        new_index = levels.index(new_level)
-        new_price = prices[new_index]
+        new_index = LEVELS.index(new_level)
+        new_price = PRICES[new_index]
         transactions = get_ton_transactions(new_price).get("transactions", [])
 
         if transactions:
