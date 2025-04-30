@@ -524,6 +524,10 @@ a.visited {
 
 .transparent-button {
     position: absolute;
+    bottom: 1.7rem; /* добавь если кнопка прилипает к верху */
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
     right: 0;
     background-color: transparent;
     border: none;
@@ -553,6 +557,88 @@ a.visited {
     background-color: #ecebeb;
 }
 
+.spinner img {
+  animation: spin 1s linear infinite;
+  vertical-align: middle;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+
+.floating-button {
+    position: absolute;
+    bottom: 2rem; /* добавь если кнопка прилипает к верху */
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    /*gap: 6px;*/
+    left: 1rem;
+    color: #777575;
+    background-color: transparent;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 1px;
+    width: 100px;
+    height: 30px;
+    margin-right: 10px;
+    z-index: 12;
+    border: 1px solid #ddd;
+}
+.floating-button:hover {
+    /*background-color: #ddd;*/
+    border: 1px solid #2c2c2c;
+    /* Меняем цвет при наведении */
+}
+
+.floating-button:active {
+    border: 1px solid #015050;
+    /*color: */
+}
+
+
+.floating-button:focus {
+   /*transform: scale(1.1);*/
+    background-color: #ecebeb;
+}
+
+.side-bar-hint-button {
+    /*bottom: 2rem; !* добавь если кнопка прилипает к верху *!*/
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    /*gap: 6px;*/
+    /*left: 1rem;*/
+    color: #777575;
+    background-color: transparent;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 1px;
+    width: 150px;
+    height: 30px;
+    margin-right: 10px;
+    z-index: 12;
+    border: None;
+}
+.side-bar-hint-button:hover {
+    /*background-color: #ddd;*/
+    border: 1px solid #2c2c2c;
+    /* Меняем цвет при наведении */
+}
+
+.side-bar-hint-button:active {
+    border: 1px solid #015050;
+    /*color: */
+}
+
+
+.side-bar-hint-button:focus {
+   /*transform: scale(1.1);*/
+    background-color: #ecebeb;
+}
 
 /*конец футера    */
 
@@ -612,6 +698,7 @@ align-items: center; /* Выравнивает элементы по верти�
 
 .item {
 flex:1; /* Элементы будут занимать равное пространство */
+align-items: center;
 margin: 15px; /* Отступы между элементами */
 }
 

@@ -197,12 +197,19 @@ if (submitButton) {
 
 if (searchButton) {
           searchButton.addEventListener("click", async () => {
-              const searchPrompt = document.getElementById("search-input").value;
-                console.log(searchPrompt);
-              if (isValidInput(searchPrompt)) {
+              const searchPrompt = document.getElementById("search-input");
+              const sPrompt = searchPrompt.value;
+              console.log(sPrompt);
+              const label = searchButton.querySelector(".search-label");
+              const spinner = searchButton.querySelector(".spinner");
+              if (isValidInput(sPrompt)) {
+
+                  searchButton.disabled = true;
+                  label.style.display = "none";
+                  spinner.style.display = "inline-block";
 
                   try {
-                      const response = await fetchWithAuth(`/search?prompt=${encodeURIComponent(searchPrompt)}`);
+                      const response = await fetchWithAuth(`/search?prompt=${encodeURIComponent(sPrompt)}`);
 
                       if (response.redirected) {
                           window.location.href = response.url; // перенаправление на /authorize
@@ -216,29 +223,48 @@ if (searchButton) {
                           searchBlock = `<div class="response-body">${data.message}</div>
                                 </div><br><hr>`;
                           parent.innerHTML += `<div id="${data.id}">
-               <div class="query-body">${searchPrompt}<button class="edit-button">
+               <div class="query-body">${sPrompt}<button class="edit-button">
                <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
                 </button>
                 </div>
                 </div>
             `;
                           parent.innerHTML += searchBlock;
+                          searchPrompt.value = "";
                       } else {
-                          searchBlock = `<div class="response-body">${data.response}</div>
+                          let filteredText = await filterText(data.response)
+                          searchBlock = `<div class="response-body">${filteredText}</div>
                                 </div><br><hr>`;
                           parent.innerHTML += `<div id="${data.id}">
-               <div class="query-body">${searchPrompt}<button class="edit-button">
+               <div class="query-body">${sPrompt}<button class="edit-button">
                <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
                 </button>
                 </div>
                 </div>
             `;
                           parent.innerHTML += searchBlock;
+                          searchPrompt.value = "";
+                          Prism.highlightAll();
+
+                          setTimeout(async () => {
+                        await fetchUpdatedSummaries();
+                    }, 5000);
+                    // window.location.reload();
+
                       }
+                       setTimeout(() => {
+                        const container = document.querySelector(".container-main"); // Родитель с overflow-y: scroll;
+                        container.scrollTop = container.scrollHeight; //  Прокручиваем к последнему элементу
+                    }, 100);
 
                   } catch (error) {
                       console.error("Ошибка при запросе поиска:", error);
                   }
+                  finally {
+                              searchButton.disabled = false;
+                              label.style.display = "inline";
+                              spinner.style.display = "none";
+                            }
               }
           });
       }
@@ -253,9 +279,9 @@ if (searchButton) {
     function updateToggleButtonText(currentParam) {
         const button = document.getElementById("param-toggle");
         if (currentParam === "search") {
-            button.innerHTML = `<img src="/static/img/icons/list-search.svg" width="18" height="18"  alt="поиск">`;
+            button.innerHTML = `чат<img src="/static/img/icons/message.svg" width="18" height="18"  alt="чат">`;
         } else {
-            button.innerHTML = `<img src="/static/img/icons/send-2.svg" width="18" height="18" alt="чат">`;
+            button.innerHTML = `поиск<img src="/static/img/icons/world.svg" width="18" height="18" alt="поиск">`;
         }
     }
 
