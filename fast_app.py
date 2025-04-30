@@ -14,7 +14,7 @@ from subscriptions import router as subscription_router, renew_subscriptions
 from auth import get_user
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
-from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat
+from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
 import asyncio
 # from fastapi_utils.tasks import repeat_every
 
@@ -123,6 +123,9 @@ def get_ton_usdt_price():
     return 2.70
 
 ton_to_usdt = float(get_ton_usdt_price())
+
+
+
 @app.get("/", response_class=HTMLResponse)
 async def index(request: Request, response: Response, user: dict = Depends(get_user), chat_id: str = None,
                 new_chat: int = Query(None)):
@@ -134,7 +137,7 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
 
     #await update_user_mode(user, param)
     user_summaries = await get_user_summaries(user)
-
+    attempts = await get_current_attempts(user)
     # Если chat_id отсутствует, пробуем взять из куки
 
     if not chat_id:
@@ -158,7 +161,8 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
                                       {"request": request, "user": user,
                                        "param": param,
                                        "user_summaries": user_summaries,
-                                       "user_chat": user_chat})
+                                       "user_chat": user_chat,
+                                       "attempts": attempts})
 
 
 @app.get("/stream")
@@ -183,7 +187,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
         system_content = 'Ты консультант-помощник'
 
         # Проверка лимита токенов
-        if (1000000000 - hit_limits) <= 0:
+        if (1000000000 - hit_limits) >= 0:
             logger.info(f"Токенов слишком много: {hit_limits}\n")
             #return
 
@@ -230,31 +234,90 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
 
 @app.get("/search")
-async def search(request: Request, response: Response, query: str, location: dict = None, user: dict = Depends(get_user)):
+async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
+    print (prompt)
     if not user:
         return RedirectResponse('/authorize', status_code=302)
+
     search_chat = User(user)
-
     search_chat_id = await get_last_chat_id(user) or None
+    stream_id = None
 
-    status = user.get("status", "tral")
+    status = user.get("status", "trial")
     attempts = user.get("attempts", 0)
-    country = location.get("country", "RU")
-    city = location.get("city", "Moscow")
-    region = location.get("region", "Moscow")
+    user_tokens = user.get("tokens", 0)
 
     level_index = LEVELS.index(status)
 
-    # Проверка, если уровень слишком низкий
     if level_index < 2:
         return {"message": "Поиск недоступен на вашем уровне подписки!", "status": "error"}
 
-    # Проверка лимита попыток
-    if attempts <= ATTEMPT_LIMITS[level_index]:
+    if (ATTEMPT_LIMITS[level_index] - attempts) < 1:
         return {"message": "Вы исчерпали лимиты поиска на сегодня!", "status": "info"}
 
-    async def generate_search(query, country, city, region, attempts):
-        pass
+    def insert_annotations(text: str, annotations: list[dict]) -> str:
+        if not annotations:
+            return text
+
+        annotations = sorted(annotations, key=lambda a: a["url_citation"]["start_index"], reverse=True)
+
+        for ann in annotations:
+            citation = ann.get("url_citation")
+            if not citation:
+                continue
+
+            start = citation.get("start_index")
+            end = citation.get("end_index")
+            url = citation.get("url")
+            title = citation.get("title")
+
+            if not (0 <= start < end <= len(text)):
+                continue
+
+            cited_text = text[start:end]
+            link = f'<a href="{url}" target="_blank" title="{title}">{cited_text}</a>'
+            text = text[:start] + link + text[end:]
+
+        return text
+
+    async def generate_search(user_prompt, user_attempts, tokens):
+        completion = await client.chat.completions.create(
+            model="gpt-4o-mini-search-preview",
+            messages=[{
+                "role": "user",
+                "content": user_prompt,
+            }],
+        )
+
+        user_attempts += 1
+        tokens += 6000
+        await search_chat.update_attempts(user_attempts)
+        await search_chat.refresh()
+
+        if completion:
+            message_obj = completion.choices[0]
+            full_reply_content = message_obj.message.content
+            annotations = message_obj.annotations if hasattr(message_obj, "annotations") else []
+
+            full_reply_with_links = insert_annotations(full_reply_content, annotations)
+            search_id = completion.id
+
+            await after_stream_processing(search_chat, prompt, full_reply_content, search_chat_id, search_id,
+                                          user_tokens)
+            logger.info(f"Запустили фоновую функцию из поиска с чат айди: {search_chat_id}\n")
+
+            return full_reply_with_links
+        else:
+            return "Ошибка поиска"
+
+    new_attempt_count = await get_current_attempts(user)
+    final_response = await generate_search(prompt, attempts, user_tokens)
+
+    return {
+        "response": final_response,
+        "attempts": new_attempt_count,
+        "id": stream_id
+    }
 
 
 @app.get("/authorize")
@@ -274,16 +337,16 @@ async def change_param(request: Request, user: dict = Depends(get_user), param: 
     response = RedirectResponse(url="/")  # Перенаправляем на корень
     #Логика получения параметра и проверки доступа пользователя к нему
     if user:
-        status = await user.get("status")
-        attempts = await user.get("attempts")
+        status = user.get("status")
+        attempts = user.get("attempts")
         level_index = LEVELS.index(status)
         if level_index < 2 and param != "stream":
             mode = "stream"
-        elif attempts < 1:
+        elif (ATTEMPT_LIMITS[level_index] - attempts) < 1:
             mode = "stream"
         else:
             mode = param
-        response.set_cookie(key="param", value=mode, httponly=True, max_age=3600)  # Меняем куки
+        response.set_cookie(key="param", value=mode, max_age=3600)  # Меняем куки
     else:
         response = RedirectResponse(url="/authorize")
     return response

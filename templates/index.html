@@ -32,8 +32,19 @@
                </section>
 
            </div>
-            </div>
+{#{% if param == "stream" %}#}
+{#        <div id="param-toggle-container" class="build-info tooltip">#}
+{#    <button id="param-toggle" class="transparent-button"><img src="/static/img/icons/list-search.svg" width="18" height="18"  alt="поиск"></button>#}
+{#        <span class="tooltiptext">Сменить режим</span></div>#}
+{#            </div>#}
+{#        {% else %}#}
+{#    <div id="param-toggle-container" class="build-info tooltip">#}
+{#    <button id="param-toggle" class="transparent-button"><img src="/static/img/icons/send-2.svg" width="18" height="18" alt="чат"></button>#}
+{#        <span class="tooltiptext">Сменить режим</span></div>#}
+{#        {% endif %}#}
 
+
+{% if param == "stream" %}
 
   <div class="main-footer">
       {% if user.trial_blocked %}
@@ -47,19 +58,38 @@
       <img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">
       </button>
 
-{#      <script> showModal("Вы исчерпали лимит токенов на сегодня и автоматически переключились на базовый тариф до конца дня", "info", {#}
-{#            label: "Снять ограничения до конца дня?",#}
-{#            url: "/price",#}
-{#            method: "get"#}
-{#            });</script>#}
       {% else %}
-          <div id="upgrade" class="build-info"><a href="/price">Перейдите на повышенный план.</a></div>
+
       <textarea id="prompt" placeholder="Введите запрос" aria-label="Query"></textarea>
       <button class="transparent-button" id="submit" type="submit">
         <img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">
         </button>
 
       {% endif %}
+{% else %}
+
+    <div class="main-footer">
+      {% if user.trial_blocked %}
+      <div class="user_text">Вы исчерпали лимит токенов на сегодня, возвращайтесь завтра или
+          <a href="/price">Перейдите на повышенный план.</a></div>
+
+      {% elif user.status != user.original_status and user.status == "trial" %}
+
+      <textarea  id="search-input" placeholder="Вы исчерпали лимит токенов и можете продолжать чат с базовой моделью до конца дня" aria-label="Query"></textarea>
+      <button class="transparent-button" id="search-button" type="submit">
+      <img src="/static/img/icons/list-search.svg" width="18" height="18" autofocus alt="send">
+      </button>
+
+      {% else %}
+
+      <textarea id="search-input" placeholder="Поисковый запрос" aria-label="Query"></textarea>
+      <button class="transparent-button" id="search-button" type="submit">
+        <img src="/static/img/icons/list-search.svg" width="18" height="18" autofocus alt="send">
+        </button>
+
+      {% endif %}
+
+{% endif %}
 
 
       <div class="build-info">&copy;2025 ChatGP.Ru. Все права защищены.</div>

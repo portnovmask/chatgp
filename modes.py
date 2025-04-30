@@ -129,8 +129,17 @@ async def get_chat_body_by_id(user, chat_id):
 
     return chat_body
 
+async def get_current_attempts(user):
+    attempts = await users_collection.find_one(
+        {"email": user.get("email")},
+        {"attempts": 1, "_id": 0}  # Запрашиваем только поле chat_id из массива chats
+    )
+    if not attempts or "attempts" not in attempts:
+        logger.info(f"функция get_current_attempts не нашла attempts в базе\n")
+        return None  # Если данные отсутствуют или нет поля attempts
 
-
+    # Проверяем, есть ли переданный chat_id в этом списке
+    return attempts
 
 
 
@@ -239,6 +248,12 @@ class User:
 
 
 
+    async def update_attempts(self, attempts):
+        await users_collection.update_one(
+            {"email": self.user.get("email")},
+            {"$inc": {"attempts": attempts}},
+            upsert=True
+        )
 
     async def get_last_chat_messages(self, chat_id: str, count: int = 10):
         """Возвращает последние count сообщений из chat_body указанного чата."""

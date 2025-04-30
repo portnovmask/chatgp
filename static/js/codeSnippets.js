@@ -1,5 +1,8 @@
 
- document.getElementById("scroll-anchor").scrollIntoView({ behavior: "smooth" });
+ window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("scroll-anchor")?.scrollIntoView({ behavior: "smooth" });
+});
+
 
 
 function escapeHtml(str) {

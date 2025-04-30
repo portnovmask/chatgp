@@ -98,6 +98,7 @@ async def get_user(request: Request):
                 "id": str(user["_id"]),
                 "status": str(user["status"]),
                 "tokens": int(user["tokens"]),
+                "attempts": int(user["attempts"]) if "attempts" in user else 0,
                 "original_status": str(user["original_status"]),
                 "trial_expires_at": user.get("trial_expires_at"),
                 "trial_blocked": user.get("trial_blocked"),
