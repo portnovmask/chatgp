@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-
+from datetime import datetime
 from auth import router as auth_router
 from users import router as users_router
 from products import router as products_router
@@ -342,6 +342,26 @@ async def price(request: Request, user: dict = Depends(get_user)):
     return templates.TemplateResponse("price.html", {"request": request, "user": user, "ton_to_usdt": ton_to_usdt})
 
 
+@app.get("/dash")
+async def dash(request: Request, user: dict = Depends(get_user)):
+    if not user:
+        return RedirectResponse('/authorize', status_code=302)
+    else:
+        plans = {
+            "trial": "Базовый",
+            "basic": "Оптимум",
+            "advanced": "Фрилансер",
+            "business": "Бизнес",
+            "pro": "Мыслитель",
+            "premium": "Премиум"
+        }
+        logger.info(f"/dashboard  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
+
+        return templates.TemplateResponse("dash.html",
+                                          {"request": request, "user": user, "plans": plans})
+
+
+
 
 @app.get("/change_param")  #Ручка для выбора параметров
 async def change_param(request: Request, user: dict = Depends(get_user), param: str = "stream"):
@@ -457,7 +477,16 @@ def format_code_blocks(text):
 
     # Возвращаем HTML, безопасный для вывода
     return formatted_text
-# Регистрируем фильтр
+
+def format_datetime(value, fmt='%d.%m.%Y %H:%M'):
+    if isinstance(value, datetime):
+        return value.strftime(fmt)
+    return value
+
+# Регистрируем фильтр форматирования времени
+templates.env.filters['datetimeformat'] = format_datetime
+
+# Регистрируем фильтр форматирования блоков кода
 templates.env.filters["format_code_blocks"] = format_code_blocks
 
 @app.post("/delete-chat/")

@@ -5,6 +5,8 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from starlette.responses import HTMLResponse
+
 from models.users import users_collection
 from models.tokens import tokens_collection
 from models.user_data import users_data_collection
@@ -71,40 +73,64 @@ def create_refresh_token(email: str):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire, jti
 
 
+from bson import ObjectId
+
+def serialize(value):
+    if isinstance(value, ObjectId):
+        return str(value)
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {k: serialize(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [serialize(v) for v in value]
+    return value
+
 async def get_user(request: Request):
     """Проверяет access-токен в куках и валидирует его"""
     token = request.cookies.get("access_token")
-    logger.info(f"def get_user - Токен в куках: {token}")  # Логируем токен из кук
+    logger.info(f"def get_user - Токен в куках: {token}")
     if not token:
         return None
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        logger.info(f"def get_user - Payload токена: {payload}")  # Посмотрим, что в токене
+        logger.info(f"def get_user - Payload токена: {payload}")
         email = payload.get("sub")
         if not email:
             logger.info("def get_user - Нет email в payload")
             return None
 
-        # Проверяем, есть ли access-токен в БД
         token_in_db = await tokens_collection.find_one({"email": email, "access_token": token})
         if not token_in_db:
             logger.info(f"def get_user - Токен не найден в БД: {token}")
             return None
 
         user = await users_collection.find_one({"email": email})
+        if not user:
+            return None
+
         logger.info(f"def get_user - Пользователь {user['email']} авторизован: {token}")
-        return {"email": user["email"],
-                "id": str(user["_id"]),
-                "status": str(user["status"]),
-                "tokens": int(user["tokens"]),
-                "attempts": int(user["attempts"]) if "attempts" in user else 0,
-                "original_status": str(user["original_status"]),
-                "trial_expires_at": user.get("trial_expires_at"),
-                "trial_blocked": user.get("trial_blocked"),
-                "subscription": user.get("subscription", {})} if user else None
+
+        return {
+            "email": user["email"],
+            "id": str(user["_id"]),
+            "registered_at": user["registered_at"],
+            "contact": user.get("contact"),
+            "status": str(user["status"]),
+            "tokens": int(user["tokens"]),
+            "attempts": int(user.get("attempts", 0)),
+            "auth_provider": str(user.get("auth_provider", "email")),
+            "oauth_id": str(user.get("oauth_id", "email")),
+            "original_status": str(user.get("original_status", user["status"])),
+            "trial_expires_at": user.get("trial_expires_at"),
+            "trial_expires_blocked": user.get("trial_expires_blocked"),  # если используешь
+            "subscription": serialize(user.get("subscription", {})),
+        }
+
     except JWTError:
         return None
+
 
 
 
@@ -184,6 +210,7 @@ async def register(email: str = Form(...), password: str = Form(...)):
 
     hashed_password = pwd_context.hash(password)
     new_user = {"email": email,
+                "contact": email,
                 "password": hashed_password,
                 "registered_at": register_time,
                 "auth_provider": "local",
@@ -255,11 +282,6 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     logger.info(f"/login  - def login - Для пользователя: {email} - в куки добавлены новые токены\n")
     return response
 
-@router.get("/dashboard")
-async def dashboard(user: dict = Depends(get_user)):
-    logger.info(f"/dashboard  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
-    """Защищенный роут для авторизованных пользователей"""
-    return {"message": f"Привет, {user['email']}! Это твоя панель управления."}
 
 @router.get("/logout")
 async def logout(request: Request):
@@ -303,7 +325,7 @@ async def logout_all(request: Request):
 
         # Удаляем все токены этого пользователя
         await tokens_collection.delete_many({"email": email})
-        logger.info(f"⛔ Пользователь {email} вышел со всех устройств")
+        logger.info(f" Пользователь {email} вышел со всех устройств")
 
         response = JSONResponse({"message": "Вышли со всех устройств"})
         response.delete_cookie("access_token")
@@ -337,8 +359,13 @@ async def vendor_user_login(user, vendor):
 
 async def vendor_user_register(email, vendor, vendor_id):
     # Регистрируем нового пользователя
+    if vendor == "Google" or vendor == "yandex":
+        contact = email
+    else:
+        contact = None
     new_user = {
         "email": email,
+        "contact": contact,
         "password": None,  # Пароль не нужен для OAuth
         "registered_at": datetime.now(timezone.utc),
         "auth_provider": vendor,

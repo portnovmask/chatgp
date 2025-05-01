@@ -1,0 +1,58 @@
+{% extends "noheader2.html" %}
+
+{% block title %}Личный кабинет{% endblock %}
+
+{% block content %}
+
+    <h1>Добро пожаловать в личный кабинет!</h1>
+    {% if user %}
+        {% if user.contact %}
+            <p>Почта для связи: {{ user.contact }}</p>
+            {% if user.auth_provider %}
+             <p>Зарегистрирован через: {{ user.auth_provider }}</p>
+                {% else %}
+                <p>Логин совпадает с email</p>
+            {% endif %}
+        {% else %}
+            <p>Вы зарегистрированны через: {{ user.auth_provider }}</p>
+            <p>Добавить электронную почту, чтобы оставаться на связи</p>
+            <label for="contact-email">введите валидный email</label>
+            <input id="contact-email" type="email" name="email" value="myemail@example.com">
+            <button id="update-contact" type="submit">Добавить</button>
+        {% endif %}
+        <p>Дата регистрации: {{ user.registered_at | datetimeformat  }}</p>
+        <p>Оплаченный план (при временном понижении восстанавливается на следующий день): {{ plans[user.original_status] }}</p>
+        <p>Текущий план (понижается до базового при достижении лимитов): {{ plans[user.status] }}</p>
+        {% if user.trial_expires_at or user.trial_expires_blocked %}
+            <p>Лимиты будут сброшены: {{ user.trial_expires_at | datetimeformat  }}</p>
+        {% endif %}
+        {% if user.subscription|length > 0 %}
+
+            <h3>Подписка</h3>
+                <ul>
+                  <li>Уровень: {{ plans[user.subscription.level] }}</li>
+                    {% if user.subscription.is_active %}
+                    <li>Подписка активна</li>
+                    {% else %}
+                        <li>Подписка неактивна</li>
+                        {% endif %}
+                  <li>Истекает: {{ user.subscription.expires_at | datetimeformat }}</li>
+                  <li>Следующее списание: {{ user.subscription.next_billing_date | datetimeformat }}</li>
+                  <li>Последняя транзакция: {{ user.subscription.transaction_id }}</li>
+                </ul>
+
+            <h4>История платежей:</h4>
+                    <ul>
+                      {% for payment in user.subscription.payment_history %}
+                        <li>
+                          {{ payment.date | datetimeformat}} — {{ payment.amount }} TON от {{ payment.source }} (tx_id: {{ payment.tx_id }})
+                        </li>
+                      {% else %}
+                        <li>Платежей пока нет</li>
+                      {% endfor %}
+                    </ul>
+        {% endif %}
+            <a href="/logout">Выйти</a>
+
+    {% endif %}
+{% endblock %}
