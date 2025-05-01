@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
 import logging
 from fastapi.templating import Jinja2Templates
 import uuid
+
+from sqlalchemy.testing.provision import upsert
 from starlette.responses import RedirectResponse
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
@@ -288,11 +290,12 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
                 "status": level,
                 "original_status": level,
                 "tokens": 0,
+                "attempts": 0,
                 "subscription.level": level,
                 "subscription.expires_at": new_expiry,
                 "subscription.next_billing_date": new_expiry,
                 "subscription.is_active": True,
-                "subscription.transaction_id": tx_id,
+                "subscription.transaction_id": tx_id
             },
             "$push": {
                 "subscription.payment_history": {
@@ -381,6 +384,7 @@ async def renew_subscriptions():
                 "status": new_level,
                 "original_status": new_level,
                 "tokens": 0,
+                "attempts": 0,
                 "subscription.level": new_level,
                 "subscription.expires_at": new_expiry,
                 "subscription.next_billing_date": new_expiry,

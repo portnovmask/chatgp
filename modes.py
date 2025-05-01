@@ -161,41 +161,43 @@ class User:
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 5000000,
                 "temperature": 0.2,
-                "search": 0
+                "search": 30
             },
             "advanced": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 5000000,
                 "temperature": 0.2,
-                "search": 10
+                "search": 120
             },
             "business": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 5000000,
                 "temperature": 0.2,
-                "search": 50
+                "search": 400
             },
             "pro": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 10000000,
-                "temperature": 0.2,
-                "search": 100
+                "temperature": 0.1,
+                "search": 200,
+                "search_model": "gpt-4o-search-preview",
             },
             "premium": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 100000000,
-                "temperature": 0.2,
-                "search": 150
+                "temperature": 0.3,
+                "search": 600,
+                "search_model": "gpt-4o-search-preview",
             },
             "error_code": {
                 "model": "gpt-4o-mini",
                 "system": "Ты ассистент",
                 "token_limit": 1000000,
-                "temperature": 0.2
+                "temperature": 0.1
             },
             "attorney": {
                 "model": "gpt-4o-mini",
@@ -220,7 +222,7 @@ class User:
                 "model": "gpt-4o-mini",
                 "system": "Ты креативщик, редактор, писатель. Ты предлагаешь улучшения текста, исправления синтаксиса, пунктуации и стилистики. Твой язык по умолчанию - русский. Если язык запроса отличается от русского, то ты продолжаешь на языке запроса. Твоя основная задача сделать текст более читаемым, захватывающим внимание и передающим идею.",
                 "token_limit": 1000000,
-                "temperature": 0.9
+                "temperature": 0.8
             },
         }
 
@@ -251,8 +253,7 @@ class User:
     async def update_attempts(self, attempts):
         await users_collection.update_one(
             {"email": self.user.get("email")},
-            {"$inc": {"attempts": attempts}},
-            upsert=True
+            {"$inc": {"attempts": attempts}}
         )
 
     async def get_last_chat_messages(self, chat_id: str, count: int = 10):
@@ -416,8 +417,9 @@ class User:
         token_limits=params.get("tokens", 1000000)
         temp=params.get("temperature", 0.2)
         search=params.get("search", 0)
+        search_model=params.get("search_model", "gpt-4o-mini-search-preview")
 
-        request_params = {"model":model, "system":system, "token_limits":token_limits, "temperature":temp, "search":search}
+        request_params = {"model":model, "system":system, "token_limits":token_limits, "temperature":temp, "search":search, "search_model":search_model}
 
 
         return request_params

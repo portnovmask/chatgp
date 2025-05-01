@@ -51,7 +51,7 @@ async function fetchUpdatedSummaries() {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error("Ошибка при обновлении summaries");
+            console.error("Ошибка при запросе поиска:", response.statusText);
         }
 
         updateSummariesUI(data.summaries);

@@ -182,13 +182,14 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
     user_tokens = user.get("tokens", 0)  # Предотвращаем ошибку, если у user нет "tokens"
     request_params = await chat.request_params()
     async def generate_stream(context, hit_limits):
+        token_usage = 0
         collected_messages = []
         stream_id = None
         system_content = 'Ты консультант-помощник'
 
         # Проверка лимита токенов
-        if (1000000000 - hit_limits) >= 0:
-            logger.info(f"Токенов слишком много: {hit_limits}\n")
+        if (100000000 - hit_limits) <= 0:
+            logger.info(f"/stream-{user.get("email")} Токенов слишком много: {hit_limits}\n")
             #return
 
         # GPT запрос
@@ -211,7 +212,8 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
                 #print(f"Стрим-фрагмент: {chunk.choices[0].delta.content}")  # Логируем потоковые данные
 
             if chunk.usage:
-                hit_limits += int(chunk.usage.total_tokens)
+                token_usage = int(chunk.usage.total_tokens)
+                hit_limits += token_usage
                 logger.info(f"Обновленный лимит токенов stream: {hit_limits}\n")
 
             json_data = json.dumps({
@@ -228,7 +230,7 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
         logger.info(f"Полный ответ в стриме: {full_reply_content[0:15]}")
         logger.info(f"Айди стрима: {stream_id}\n")
 
-        asyncio.create_task(after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, hit_limits))
+        asyncio.create_task(after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, token_usage))
         logger.info(f"Запустили фоновую функцию из стрима с чат айди: {chat_id}\n")
 
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
@@ -246,14 +248,18 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
     status = user.get("status", "trial")
     attempts = user.get("attempts", 0)
     user_tokens = user.get("tokens", 0)
-
+    params = await search_chat.request_params()
+    search_model = params.get("search_model")
     level_index = LEVELS.index(status)
 
     if level_index < 2:
         return {"message": "Поиск недоступен на вашем уровне подписки!", "status": "error"}
 
-    if (ATTEMPT_LIMITS[level_index] - attempts) < 1:
+    if (params.get("search") - attempts) < 1:
         return {"message": "Вы исчерпали лимиты поиска на сегодня!", "status": "info"}
+
+    # assistant_content = await search_chat.get_last_chat_messages(search_chat_id)
+    # logger.info(f"assistant_content search: {assistant_content[0:15]}\n")
 
     def insert_annotations(text: str, annotations: list[dict]) -> str:
         if not annotations:
@@ -280,9 +286,10 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
 
         return text
 
-    async def generate_search(user_prompt, user_attempts, tokens):
+    async def generate_search(user_prompt, user_attempts, tokens, user_model):
+        token_usage = 1000
         completion = await client.chat.completions.create(
-            model="gpt-4o-mini-search-preview",
+            model=user_model,
             messages=[{
                 "role": "user",
                 "content": user_prompt,
@@ -290,8 +297,12 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
         )
 
         user_attempts += 1
-        tokens += 6000
-        await search_chat.update_attempts(user_attempts)
+        # Проверка лимита токенов
+        if (100000000 - tokens) <= 0 or (params.get("search") - user_attempts) <= 0 :
+            logger.info(f"/search-{user.get("email")}: Токенов или попыток поиска слишком много. Токены: {tokens}, Попытки: {user_attempts}\n")
+            # return
+
+        await search_chat.update_attempts(1)
         await search_chat.refresh()
 
         if completion:
@@ -303,7 +314,7 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
             search_id = completion.id
 
             await after_stream_processing(search_chat, prompt, full_reply_content, search_chat_id, search_id,
-                                          user_tokens)
+                                          token_usage)
             logger.info(f"Запустили фоновую функцию из поиска с чат айди: {search_chat_id}\n")
 
             return full_reply_with_links
@@ -311,7 +322,7 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
             return "Ошибка поиска"
 
     new_attempt_count = await get_current_attempts(user)
-    final_response = await generate_search(prompt, attempts, user_tokens)
+    final_response = await generate_search(prompt, attempts, user_tokens, search_model)
 
     return {
         "response": final_response,

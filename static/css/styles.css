@@ -524,7 +524,7 @@ a.visited {
 
 .transparent-button {
     position: absolute;
-    bottom: 1.7rem; /* добавь если кнопка прилипает к верху */
+    bottom: 1.5rem; /* добавь если кнопка прилипает к верху */
     display: flex;
     align-items: center;
     justify-content: space-evenly;

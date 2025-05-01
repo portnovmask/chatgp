@@ -39,7 +39,7 @@ TON_SECRET_KEY = os.environ['TON_SECRET_KEY']
 TON_WALLET = os.environ['TON_WALLET']
 
 LEVELS = ["trial", "basic", "advanced", "business", "pro", "premium"]
-ATTEMPT_LIMITS = [0, 0, 10, 50, 100, 150]
+ATTEMPT_LIMITS = [0, 30, 120, 400, 200, 600]
 PRETTY_NAMES = {
     "trial": "Базовый",
     "basic": "Оптимум",
