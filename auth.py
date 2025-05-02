@@ -86,6 +86,7 @@ def serialize(value):
         return [serialize(v) for v in value]
     return value
 
+
 async def get_user(request: Request):
     """Проверяет access-токен в куках и валидирует его"""
     token = request.cookies.get("access_token")
@@ -125,7 +126,7 @@ async def get_user(request: Request):
             "original_status": str(user.get("original_status", user["status"])),
             "trial_expires_at": user.get("trial_expires_at"),
             "trial_expires_blocked": user.get("trial_expires_blocked"),  # если используешь
-            "subscription": serialize(user.get("subscription", {})),
+            "subscription": user.get("subscription", {})
         }
 
     except JWTError:

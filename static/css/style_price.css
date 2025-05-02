@@ -131,6 +131,9 @@ body {
             font-size: 1.1em;
             font-weight: 600;
         }
+        .card-content {
+            text-align: left;
+        }
 
         .card-small {
             margin: 10px 0;
@@ -197,6 +200,55 @@ body {
       opacity: 0.7;
 }
 
+.dropdown {
+    width: 100%;
+    margin-top: 1rem;
+}
+
+
+.dropdown-button {
+    background-color: lightcyan;
+    border-radius: 8px;
+    padding: 10px 15px;
+    text-align: center;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 0.8em;
+    color: #171717;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    list-style: none;
+    user-select: none;
+    width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.dropdown-button:hover {
+    background-color: cyan;
+    opacity: 0.85;
+}
+
+.dropdown[open] .dropdown-button {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.dropdown-content {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 10px 15px;
+    font-size: 0.75em;
+    color: #333;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-height: 120px;         /* ✅ Ограничиваем высоту */
+    overflow-y: auto;          /* ✅ Добавляем вертикальную прокрутку */
+    box-sizing: border-box;
+    width: 100%;
+}
 
         @media (max-width: 1024px) {
             .container {

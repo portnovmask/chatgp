@@ -4,11 +4,16 @@
 
 {% block content %}
 
-    <h1>Добро пожаловать в личный кабинет!</h1>
+    <div class="container">
+
+    <!-- Левая колонка с логотипом и ссылками -->
+    <div class="sidebar">
+        <div class="logo" onclick="window.location.href='/'"></div>
+        <h1>Добро пожаловать в личный кабинет!</h1>
     {% if user %}
         {% if user.contact %}
             <p>Почта для связи: {{ user.contact }}</p>
-            {% if user.auth_provider %}
+            {% if user.auth_provider != "local" %}
              <p>Зарегистрирован через: {{ user.auth_provider }}</p>
                 {% else %}
                 <p>Логин совпадает с email</p>
@@ -20,39 +25,88 @@
             <input id="contact-email" type="email" name="email" value="myemail@example.com">
             <button id="update-contact" type="submit">Добавить</button>
         {% endif %}
-        <p>Дата регистрации: {{ user.registered_at | datetimeformat  }}</p>
-        <p>Оплаченный план (при временном понижении восстанавливается на следующий день): {{ plans[user.original_status] }}</p>
-        <p>Текущий план (понижается до базового при достижении лимитов): {{ plans[user.status] }}</p>
-        {% if user.trial_expires_at or user.trial_expires_blocked %}
-            <p>Лимиты будут сброшены: {{ user.trial_expires_at | datetimeformat  }}</p>
-        {% endif %}
-        {% if user.subscription|length > 0 %}
+        <div class="links">
+            <a href="/">Начать чат</a>
+            <a href="/">Контакты</a>
+            <a href="/price">Цены</a>
+            <a href="/logout">Выход</a>
+        </div>
+    </div>
 
-            <h3>Подписка</h3>
-                <ul>
-                  <li>Уровень: {{ plans[user.subscription.level] }}</li>
-                    {% if user.subscription.is_active %}
-                    <li>Подписка активна</li>
-                    {% else %}
-                        <li>Подписка неактивна</li>
+    <!-- Основной контент (две другие колонки) -->
+    <div class="grid">
+
+        <!-- Левая из двух правых колонок -->
+        <div class="card" style="height: 50vh; justify-content: flex-start; margin-bottom: 20px;">
+            <img src="/static/img/icons/user.svg" alt="User" style="width: 25px; height: 25px;" >
+            <p class="card-price">Информация</p>
+        <div class="card-content">
+            <span class="card-medium">Никнейм: {{ user.email }}</span>
+             <span class="card-medium">Дата регистрации: {{ user.registered_at | datetimeformat  }}</span>
+            <span class="card-medium">Текущий план: <b>{{ plans[user.original_status] }}</b></span>
+            {% if user.original_status != 'trial' and user.status == 'trial' %}
+            <span class="card-small">Временно понижен до: <b>{{ plans[user.status] }}</b></span>
+
+            {% if user.trial_expires_at or user.trial_expires_blocked %}
+            <span class="card-small">Лимиты сбросятся: {{ user.trial_expires_at | datetimeformat  }}</span>
+            {% endif %}
+                {% endif %}
+        </div>
+        </div>
+
+        <!-- Правая из двух правых колонок -->
+        <div class="card" style="height: 50vh; justify-content: flex-start; margin-bottom: 20px;">
+            <img src="/static/img/icons/settings.svg" alt="Stats" style="width: 25px; height: 25px;">
+            <p class="card-price">Подписки</p>
+            <div class="card-content">
+            {% if user.subscription|length > 0 %}
+                    {% if user.subscription.pending_level %}
+                  <span>Отложенная подписка: <b>{{ plans[user.subscription.pending_level] }}</b></span>
+                <span class="card-small">Вступит в силу: {{ user.subscription.pending_activation_date | datetimeformat }}</span>
                         {% endif %}
-                  <li>Истекает: {{ user.subscription.expires_at | datetimeformat }}</li>
-                  <li>Следующее списание: {{ user.subscription.next_billing_date | datetimeformat }}</li>
-                  <li>Последняя транзакция: {{ user.subscription.transaction_id }}</li>
-                </ul>
+                    {% if user.subscription.is_active %}
+                        <span>Активная подписка: <b>{{ plans[user.subscription.level] }}</b></span>
+                    {% else %}
+                        <span class="card-small">Активация</span>
+                    {% endif %}
+                  <span class="card-small">Истекает: {{ user.subscription.expires_at | datetimeformat }}</span>
+                  <span class="card-small">Продлить до: {{ user.subscription.next_billing_date | datetimeformat }}</span>
 
-            <h4>История платежей:</h4>
-                    <ul>
+
+            {% endif %}
+            </div>
+        </div>
+
+        <!-- Третья карточка, если хочешь -->
+        <div class="card" style="height: 50vh; justify-content: flex-start; margin-bottom: 20px;">
+            <img src="/static/img/icons/shopping-cart.svg" alt="Settings" style="width: 25px; height: 25px;">
+            <p class="card-price">Отчёты</p>
+        <div class="card-content">
+                    <span class="card-small">Использовано токенов: {{ user.tokens }}</span>
+                   <span class="card-small">Токены поиска: {{ user.attempts }}</span>
+                    {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}
+                    <span class="card-small">ID Последней транзакции: {{ user.subscription.transaction_id }}</span>
+                    <details class="dropdown">
+                    <summary class="dropdown-button">Все транзакции</summary>
+                    <div class="dropdown-content">
+                        <div class="dropdown-content">
                       {% for payment in user.subscription.payment_history %}
-                        <li>
+                        <div class="card-small">
                           {{ payment.date | datetimeformat}} — {{ payment.amount }} TON от {{ payment.source }} (tx_id: {{ payment.tx_id }})
-                        </li>
+                        </div>
                       {% else %}
-                        <li>Платежей пока нет</li>
+                        <div class="card-small">Платежей пока нет</div>
                       {% endfor %}
-                    </ul>
-        {% endif %}
-            <a href="/logout">Выйти</a>
+                    </div>
+                    </div>
+                        </details>
+
+                        {% endif %}
+        </div>
+        </div>
+
+    </div>
+</div>
 
     {% endif %}
 {% endblock %}
