@@ -1,3 +1,280 @@
+:root {
+    --container-marg: clamp(2px, 10vw, 127px);
+}
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+    overflow-x: hidden;
+    font-family: "Manrope", sans-serif;
+    font-optical-sizing: auto;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 400;
+}
+
+a {
+    text-decoration: none;
+    color: initial;
+    padding: 5px;
+}
+
+
+a:hover {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: auto;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a:focus {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: auto;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a:active {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: contain;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a.visited {
+    text-decoration: none;
+    color: inherit;
+}
+
+a {
+    text-decoration: none;
+    color: initial;
+    padding: 5px;
+}
+
+a:hover {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: auto;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a:focus {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: auto;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a:active {
+    text-decoration: none;
+    background-color: #ddd;
+    background-size: contain;
+    transition: background-color 0.2s ease-in-out;
+}
+
+
+a.visited {
+    text-decoration: none;
+    color: inherit;
+}
+
+.layout {
+    display: flex; /* Делаем flex-контейнер */
+    height: 100vh; /* Заполняем высоту экрана */
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+/* === САЙДБАР === */
+#sidebar {
+    position: relative;
+    width: 20.66%; /* 1/6 экрана */
+    min-width: 250px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    /*justify-content: space-between;*/
+    background: #ecebeb;
+    background-size: cover;
+    background-position: center center;
+    transition: transform 0.3s ease-in-out;
+    margin: 0;
+    padding: 0 1rem;
+    z-index: 10;
+}
+.logo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    z-index: 15;
+}
+.side-bar-header{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: sticky;
+    top: 0;
+    width: 100%;
+}
+
+
+.new-chat-button {
+    background-color: transparent;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 22px;
+    padding: 5px;
+    width: fit-content;
+    height: fit-content;
+    margin-right: auto;
+    z-index: 12;
+}
+
+
+.new-chat-button:hover {
+    background-color: #ddd;
+}
+.new-chat-button:active {
+    background-color: #ddd;
+}
+.new-chat-button:focus {
+    transform: scale(1.1);
+}
+
+.sidebar-main{
+    display: flex;
+    justify-content: center;
+    overflow-y: auto;
+    width: 100%;
+    height: 100%;
+    padding: 1rem 0;
+}
+
+
+.list-button {
+    position:relative;
+    background-color: transparent;
+    flex-grow: 1;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    text-align: left;
+    /*padding-left: 1.5rem;*/
+    width: 100%;
+    height: 1.5rem;
+    margin: auto;
+    white-space: nowrap;       /* Текст в одну строку */
+    overflow: hidden;          /* Обрезаем выходящий текст */
+    text-overflow: ellipsis;   /* Добавляем "..." в конце */
+    max-width: 200px;
+    z-index: 12;
+}
+
+.chat-entry:hover {
+    background-color: #ddd;
+    transition: background-color 0.2s ease-in-out;
+}
+.active {
+    background-color: #ddd;
+}
+.chat-entry:focus {
+    /*border: 1px dashed #2c2c2c;*/
+    background-color: #ddd;
+}
+
+/* === КНОПКА ОТКРЫТИЯ МЕНЮ === */
+#open-menu-btn {
+    display: none;
+    /*font-size: larger;*/
+    width: fit-content;
+    height: fit-content;
+    border: none;
+    /*margin-right: 20px!* По умолчанию скрыта *!*/
+}
+
+#close-menu-btn {
+    display: none;
+    width: fit-content;
+    height: fit-content;
+    border: none;
+    /*margin: auto!* По умолчанию скрыта *!*/
+}
+
+/* === ОТКРЫТЫЙ САЙДБАР === */
+#sidebar.open {
+    transform: translateX(0);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+}
+.sidebar-footer{
+    display: flex;
+    height: fit-content;
+    flex-direction: column;
+    align-items: start;
+    justify-content: center;
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    font-size: small;
+}
+.side-bar-hint-button {
+    /*bottom: 2rem; !* добавь если кнопка прилипает к верху *!*/
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    /*gap: 6px;*/
+    left: 0;
+    color: #777575;
+    background-color: transparent;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 1px;
+    width: 150px;
+    height: 30px;
+    margin-right: 10px;
+    z-index: 12;
+    border: None;
+}
+.side-bar-hint-button:hover {
+    /*background-color: #ddd;*/
+    border: 1px solid #2c2c2c;
+    /* Меняем цвет при наведении */
+}
+
+.side-bar-hint-button:active {
+    border: 1px solid #015050;
+    /*color: */
+}
+
+
+.side-bar-hint-button:focus {
+   /*transform: scale(1.1);*/
+    background-color: #ecebeb;
+}
+
+/*Конец сайдабара*/
+
+h1 { font-size: 2em; margin-bottom: 0.5em; }
+img { max-width: 100%; height: auto; margin-bottom: 1em; }
+.meta { color: gray; font-size: 0.9em; margin-bottom: 1em; }
+.annotations { margin-bottom: 1em; font-style: italic; color: #444; }
+
+
 .container {
     display: flex;
     max-width: 1200px;
@@ -11,4 +288,5 @@
 .content {
     flex: 1;
     padding: 20px;
+    margin-top: 2em;
 }

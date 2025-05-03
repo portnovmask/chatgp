@@ -1,45 +1,63 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ post.title if post else "Блог" }}</title>
-    <link rel="stylesheet" href="/static/css/style_blog.css">
-</head>
-<body>
-    <div class="container">
-        <aside class="sidebar">
-            <h2>Все статьи</h2>
-            <ul>
-                {% for p in posts %}
-                    <li><a href="/post/{{ p.slug }}">{{ p.title }}</a></li>
-                {% endfor %}
-            </ul>
+{% extends "post_base.html" %}
 
-            <hr>
-            <h3>Добавить статью</h3>
-<form id="post-form">
-    <input type="text" name="title" placeholder="Заголовок (title)" required><br>
-    <input type="text" name="h1" placeholder="Заголовок страницы (h1)" required><br>
-    <input type="text" name="author" placeholder="Автор"><br>
-    <input type="text" name="description" placeholder="Описание (description)"><br>
-    <input type="url" name="image_link" placeholder="Ссылка на изображение"><br>
-    <input type="text" name="annotations" placeholder="Аннотации (через запятую)"><br>
-    <textarea name="content" placeholder="Содержание" rows="5" required></textarea><br>
-    <button type="submit">Создать</button>
-</form>
-<p id="form-status"></p>
-        </aside>
+{% block title %}{% if post %}
+    {{ post.title }} — новости AI и ChatGPT на ChatGP.Ru
+  {% else %}
+    Блог | Последние статьи
+  {% endif %}
+{% endblock %}
 
-        <main class="content">
+{% block description %}
+  {% if post and post.description %}
+    {{ post.description }}
+  {% else %}
+    Здесь собраны новости и статьи о новых технологиях, искусственном интеллекте, языковых моделях, AI чат ботах, Chat GPT и машинном обучении.
+  {% endif %}
+{% endblock %}
+
+{% block content %}
+    <main id="main">
+    <div class="container-main">
+
+
             {% if post %}
                 <h1>{{ post.title }}</h1>
-                <p>{{ post.content }}</p>
+
+    <div class="meta">
+        Автор: {{ post.author }}<br>
+        Дата: {{ post.date }}
+    </div>
+
+    {% if post.image_link %}
+        <img class="post-img" src="{{ post.image_link }}" alt="Изображение статьи">
+    {% endif %}
+
+    <p class="description">{{ post.description }}</p>
+
+    {% if post.annotations %}
+        <div class="annotations">
+            Аннотации:
+            {% for item in post.annotations %}
+    {% if item.startswith('http') %}
+      <a href="{{ item }}" target="_blank" rel="noopener noreferrer">{{ item | replace('https://', '') | replace('http://', '') }}</a>
+    {% else %}
+      <span>#{{ item }}</span>
+    {% endif %}
+    {% if not loop.last %}, {% endif %}
+  {% endfor %}
+        </div>
+    {% endif %}
+
+    <div class="content">
+        {{ post.content | safe }}
+    </div>
             {% else %}
                 <h1>Добро пожаловать в блог!</h1>
                 <p>Выберите статью слева или создайте новую.</p>
             {% endif %}
+        </div>
         </main>
-    </div>
+
 
     <script>
 document.getElementById('post-form').addEventListener('submit', async (e) => {
@@ -86,5 +104,4 @@ document.getElementById('post-form').addEventListener('submit', async (e) => {
 });
 
 </script>
-</body>
-</html>
+{% endblock %}

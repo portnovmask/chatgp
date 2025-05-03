@@ -16,6 +16,7 @@ import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
 import asyncio
+import markdown
 # from fastapi_utils.tasks import repeat_every
 from blog_post import get_post_by_slug, get_all_post_titles, get_latest_post
 access_logger = logging.getLogger("uvicorn.access")
@@ -365,6 +366,10 @@ async def dash(request: Request, user: dict = Depends(get_user)):
 async def post_home(request: Request):
 
     post = await get_latest_post()
+    if post:
+        post["content"] = markdown.markdown(
+            post["content"], extensions=["extra", "sane_lists", "nl2br"]
+        )
     posts = await get_all_post_titles()
     return templates.TemplateResponse("blog.html", {
         "request": request,
@@ -377,6 +382,10 @@ async def view_post(request: Request, slug: str):
     post = await get_post_by_slug(slug)
     if not post:
         return HTMLResponse("Not found", status_code=404)
+
+    post["content"] = markdown.markdown(
+        post["content"], extensions=["extra", "sane_lists", "nl2br"]
+    )
     posts = await get_all_post_titles()
     return templates.TemplateResponse("blog.html", {
         "request": request,

@@ -23,6 +23,13 @@ class BlogPost(BaseModel):
     annotations: list[str]
     slug: Optional[str] = None
 
+
+
+
+
+
+
+
 async def get_latest_post():
     return await blog_posts_collection.find_one({}, sort=[("date", -1)])
 

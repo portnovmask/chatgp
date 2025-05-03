@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="{% block description %}Здесь собраны новости и статьи о новых технологиях, искусственном интеллекте, языковых моделях, AI чат ботах, Chat GPT и машинном обучении.{% endblock %}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+<!--    <link rel="stylesheet" href="/static/css/normalize.css">-->
+    <link rel="stylesheet" href="/static/css/styles.css">
+{#    <link rel="stylesheet" href="/static/css/prism.css">#}
+    <link
+  rel="stylesheet"
+  href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.conditional.cyan.min.css"
+    >
+    <title>{% block title %}Блог>{% endblock %}</title>
+<style>
+    h1 { font-size: 2em; margin-bottom: 0.5em; }
+.post-img { max-width: 100%; height: auto; margin-bottom: 1em; }
+.meta { color: gray; font-size: 0.9em; margin-bottom: 1em; }
+.annotations { margin-bottom: 1em; font-style: italic; color: #444; }
+.content {
+    flex: 1;
+    padding: 20px;
+    margin-top: 2em;
+}
+</style>
+    </head>
+<script src="/static/js/token.js"></script>
+<body>
+
+    <!-- Шапка с кнопкой открытия меню -->
+    <header class="toggles">
+
+
+    <button id="open-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/menu-2.svg" width="30" alt="open"></button>
+    </header>
+
+    <!-- Основной контейнер-->
+    <div class="layout">
+        <!-- Боковое меню -->
+        <aside id="sidebar">
+
+            <div class="side-bar-header">
+                <div class="container-icons">
+                    <div class="logo"><a id="home" href="/"><img src="/static/img/logo/29.svg"  width="25" alt="chatgp.ru"></a></div>
+
+                <div class="item tooltip"><button id="close-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/transition-left.svg" width="25"  alt="закрыть"></button><span class="tooltiptext">Закрыть</span></div>
+
+            </div>
+            </div>
+
+
+            <div class="sidebar-main">
+            <div id="chat-list">
+                {% for p in posts %}
+                    <div class="chat-entry" style="width: 200px;">
+                    <div class="list-button" style=" text-align: left;"><small><a href="/post/{{ p.slug }}">{{ p.title }}</a></small>
+                    </div>
+                    </div>
+                {% endfor %}
+
+                </div>
+
+
+
+
+        </div>
+
+            <div class="sidebar-footer">
+            <hr>
+            <h3>Добавить статью</h3>
+<form id="post-form">
+    <input type="text" name="title" placeholder="Заголовок (title)" required><br>
+    <input type="text" name="h1" placeholder="Заголовок страницы (h1)" required><br>
+    <input type="text" name="author" placeholder="Автор"><br>
+    <input type="text" name="description" placeholder="Описание (description)"><br>
+    <input type="url" name="image_link" placeholder="Ссылка на изображение"><br>
+    <input type="text" name="annotations" placeholder="Аннотации (через запятую)"><br>
+    <textarea name="content" placeholder="Содержание" rows="5" required></textarea><br>
+    <button type="submit">Создать</button>
+</form>
+<p id="form-status"></p>
+
+              <div class="container-icons-column">
+
+                    <div class="item-content"><a href="#">Приватность</a></div>
+                  <div class="item-content"><a href="#">Помощь</a></div>
+                    <div class="item-content"><a href="#">Контакты</a></div>
+
+                     <div class="item tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/price'">
+                         <img src="/static/img/icons/stars.svg" width="20"  alt="mode">
+                         <small>&nbsp;Повысить план</small></button>
+                         <span class="tooltiptext">Управление подписками</span></div>
+         </div>
+
+            </div>
+
+        </aside>
+
+        <!-- Основное содержимое -->
+        <main id="main">
+            {% block content %}{% endblock %}
+            <noscript><div id="js-warning" style="background: #fffc00; color: black; padding: 10px; text-align: center;">
+        <p>⚠️ JavaScript отключен или ваш браузер не поддерживает JavaScript! -</p>
+           <p>Чтобы пользоваться функционалом сайта включите JS или используйте другой браузер!</p>
+        </div>
+
+        </noscript>
+        </main>
+    </div>
+
+    <script>
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+
+    <script src="/static/js/prism.js"></script>
+{#    <script src="/static/js/get_chat_body.js"></script>#}
+    <script src="/static/js/codeSnippets.js"></script>
+{#    <script src="/static/js/copy_button.js" defer></script>#}
+    <!-- Minimal theme switcher -->
+    <script src="/static/js/minimal-theme-switcher.js" defer></script>
+    <!-- Modal-->
+    <script src="/static/js/modal.js" defer></script>
+<div id="scroll-anchor"></div>
+</body>
+</html>
