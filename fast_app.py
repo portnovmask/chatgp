@@ -8,7 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from datetime import datetime
 from auth import router as auth_router
-from users import router as users_router
+from blog_post import router as posts_router
 from products import router as products_router
 from subscriptions import router as subscription_router, renew_subscriptions
 from auth import get_user
@@ -17,7 +17,7 @@ from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
 import asyncio
 # from fastapi_utils.tasks import repeat_every
-
+from blog_post import get_post_by_slug, get_all_post_titles, get_latest_post
 access_logger = logging.getLogger("uvicorn.access")
 
 file_handler = logging.FileHandler("access.log")
@@ -42,7 +42,7 @@ app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(auth_router)
-app.include_router(users_router)
+app.include_router(posts_router)
 app.include_router(products_router)
 
 app.include_router(subscription_router)
@@ -361,7 +361,28 @@ async def dash(request: Request, user: dict = Depends(get_user)):
                                           {"request": request, "user": user, "plans": plans})
 
 
+@app.get("/post", response_class=HTMLResponse)
+async def post_home(request: Request):
 
+    post = await get_latest_post()
+    posts = await get_all_post_titles()
+    return templates.TemplateResponse("blog.html", {
+        "request": request,
+        "post": post,
+        "posts": posts
+    })
+
+@app.get("/post/{slug}", response_class=HTMLResponse)
+async def view_post(request: Request, slug: str):
+    post = await get_post_by_slug(slug)
+    if not post:
+        return HTMLResponse("Not found", status_code=404)
+    posts = await get_all_post_titles()
+    return templates.TemplateResponse("blog.html", {
+        "request": request,
+        "post": post,
+        "posts": posts
+    })
 
 @app.get("/change_param")  #Ручка для выбора параметров
 async def change_param(request: Request, user: dict = Depends(get_user), param: str = "stream"):

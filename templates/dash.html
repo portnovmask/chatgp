@@ -1,6 +1,6 @@
 {% extends "noheader2.html" %}
 
-{% block title %}Личный кабинет{% endblock %}
+{% block title %}Страница пользователя{% endblock %}
 
 {% block content %}
 
@@ -8,27 +8,28 @@
 
     <!-- Левая колонка с логотипом и ссылками -->
     <div class="sidebar">
-        <div class="logo" onclick="window.location.href='/'"></div>
-        <h1>Добро пожаловать в личный кабинет!</h1>
+        <div class="logo" onclick="window.location.href='/'" style="cursor: pointer"></div>
+        <h1>Личный кабинет</h1>
     {% if user %}
         {% if user.contact %}
-            <p>Почта для связи: {{ user.contact }}</p>
+            <p>Ваш email: {{ user.contact }}</p>
             {% if user.auth_provider != "local" %}
-             <p>Зарегистрирован через: {{ user.auth_provider }}</p>
+             <p>Вы авторизованы через: {{ user.auth_provider }}</p>
                 {% else %}
-                <p>Логин совпадает с email</p>
+                <p>Ваш никнейм совпадает с email</p>
             {% endif %}
         {% else %}
-            <p>Вы зарегистрированны через: {{ user.auth_provider }}</p>
+            <p>Вы авторизованы через: {{ user.auth_provider }}</p>
             <p>Добавить электронную почту, чтобы оставаться на связи</p>
             <label for="contact-email">введите валидный email</label>
             <input id="contact-email" type="email" name="email" value="myemail@example.com">
             <button id="update-contact" type="submit">Добавить</button>
         {% endif %}
-        <div class="links">
-            <a href="/">Начать чат</a>
-            <a href="/">Контакты</a>
-            <a href="/price">Цены</a>
+        <div class="links-row">
+            <a href="/post">Блог</a>&nbsp;|&nbsp;
+            <a href="/">Контакты</a>&nbsp;|&nbsp;
+            <a href="/price">Цены</a>&nbsp;|&nbsp;
+            <a href="/">Помощь</a>&nbsp;|&nbsp;
             <a href="/logout">Выход</a>
         </div>
     </div>
@@ -37,9 +38,9 @@
     <div class="grid">
 
         <!-- Левая из двух правых колонок -->
-        <div class="card" style="height: 50vh; justify-content: flex-start; margin-bottom: 20px;">
+        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/user.svg" alt="User" style="width: 25px; height: 25px;" >
-            <p class="card-price">Информация</p>
+            <p class="card-price">Пользователь</p>
         <div class="card-content">
             <span class="card-medium">Никнейм: {{ user.email }}</span>
              <span class="card-medium">Дата регистрации: {{ user.registered_at | datetimeformat  }}</span>
@@ -55,7 +56,7 @@
         </div>
 
         <!-- Правая из двух правых колонок -->
-        <div class="card" style="height: 50vh; justify-content: flex-start; margin-bottom: 20px;">
+        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/settings.svg" alt="Stats" style="width: 25px; height: 25px;">
             <p class="card-price">Подписки</p>
             <div class="card-content">
@@ -78,16 +79,16 @@
         </div>
 
         <!-- Третья карточка, если хочешь -->
-        <div class="card" style="height: 50vh; justify-content: flex-start; margin-bottom: 20px;">
+        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/shopping-cart.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <p class="card-price">Отчёты</p>
+            <p class="card-price">Транзакции</p>
         <div class="card-content">
                     <span class="card-small">Использовано токенов: {{ user.tokens }}</span>
                    <span class="card-small">Токены поиска: {{ user.attempts }}</span>
                     {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}
                     <span class="card-small">ID Последней транзакции: {{ user.subscription.transaction_id }}</span>
                     <details class="dropdown">
-                    <summary class="dropdown-button">Все транзакции</summary>
+                    <summary class="dropdown-button">ТОН транзакции</summary>
                     <div class="dropdown-content">
                         <div class="dropdown-content">
                       {% for payment in user.subscription.payment_history %}
@@ -95,7 +96,7 @@
                           {{ payment.date | datetimeformat}} — {{ payment.amount }} TON от {{ payment.source }} (tx_id: {{ payment.tx_id }})
                         </div>
                       {% else %}
-                        <div class="card-small">Платежей пока нет</div>
+                        <div class="card-small">ТОН платежей пока нет</div>
                       {% endfor %}
                     </div>
                     </div>
@@ -104,6 +105,62 @@
                         {% endif %}
         </div>
         </div>
+
+    <!-- Четвёртая карточка, если хочешь -->
+        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
+            <img src="/static/img/icons/brightness-auto.svg" alt="Settings" style="width: 25px; height: 25px;">
+            <p class="card-price">Бусти</p>
+        <div class="card-content">
+                    <span class="card-small">Бусти личный идентификатор: boosty12345</span>
+                   <span class="card-small">Бусти личный ключ: boostyKey12345</span>
+                    <span class="card-small"><a href="https://boosty.to/ketome.ru">Ссылка для оплаты</a></span>
+                <span class="card-small"><a href="https://boosty.to/ketome.ru">Ссылка для донатов</a></span>
+            <span class="card-small"><a href="https://boosty.to/ketome.ru">Внимание! Не передавайте никому ваш идентификатор и личный ключ!</a></span>
+
+        </div>
+        </div>
+
+    <!-- Пятая карточка, если хочешь -->
+        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
+            <img src="/static/img/icons/list-search.svg" alt="Settings" style="width: 25px; height: 25px;">
+            <p class="card-price">Текущий план</p>
+        <div class="card-content">
+                    <span class="card-small">Количество токенов в день</span>
+                   <span class="card-small">Количество поисков в неделю</span>
+                    <span class="card-small">Модель</span>
+                    <span class="card-small">Для чего подходит план</span>
+                    <span class="card-small"><a href="/">Примеры промптов</a></span>
+
+        </div>
+        </div>
+
+    <!-- Шестая карточка, если хочешь -->
+{#        <div class="card" style="height: 30vh; justify-content: flex-start; margin-bottom: 20px;">#}
+{#            <img src="/static/img/icons/shopping-cart.svg" alt="Settings" style="width: 25px; height: 25px;">#}
+{#            <p class="card-price">Отчёты</p>#}
+{#        <div class="card-content">#}
+{#                    <span class="card-small">Использовано токенов: {{ user.tokens }}</span>#}
+{#                   <span class="card-small">Токены поиска: {{ user.attempts }}</span>#}
+{#                    {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}#}
+{#                    <span class="card-small">ID Последней транзакции: {{ user.subscription.transaction_id }}</span>#}
+{#                    <details class="dropdown">#}
+{#                    <summary class="dropdown-button">Все транзакции</summary>#}
+{#                    <div class="dropdown-content">#}
+{#                        <div class="dropdown-content">#}
+{#                      {% for payment in user.subscription.payment_history %}#}
+{#                        <div class="card-small">#}
+{#                          {{ payment.date | datetimeformat}} — {{ payment.amount }} TON от {{ payment.source }} (tx_id: {{ payment.tx_id }})#}
+{#                        </div>#}
+{#                      {% else %}#}
+{#                        <div class="card-small">Платежей пока нет</div>#}
+{#                      {% endfor %}#}
+{#                    </div>#}
+{#                    </div>#}
+{#                        </details>#}
+{##}
+{#                        {% endif %}#}
+{#        </div>#}
+{#        </div>#}
 
     </div>
 </div>

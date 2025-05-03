@@ -3,6 +3,15 @@ import qrcode
 from io import BytesIO
 import base64
 
+import re
+import unidecode
+
+def slugify(text: str) -> str:
+    text = unidecode.unidecode(text).lower()
+    text = re.sub(r'[^a-z0-9]+', '-', text)
+    return text.strip('-')
+
+
 def generate_qr_base64(url: str) -> str:
     qr = qrcode.make(url)
     buffered = BytesIO()

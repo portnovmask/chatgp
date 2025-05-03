@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ post.title if post else "Блог" }}</title>
+    <link rel="stylesheet" href="/static/css/style_blog.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <h2>Все статьи</h2>
+            <ul>
+                {% for p in posts %}
+                    <li><a href="/post/{{ p.slug }}">{{ p.title }}</a></li>
+                {% endfor %}
+            </ul>
+
+            <hr>
+            <h3>Добавить статью</h3>
+<form id="post-form">
+    <input type="text" name="title" placeholder="Заголовок (title)" required><br>
+    <input type="text" name="h1" placeholder="Заголовок страницы (h1)" required><br>
+    <input type="text" name="author" placeholder="Автор"><br>
+    <input type="text" name="description" placeholder="Описание (description)"><br>
+    <input type="url" name="image_link" placeholder="Ссылка на изображение"><br>
+    <input type="text" name="annotations" placeholder="Аннотации (через запятую)"><br>
+    <textarea name="content" placeholder="Содержание" rows="5" required></textarea><br>
+    <button type="submit">Создать</button>
+</form>
+<p id="form-status"></p>
+        </aside>
+
+        <main class="content">
+            {% if post %}
+                <h1>{{ post.title }}</h1>
+                <p>{{ post.content }}</p>
+            {% else %}
+                <h1>Добро пожаловать в блог!</h1>
+                <p>Выберите статью слева или создайте новую.</p>
+            {% endif %}
+        </main>
+    </div>
+
+    <script>
+document.getElementById('post-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = {
+        title: form.title.value.trim(),
+        h1: form.h1.value.trim(),
+        author: form.author.value.trim(),
+        description: form.description.value.trim(),
+        image_link: form.image_link.value.trim(),
+        annotations: form.annotations.value
+            .split(',')
+            .map(a => a.trim())
+            .filter(a => a.length > 0),
+        content: form.content.value.trim(),
+        date: new Date().toISOString().split('T')[0] // текущая дата
+    };
+
+    const response = await fetch('/create/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+
+    const raw = await response.text();
+    console.log("RAW response:", raw);
+
+    let result;
+    try {
+        result = JSON.parse(raw);
+    } catch {
+        result = null;
+    }
+
+    const status = document.getElementById('form-status');
+
+    if (response.ok && result) {
+        status.textContent = "Статья добавлена!";
+        window.location.href = `/post/${result.slug}`;
+    } else {
+        status.textContent = "Ошибка при добавлении статьи.";
+    }
+});
+
+</script>
+</body>
+</html>

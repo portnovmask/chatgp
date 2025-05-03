@@ -122,7 +122,7 @@ a.visited {
 .side-bar-header{
     display: flex;
     align-items: center;
-    justify-content:space-evenly;
+    justify-content: center;
     position: sticky;
     top: 0;
     width: 100%;
@@ -130,10 +130,10 @@ a.visited {
 .new-chat-button {
     background-color: transparent;
     border: none;
-    border-radius: 10px;
+    border-radius: 20px;
     cursor: pointer;
-    font-size: 16px;
-    padding: 1px;
+    font-size: 22px;
+    padding: 5px;
     width: fit-content;
     height: fit-content;
     margin-right: auto;
@@ -259,12 +259,53 @@ a.visited {
     display: flex;
     height: fit-content;
     flex-direction: column;
+    align-items: start;
+    justify-content: center;
     position: sticky;
     bottom: 0;
     left: 0;
     width: 100%;
     font-size: small;
 }
+.side-bar-hint-button {
+    /*bottom: 2rem; !* добавь если кнопка прилипает к верху *!*/
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    /*gap: 6px;*/
+    left: 0;
+    color: #777575;
+    background-color: transparent;
+    border-radius: 30px;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 1px;
+    width: 150px;
+    height: 30px;
+    margin-right: 10px;
+    z-index: 12;
+    border: None;
+}
+.side-bar-hint-button:hover {
+    /*background-color: #ddd;*/
+    border: 1px solid #2c2c2c;
+    /* Меняем цвет при наведении */
+}
+
+.side-bar-hint-button:active {
+    border: 1px solid #015050;
+    /*color: */
+}
+
+
+.side-bar-hint-button:focus {
+   /*transform: scale(1.1);*/
+    background-color: #ecebeb;
+}
+
+/*Конец сайдабара*/
+
+
 /* === ОСНОВНОЙ КОНТЕНТ === */
 
 
@@ -604,41 +645,7 @@ a.visited {
     background-color: #ecebeb;
 }
 
-.side-bar-hint-button {
-    /*bottom: 2rem; !* добавь если кнопка прилипает к верху *!*/
-    display: flex;
-    align-items: center;
-    justify-content: space-evenly;
-    /*gap: 6px;*/
-    /*left: 1rem;*/
-    color: #777575;
-    background-color: transparent;
-    border-radius: 30px;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 1px;
-    width: 150px;
-    height: 30px;
-    margin-right: 10px;
-    z-index: 12;
-    border: None;
-}
-.side-bar-hint-button:hover {
-    /*background-color: #ddd;*/
-    border: 1px solid #2c2c2c;
-    /* Меняем цвет при наведении */
-}
 
-.side-bar-hint-button:active {
-    border: 1px solid #015050;
-    /*color: */
-}
-
-
-.side-bar-hint-button:focus {
-   /*transform: scale(1.1);*/
-    background-color: #ecebeb;
-}
 
 /*конец футера    */
 
