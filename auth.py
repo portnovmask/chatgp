@@ -283,7 +283,20 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     logger.info(f"/login  - def login - Для пользователя: {email} - в куки добавлены новые токены\n")
     return response
 
-
+@router.post("/add_email")
+async def add_email(request: Request, email: str = Form(...), user: dict = Depends(get_user)):
+    """Добавление контактного email"""
+    if user:
+        user_email = user["email"]
+        await users_collection.update_one(
+            {"email": user_email},
+            {"$set": {"contact": email}},
+        )
+        logger.info(f"/add_email  - def add email - пользователь: {user_email}добавил email для связи: {email}\n")
+        return {"message": "email для связи успешно добавлен", "status": "success"}
+    else:
+        logger.info(f"/add_email  - def add email - пользователь не авторизован, не удалось отправить email для связи: {email}\n")
+        return {"message": "пользователь не авторизован", "status": "error"}
 @router.get("/logout")
 async def logout(request: Request):
     """Выход и удаление токенов из БД"""

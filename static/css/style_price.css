@@ -30,10 +30,10 @@ body {
             text-align: left;
         }
         .logo {
-            width: 100px;
-            height: 100px;
+            width: 230px;
+            height: 160px;
             /*background: #b3dcdc;*/
-            background-image: url('/static/img/logo/27.svg');
+            background-image: url('/static/img/logo/chatgpru-white-smart-logo.svg');
             background-size: contain;
             background-repeat: no-repeat;
             margin-bottom: 40px;
@@ -248,6 +248,78 @@ body {
     overflow-y: auto;          /* ✅ Добавляем вертикальную прокрутку */
     box-sizing: border-box;
     width: 100%;
+}
+
+.form_auth_block {
+    width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
+    font-family: "Manrope", sans-serif;
+    /*position: absolute;*/
+    /*top: 50%;*/
+    /*left: 50%;*/
+    /*margin-right: -50%;*/
+    /*transform: translate(-50%, -50%);*/
+    margin-bottom: 1rem;
+    background-color: darkcyan;
+    background-size: cover;
+    border-radius: 4px;
+}
+
+.form_auth_block label{
+    display: block;
+    text-align: center;
+    padding: 10px;
+    color: #ffffff;
+    font-weight: 400;
+    margin-bottom: 5px;
+    margin-top: 5px;
+}
+.form_auth_block input{
+      display: block;
+      margin: 0 auto 10px;
+      /*padding-left: 10px;*/
+      width: 80%;
+      height: 45px;
+      border-radius: 10px;
+      border:none;
+      outline: none;
+}
+
+input:hover {
+      color: #000000;
+      border-radius: 10px;
+      background: #ffffff;
+      opacity: 0.7;
+}
+
+input:focus {
+  color: #000000;
+  border-radius: 10px;
+  border: 2px solid #436fea;
+}
+.form_auth_button{
+    display: flex;
+    align-items: center; /* Выравнивание по вертикали */
+    justify-content: center; /* Центрирование содержимого */
+    gap: 10px; /* Расстояние между иконкой и текстом */
+    padding: 10px 20px;
+    width: 80%;
+    /*margin-top: 10px;*/
+    margin: 0 auto 10px;
+    border-radius: 10px;
+    height: 45px;
+    border: none;
+    cursor: pointer;
+}
+
+svg {
+    flex-shrink: 0; /* Запрещаем уменьшение иконки */
+}
+
+.form_auth_button:hover {
+      color: #000000;
+      border-radius: 10px;
+      background: #ffffff;
+      opacity: 0.7;
 }
 
         @media (max-width: 1024px) {

@@ -12,18 +12,25 @@
         <h1>Личный кабинет</h1>
     {% if user %}
         {% if user.contact %}
-            <p>Ваш email: {{ user.contact }}</p>
+            <p class="card-small">Ваш email: {{ user.contact }}</p>
             {% if user.auth_provider != "local" %}
-             <p>Вы авторизованы через: {{ user.auth_provider }}</p>
+             <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
                 {% else %}
-                <p>Ваш никнейм совпадает с email</p>
+                <p class="card-small">Ваш никнейм совпадает с email</p>
             {% endif %}
         {% else %}
-            <p>Вы авторизованы через: {{ user.auth_provider }}</p>
-            <p>Добавить электронную почту, чтобы оставаться на связи</p>
-            <label for="contact-email">введите валидный email</label>
-            <input id="contact-email" type="email" name="email" value="myemail@example.com">
-            <button id="update-contact" type="submit">Добавить</button>
+            <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
+            <p class="card-small">Добавить электронную почту, чтобы оставаться на связи</p>
+
+            <form  class="form_auth_block" id="add-email" method="post" action="/add_email">
+                <label class="form_auth_block_label" for="email">Email для связи:</label>
+                <input   type="email" id="email" name="email" placeholder="myemail@example.com"
+        autocomplete="email">
+
+                <button id="update-contact" class="form_auth_button" type="submit">Добавить</button>
+            </form>
+            <p id="email-status" class="card-small" style="margin-top: 8px;"></p>
+
         {% endif %}
         <div class="links-row">
             <a href="/post">Блог</a>&nbsp;|&nbsp;
@@ -112,10 +119,10 @@
             <p class="card-price">Бусти</p>
         <div class="card-content">
                     <span class="card-small">Бусти личный идентификатор: boosty12345</span>
-                   <span class="card-small">Бусти личный ключ: boostyKey12345</span>
-                    <span class="card-small"><a href="https://boosty.to/ketome.ru">Ссылка для оплаты</a></span>
-                <span class="card-small"><a href="https://boosty.to/ketome.ru">Ссылка для донатов</a></span>
-            <span class="card-small"><a href="https://boosty.to/ketome.ru">Внимание! Не передавайте никому ваш идентификатор и личный ключ!</a></span>
+                <span class="card-small"><a href="https://boosty.to/ketome.ru/donate">Ссылка для донатов>>></a></span>
+            <span class="card-small">Донаты - добровольный жест.
+                Донорам предоставляется доступ к подпискам, в качестве ответного добровольного жеста.</span>
+            <span class="card-small">Внимание! Не передавайте никому ваш идентификатор.</span>
 
         </div>
         </div>
@@ -164,6 +171,74 @@
 
     </div>
 </div>
+        <script>
+        const addForm = document.getElementById('add-email');
 
+        if (addForm) {
+            addForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                const form = e.target;
+                const email = form.email.value.trim();
+                const statusElement = document.getElementById('email-status');
+
+                // Простая проверка email через регулярное выражение
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(email)) {
+                    statusElement.textContent = "Введите корректный email.";
+                    statusElement.style.color = "red";
+                    return;
+                }
+
+                try {
+                    const response = await fetch('/add_email', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: new URLSearchParams({email})
+                    });
+
+                    const result = await response.json();
+                    if (result.status === "success") {
+                        await showModal(result.message, 'success');
+                    } else {
+                        await showModal(result.message, 'error');
+                    }
+                } catch (err) {
+                    await showModal("Ошибка выполнения запроса: " + err.message, 'error');
+                }
+            });
+        }
+
+
+        async function showModal(message, status = "info", action = null) {
+  const modal = document.getElementById("modal-feedback");
+
+  // Установить данные
+  modal.querySelector("h3").textContent = message;
+  modal.classList.remove("success", "error", "warning", "info");
+  modal.classList.add(status);
+
+  // Обработка action
+  const formWrapper = modal.querySelector(".modal-actions");
+  formWrapper.innerHTML = "";
+  if (action) {
+    const form = document.createElement("form");
+    form.method = action.method || "get";
+    form.action = action.url;
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = action.label;
+    button.classList.add("action-button");
+    form.appendChild(button);
+    formWrapper.appendChild(form);
+  }
+
+  openModal(modal); // из твоего modal.js
+}
+        </script>
+<script src="/static/js/modal.js" defer></script>
+{% include "modal_base.html" %}
     {% endif %}
 {% endblock %}

@@ -374,7 +374,7 @@ async def post_home(request: Request):
     return templates.TemplateResponse("blog.html", {
         "request": request,
         "post": post,
-        "posts": posts
+        "posts": posts,
     })
 
 @app.get("/post/{slug}", response_class=HTMLResponse)
@@ -390,7 +390,7 @@ async def view_post(request: Request, slug: str):
     return templates.TemplateResponse("blog.html", {
         "request": request,
         "post": post,
-        "posts": posts
+        "posts": posts,
     })
 
 @app.get("/change_param")  #Ручка для выбора параметров
