@@ -336,6 +336,10 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
 async def authorize(request: Request, mode: str = "login"):
     return templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
 
+@app.get("/help")
+async def authorize(request: Request):
+    return templates.TemplateResponse("help.html", {"request": request})
+
 @app.get("/price")
 async def price(request: Request, user: dict = Depends(get_user)):
     if not user:

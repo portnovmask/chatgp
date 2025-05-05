@@ -55,7 +55,7 @@ body {
            color: #171717;
         }
 
-        .link-row {
+        .links-row {
             display: flex;           /* горизонтально */
             flex-direction: row;
             flex-grow: 1;

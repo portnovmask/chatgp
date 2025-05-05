@@ -29,10 +29,8 @@
     </div>
 
     {% if post.image_link %}
-        <img class="post-img" src="{{ post.image_link }}" alt="Изображение статьи">
+        <img class="post-img" src="{{ post.image_link }}" alt="{{post.title}} – chatgp.ru блог">
     {% endif %}
-
-    <p class="description">{{ post.description }}</p>
 
     {% if post.annotations %}
         <div class="annotations">
@@ -57,8 +55,6 @@
             {% endif %}
         </div>
         </main>
-
-{% include "modal_base.html" %}
 
 <script>
 async function showModal(message, status = "info", action = null) {
@@ -87,48 +83,52 @@ async function showModal(message, status = "info", action = null) {
   openModal(modal); // из твоего modal.js
 }
 
-document.getElementById('post-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const data = {
-        title: form.title.value.trim(),
-        h1: form.h1.value.trim(),
-        author: form.author.value.trim(),
-        description: form.description.value.trim(),
-        image_link: form.image_link.value.trim(),
-        annotations: form.annotations.value
-            .split(',')
-            .map(a => a.trim())
-            .filter(a => a.length > 0),
-        content: form.content.value.trim(),
-        date: new Date().toISOString().split('T')[0] // текущая дата
-    };
 
-    const response = await fetch('/create/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+    const postForm = document.getElementById('post-form');
+if (postForm) {
+    postForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = {
+            title: form.title.value.trim(),
+            h1: form.h1.value.trim(),
+            author: form.author.value.trim(),
+            description: form.description.value.trim(),
+            image_link: form.image_link.value.trim(),
+            annotations: form.annotations.value
+                .split(',')
+                .map(a => a.trim())
+                .filter(a => a.length > 0),
+            content: form.content.value.trim(),
+            date: new Date().toISOString().split('T')[0] // текущая дата
+        };
+
+        const response = await fetch('/create/', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+
+        const raw = await response.text();
+        console.log("RAW response:", raw);
+
+        let result;
+        try {
+            result = JSON.parse(raw);
+        } catch {
+            result = null;
+        }
+
+        const status = document.getElementById('form-status');
+
+        if (response.ok && result) {
+            status.textContent = "Статья добавлена!";
+            window.location.href = `/post/${result.slug}`;
+        } else {
+            status.textContent = "Ошибка при добавлении статьи.";
+        }
     });
-
-    const raw = await response.text();
-    console.log("RAW response:", raw);
-
-    let result;
-    try {
-        result = JSON.parse(raw);
-    } catch {
-        result = null;
-    }
-
-    const status = document.getElementById('form-status');
-
-    if (response.ok && result) {
-        status.textContent = "Статья добавлена!";
-        window.location.href = `/post/${result.slug}`;
-    } else {
-        status.textContent = "Ошибка при добавлении статьи.";
-    }
-});
+}
 
 </script>
 {% endblock %}

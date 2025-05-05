@@ -10,7 +10,23 @@ document.addEventListener("DOMContentLoaded",
                     console.error("Ошибка загрузки профиля");
                 }
 
-            });
+                // ⏱️ Таймер: каждые 10 минут обновляем access_token
+                setInterval(async () => {
+                    console.log("⏳ Таймер: обновление access_token...");
+                    const refreshResponse = await fetch("/refresh", {
+                        method: "POST",
+                        credentials: "include"
+                    });
+                    console.log(`🔁 /refresh через таймер: ${refreshResponse.status}`);
+                    if (!refreshResponse.ok) {
+                        console.warn("⚠️ Refresh не удался. Перенаправление на авторизацию...");
+                        window.location.replace("/authorize");
+                    }
+                }, 10 * 60 * 1000); // каждые 10 минут
+                 });
+
+
+
         async function fetchWithAuth(url, options = {}) {
             console.log(`📡 Запрос: ${url}`);
             if (!options.headers) options.headers = {};

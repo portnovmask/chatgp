@@ -1,0 +1,166 @@
+body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    width: 100vw;
+    height: 100vh;
+    overflow-x: hidden;
+    font-family: "Manrope", sans-serif;
+    font-optical-sizing: auto;
+    font-size: 15px;
+    font-style: normal;
+    font-weight: 400;
+
+}
+
+.help-container {
+  margin-top: 2rem;
+  padding: 0 1rem;
+  height: 100vh;
+  overflow: auto;
+}
+
+
+.help-title {
+  display: flex;
+  align-items: center; /* выравнивание по вертикали */
+  justify-content: space-evenly; /* выравнивание по центру по горизонтали */
+  gap: 3rem; /* отступ между иконкой и текстом */
+  font-size: 1.75rem;
+  margin-bottom: 2rem;
+}
+
+.logo-icon {
+  height: 52px;
+  width: auto;
+}
+
+.links-row {
+            display: flex;           /* горизонтально */
+            flex-direction: row;
+            flex-grow: 1;
+            gap: 2rem;
+            justify-content: center; /* расстояние между ссылками */
+            margin-top: 2rem;
+            margin-bottom: 10px;
+            padding: 1rem;
+            width: 100%;
+            text-align: left;
+            }
+.links-row a {
+          text-align: center;
+          font-size: 0.8em;
+          color: rgba(44, 44, 44, 0.62);
+          text-decoration: none;
+      }
+
+      .links-row a:hover {
+          color: rgb(44, 44, 44);
+          font-weight: bold;
+      }
+
+      .links-row a:focus {
+          color: #171717;
+          font-weight: bold;
+      }
+
+.help-grid {
+  display: flex;
+  justify-content: center;
+}
+
+.help-empty-col {
+  flex: 1;
+}
+
+.help-content {
+  flex: 2;
+  max-width: 1200px;
+}
+
+.help-intro {
+  margin: 1rem 0;
+  line-height: 1.6;
+}
+
+.custom-accordion {
+  margin-top: 2rem;
+  border-top: 1px solid #ccc;
+}
+
+.accordion-item {
+  border-bottom: 1px solid #ccc;
+}
+
+.accordion-header {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 1rem;
+  background: #f8f8f8;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  transition: background 0.3s;
+}
+
+.accordion-header:hover {
+  background: #e0e0e0;
+}
+
+.accordion-body {
+  display: none;
+  padding: 1rem;
+  background: #fff;
+}
+
+.accordion-body.open {
+  display: block;
+}
+
+/* Адаптация для планшетов (до 768px) */
+@media (max-width: 768px) {
+  .help-grid {
+    flex-direction: column;
+    padding: 0 1rem;
+  }
+
+  .help-empty-col {
+    display: none;
+  }
+
+  .help-content {
+    flex: none;
+    width: 100%;
+  }
+
+  .help-title {
+    font-size: 1.5rem;
+  }
+
+  .accordion-header {
+    font-size: 1rem;
+    padding: 0.75rem;
+  }
+
+  .accordion-body {
+    padding: 0.75rem;
+  }
+}
+
+/* Адаптация для мобильных устройств (до 480px) */
+@media (max-width: 480px) {
+  .help-title {
+    font-size: 1.25rem;
+  }
+
+  .accordion-header {
+    font-size: 0.95rem;
+    padding: 0.5rem;
+  }
+
+  .accordion-body {
+    padding: 0.5rem;
+  }
+}

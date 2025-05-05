@@ -31,7 +31,7 @@
 }
 </style>
     </head>
-<script src="/static/js/token.js"></script>
+
 <body>
 
     <!-- Шапка с кнопкой открытия меню -->
@@ -48,7 +48,11 @@
 
             <div class="side-bar-header">
                 <div class="container-icons">
-                    <div class="logo"><a id="home" href="/"><img src="/static/img/logo/29.svg"  width="25" alt="chatgp.ru"></a></div>
+
+                    <div class="item tooltip"><a id="home" href="/"><img src="/static/img/logo/29.svg"  width="25" alt="chatgp.ru"></a></div>
+                    <div class="item tooltip"><a href="#"  data-theme-switcher="auto">
+                            <img src="/static/img/icons/loader.svg" width="25" alt="свет">
+                        </a><span class="tooltiptext">Свет</span></div>
 
                 <div class="item tooltip"><button id="close-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/transition-left.svg" width="25"  alt="закрыть"></button><span class="tooltiptext">Закрыть</span></div>
 
@@ -92,7 +96,7 @@
               <div class="container-icons-column">
 
                     <div class="item-content"><a href="#">Приватность</a></div>
-                  <div class="item-content"><a href="#">Помощь</a></div>
+                  <div class="item-content"><a href="/help">Помощь</a></div>
                     <div class="item-content"><a href="#">Контакты</a></div>
 
                      <div class="item tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/price'">
@@ -124,12 +128,13 @@
     </script>
 
     <script src="/static/js/prism.js"></script>
-{#    <script src="/static/js/get_chat_body.js"></script>#}
+    <script src="/static/js/token.js"></script>
     <script src="/static/js/codeSnippets.js"></script>
 {#    <script src="/static/js/copy_button.js" defer></script>#}
     <!-- Minimal theme switcher -->
     <script src="/static/js/minimal-theme-switcher.js" defer></script>
     <!-- Modal-->
+    {% include "modal_base.html" %}
     <script src="/static/js/modal.js" defer></script>
 <div id="scroll-anchor"></div>
 </body>
