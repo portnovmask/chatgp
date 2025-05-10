@@ -37,6 +37,7 @@ VK_TOKEN_URL = os.environ['VK_TOKEN_URL']
 VK_USERINFO_URL = os.environ['VK_USERINFO_URL']
 TON_SECRET_KEY = os.environ['TON_SECRET_KEY']
 TON_WALLET = os.environ['TON_WALLET']
+RECAPTCHA_SECRET = os.environ['RECAPTCHA_SECRET']
 
 LEVELS = ["trial", "basic", "advanced", "business", "pro", "premium"]
 ATTEMPT_LIMITS = [0, 30, 120, 400, 200, 600]

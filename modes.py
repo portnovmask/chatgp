@@ -227,10 +227,28 @@ class User:
         }
 
     async def refresh(self):
-        """синхронизирует изменения в бд с объектами в оперативной памяти"""
+        """Синхронизирует изменения в БД с объектом в памяти, исключая пароль"""
         email = self.user.get("email")
-        self.user = await users_collection.find_one({"email": email})
+        user = await users_collection.find_one({"email": email})
+        if not user:
+            self.user = None
+            return
 
+        self.user = {
+            "email": user["email"],
+            "id": str(user["_id"]),
+            "registered_at": user["registered_at"],
+            "contact": user.get("contact"),
+            "status": str(user["status"]),
+            "tokens": int(user["tokens"]),
+            "attempts": int(user.get("attempts", 0)),
+            "auth_provider": str(user.get("auth_provider", "email")),
+            "oauth_id": str(user.get("oauth_id", "email")),
+            "original_status": str(user.get("original_status", user["status"])),
+            "trial_expires_at": user.get("trial_expires_at"),
+            "trial_expires_blocked": user.get("trial_expires_blocked"),
+            "subscription": user.get("subscription", {})
+        }
 
     async def get_current_chat_id(self, chat_id: str):
         data = await users_data_collection.find_one(

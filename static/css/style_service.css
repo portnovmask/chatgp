@@ -16,15 +16,16 @@ body {
 .help-container {
   margin-top: 2rem;
   padding: 0 1rem;
-  height: 100vh;
+  height: 90vh;
   overflow: auto;
 }
 
 
 .help-title {
   display: flex;
+  /*max-width: 1200px;*/
   align-items: center; /* выравнивание по вертикали */
-  justify-content: space-evenly; /* выравнивание по центру по горизонтали */
+  justify-content: center; /* выравнивание по центру по горизонтали */
   gap: 3rem; /* отступ между иконкой и текстом */
   font-size: 1.75rem;
   margin-bottom: 2rem;
@@ -33,6 +34,7 @@ body {
 .logo-icon {
   height: 52px;
   width: auto;
+    margin-left: 0;
 }
 
 .links-row {

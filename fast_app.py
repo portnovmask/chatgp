@@ -41,13 +41,6 @@ if not logger.hasHandlers():
 
 app = FastAPI()
 
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.include_router(auth_router)
-app.include_router(posts_router)
-app.include_router(products_router)
-
-app.include_router(subscription_router)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -55,6 +48,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+app.include_router(auth_router)
+app.include_router(posts_router)
+app.include_router(products_router)
+
+app.include_router(subscription_router)
+
+
 
 templates = Jinja2Templates(directory="templates")
 
@@ -68,14 +70,14 @@ client = openai.AsyncOpenAI(api_key=APY_KEY)
 #client2 = openai.AsyncOpenAI(api_key=APY_KEY)
 
 
-async def generate_summary(data):
+async def generate_summary(data, words: int = 2):
     logger.info(f"Данные пришли в функцию generate_summary: {data}")
     try:
         response = await client.chat.completions.create(
             model='gpt-4o-mini',
             messages=[
                 {'role': 'user',
-                 'content': f"Создай ёмкий заголовок из 2-3 слов на языке оригинала для этого диалога: {data}. "
+                 'content': f"Создай ёмкий заголовок из {words}-{words+1} слов на языке оригинала для этого диалога: {data}. "
                             "В твоём ответе должен быть только заголовок, без вступлений, пояснений, пожеланий или выводов."}
             ],
             temperature=0,
@@ -339,6 +341,10 @@ async def authorize(request: Request, mode: str = "login"):
 @app.get("/help")
 async def authorize(request: Request):
     return templates.TemplateResponse("help.html", {"request": request})
+
+@app.get("/privacy")
+async def authorize(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request})
 
 @app.get("/price")
 async def price(request: Request, user: dict = Depends(get_user)):

@@ -1,8 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks, Form
 import logging
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 import uuid
-
+import httpx
+import re
 from sqlalchemy.testing.provision import upsert
 from starlette.responses import RedirectResponse
 from models.users import users_collection
@@ -12,7 +14,8 @@ from auth import get_user
 import locale
 from email.message import EmailMessage
 import aiosmtplib
-from settings import TON_WALLET, LEVELS, PRETTY_NAMES, PRICES
+from settings import TON_WALLET, LEVELS, PRETTY_NAMES, PRICES, RECAPTCHA_SECRET
+
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
@@ -83,8 +86,6 @@ def mock_get_ton_transactions(expected_amount_ton: float):
 
 # Подменяем функцию
 get_ton_transactions = mock_get_ton_transactions
-
-
 
 
 # 🔹 Получение подписки пользователя
@@ -183,10 +184,10 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
     return {"redirect": f"/payment/{payment_id}?level={level}"}
 
 
-
 # routes/ton.py
 from ton_links import generate_payment_link
 from qr_utils import generate_qr_base64
+
 
 @router.get("/payment/{payment_id}")
 async def payment_page(request: Request, payment_id: str, level: str, user: dict = Depends(get_user)):
@@ -206,6 +207,7 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
         "payment_id": payment_id,
         "pretty_name": PRETTY_NAMES[level]
     })
+
 
 # @router.get("/ton/prepare-payment/")
 # async def prepare_payment(level: str, user: dict = Depends(get_user)):
@@ -232,7 +234,6 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
 #     }
 
 
-
 @router.post("/ton/verify-payment/")
 async def verify_ton_payment(request: Request, level: str, user: dict = Depends(get_user)):
     if not user:
@@ -254,7 +255,8 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
     transactions = get_ton_transactions(price).get("transactions", [])
 
     if not transactions:
-        logger.info(f"verify_ton_payment - Платеж не найден или не подтверждён, email: {user.get("email")}, level: {level}")
+        logger.info(
+            f"verify_ton_payment - Платеж не найден или не подтверждён, email: {user.get("email")}, level: {level}")
         raise HTTPException(status_code=402, detail="Платеж не найден или не подтверждён")
 
     tx = transactions[0]
@@ -335,7 +337,8 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
                 }
             }
         })
-        logger.info(f"verify_ton_payment - Подписка будет активирована по истечение текущей подписки: {format_datetime_pretty(current_expiry)}, email: {user.get("email")}, level: {level}")
+        logger.info(
+            f"verify_ton_payment - Подписка будет активирована по истечение текущей подписки: {format_datetime_pretty(current_expiry)}, email: {user.get("email")}, level: {level}")
         return templates.TemplateResponse("feedback.html", {
             "request": request,
             "message": f"Оплата принята! Новый уровень подписки '{PRETTY_NAMES[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
@@ -347,9 +350,6 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
             }
 
         })
-
-
-
 
 
 # 🔹 Автоматическое продление подписки
@@ -420,7 +420,7 @@ class EmailTemplate:
             "action_label": kwargs.get("action_label"),
             "action_url": kwargs.get("action_url"),
             "footer_text": kwargs.get("footer_text"),
-            "date": kwargs.get("date") or datetime.utcnow().strftime("%B %d, %Y")
+            "date": kwargs.get("date") or datetime.now(timezone.utc).strftime("%B %d, %Y")
         }
 
     def render(self) -> str:
@@ -469,3 +469,88 @@ async def send_email_route(background_tasks: BackgroundTasks):
     html = email.render()
     background_tasks.add_task(send_email, "ivan@example.com", "Добро пожаловать!", html)
     return {"message": "Письмо отправлено"}
+
+
+EMAIL_REGEX = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
+
+
+@router.get("/contact", response_class=HTMLResponse)
+async def contact_form(request: Request):
+    return templates.TemplateResponse("contact.html", {
+        "request": request,
+        "form_time": datetime.now(timezone.utc).isoformat()
+    })
+
+@router.post("/contact/submit", response_class=HTMLResponse)
+async def submit_contact_form(
+        request: Request,
+        name: str = Form(...),
+        email: str = Form(...),
+        message: str = Form(...),
+        form_time: str = Form(...),
+        honeypot: str = Form(""),
+        recaptcha_token: str = Form(...),
+        background_tasks: BackgroundTasks = None
+):
+    error = None
+    success_message = None
+
+    # 🐜 Anti-bot (honeypot, timing)
+    if honeypot:
+        error = "Обнаружен бот."
+    else:
+        try:
+            form_dt = datetime.fromisoformat(form_time)
+            if (datetime.now(timezone.utc) - form_dt).total_seconds() < 3:
+                error = "Форма отправлена слишком быстро."
+        except Exception:
+            error = "Ошибка времени отправки формы."
+
+    # 📧 Email format
+    if not error and not EMAIL_REGEX.match(email):
+        error = "Некорректный email."
+
+    # ✏️ Message length
+    if not error and len(message.strip()) < 50:
+        error = "Сообщение должно содержать не менее 50 символов."
+
+    # 🔐 reCAPTCHA
+    if not error:
+        async with httpx.AsyncClient() as client:
+            r = await client.post(
+                "https://www.google.com/recaptcha/api/siteverify",
+                data={"secret": RECAPTCHA_SECRET, "response": recaptcha_token}
+            )
+            result = r.json()
+            if not result.get("success") or result.get("score", 0) < 0.5:
+                error = "Проверка reCAPTCHA не пройдена."
+
+    if not error:
+        email_template = EmailTemplate(
+            logo_url="https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png",
+            header_link="https://example.com",
+            header_text=f"Новое сообщение от {name}",
+            description=message,
+            recipient_name="Администратор",
+            body_text=f"Письмо от {name} ({email}):\n\n{message}",
+            action_label="Ответить",
+            action_url=f"mailto:{email}",
+            footer_text="Контактная форма сайта"
+        )
+        html = email_template.render()
+        background_tasks.add_task(send_email, "admin@example.com", f"Новое сообщение от {name}", html)
+        success_message = "Сообщение отправлено. Спасибо!"
+        # очищаем поля формы
+        name = ""
+        email = ""
+        message = ""
+
+    return templates.TemplateResponse("contact.html", {
+        "request": request,
+        "form_time": datetime.now(timezone.utc).isoformat(),
+        "message": success_message,
+        "error": error,
+        "name": name,
+        "email": email,
+        "message_text": message
+    })

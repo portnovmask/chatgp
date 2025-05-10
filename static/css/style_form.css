@@ -22,7 +22,9 @@
   padding-bottom: 2%;
 }
 .form_auth_block_head_text {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 80px;
     text-align: end;
     padding: 10px;
@@ -32,7 +34,7 @@
     background-image: url('/static/img/logo/27.svg'); /* Устанавливаем фон */
     background-repeat: no-repeat; /* Отключаем повторение */
     background-size: 70px auto; /* Подгоняем размер */
-    background-position: center; /* Размещаем left */
+    background-position: left; /* Размещаем left */
 }
 
 .form_auth_block label{
@@ -50,6 +52,19 @@
       /*padding-left: 10px;*/
       width: 80%;
       height: 45px;
+      border-radius: 10px;
+      border:none;
+      outline: none;
+}
+
+.form_auth_block textarea{
+      display: block;
+      margin: 0 auto 10px;
+      resize: none;
+      width: 80%;
+      height: 175px;
+      text-wrap: wrap;
+      overflow-y: auto;
       border-radius: 10px;
       border:none;
       outline: none;
@@ -93,6 +108,39 @@ svg {
       opacity: 0.7;
 }
 
+.links-row {
+            display: flex;           /* горизонтально */
+            flex-direction: row;
+            flex-grow: 1;
+            gap: 2rem;
+            justify-content: center; /* расстояние между ссылками */
+            margin-top: 2rem;
+            margin-bottom: 10px;
+            padding: 1rem;
+            width: 100%;
+            text-align: left;
+            }
+.links-row a {
+          text-align: center;
+          font-size: 0.8em;
+          color: rgba(44, 44, 44, 0.62);
+          text-decoration: none;
+      }
+
+      .links-row a:hover {
+          color: rgb(44, 44, 44);
+          font-weight: bold;
+      }
+
+      .links-row a:focus {
+          color: #171717;
+          font-weight: bold;
+      }
+
+.text-info {
+    padding-left: 5px;
+    font-size: 0.7em;
+}
 /*#google-login {*/
 /*    background: url('/static/img/icons/brand-google.svg') no-repeat left center;*/
 /*    background-size: 20px; !* Размер иконки *!*/
