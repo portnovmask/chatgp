@@ -10,7 +10,7 @@ from datetime import datetime
 from auth import router as auth_router
 from blog_post import router as posts_router
 from products import router as products_router
-from subscriptions import router as subscription_router, renew_subscriptions
+from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
 from auth import get_user
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
@@ -113,19 +113,20 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
 
 import requests
 
-def get_ton_usdt_price():
-    url = "https://api.coinlore.net/api/ticker/?id=54683"
+# def get_ton_usdt_price():
+#     url = "https://api.coinlore.net/api/ticker/?id=54683"
+#
+#     response = requests.get(url)
+#     logger.info(f"Ответ от апи курса Тон: {response.status_code}")
+#     if response.status_code > 200:
+#         data = response.json()
+#         logger.info(f"Текущий курс Тон: {data[0].get("price_usd")}")
+#         return data[0].get("price_usd")
+#     logger.info(f"Не удалось получить курс Тон, возвращаем дефолтный курс")
+#     return 2.70
 
-    response = requests.get(url)
-    logger.info(f"Ответ от апи курса Тон: {response.status_code}")
-    if response.status_code > 200:
-        data = response.json()
-        logger.info(f"Текущий курс Тон: {data[0].get("price_usd")}")
-        return data[0].get("price_usd")
-    logger.info(f"Не удалось получить курс Тон, возвращаем дефолтный курс")
-    return 2.70
+# ton_to_usdt = float(await get_ton_usdt_price())
 
-ton_to_usdt = float(get_ton_usdt_price())
 
 
 
@@ -346,8 +347,17 @@ async def authorize(request: Request):
 async def authorize(request: Request):
     return templates.TemplateResponse("privacy.html", {"request": request})
 
+
+@app.get("/about")
+async def authorize(request: Request):
+    return templates.TemplateResponse("about.html", {"request": request})
+
+
+
+
 @app.get("/price")
 async def price(request: Request, user: dict = Depends(get_user)):
+    ton_to_usdt = float(await get_ton_usdt_price())
     if not user:
         return RedirectResponse('/authorize', status_code=302)
     return templates.TemplateResponse("price.html", {"request": request, "user": user, "ton_to_usdt": ton_to_usdt})

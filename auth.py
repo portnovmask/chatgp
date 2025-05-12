@@ -181,17 +181,23 @@ async def refresh_token(request: Request):
             logger.info(f"/refresh  - def refresh_token - refresh token не найден в бд\n")
             raise HTTPException(status_code=401, detail="Недействительный токен  - время истекло")
 
-        # Генерируем новый access-токен
-        new_access_token, access_expires, access_jti = create_access_token(email)
-
-        # Обновляем токен в БД
+        new_access_token, _, new_access_jti = create_access_token(email)
+        new_refresh_token, _, new_refresh_jti = create_refresh_token(email)
+        # Обновляем в БД по refresh_jti
         await tokens_collection.update_one(
-            {"email": email, "refresh_token": refresh_token},
-            {"$set": {"access_token": new_access_token, "access_jti": access_jti}},
+            {"email": email, "refresh_jti": jti},
+            {"$set": {
+                "access_token": new_access_token,
+                "access_jti": new_access_jti,
+                "refresh_token": new_refresh_token,
+                "refresh_jti": new_refresh_jti,
+            }},
         )
-        logger.info(f"/refresh  - def refresh_token - токены в бд обновлены\n")
-        response = JSONResponse({"message": "Токен обновлен"})
+
+        # Устанавливаем куки
+        response = JSONResponse({"message": "Токены обновлены"})
         response.set_cookie("access_token", new_access_token, httponly=True)
+        response.set_cookie("refresh_token", new_refresh_token, httponly=True)
         return response
 
     except JWTError:

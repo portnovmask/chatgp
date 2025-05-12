@@ -23,6 +23,25 @@ locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 logger = logging.getLogger("app_logger")
 
+async def get_ton_usdt_price():
+    url = "https://api.coinlore.net/api/ticker/?id=54683"
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, timeout=3)
+
+        logger.info(f"Ответ от апи курса Тон: {response.status_code}")
+        if response.status_code == 200:
+            data = response.json()
+            price = data[0].get("price_usd")
+            logger.info(f"Текущий курс Тон: {price}")
+            return float(price)
+    except Exception as e:
+        logger.warning(f"Ошибка при получении курса Тон: {e}")
+
+    logger.info("Не удалось получить курс Тон, возвращаем дефолтный курс")
+    return 2.70
+
 # 🔹 Функция для проверки платежа через TON API, когда он будет
 import requests
 

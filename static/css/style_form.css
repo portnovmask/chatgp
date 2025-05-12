@@ -21,6 +21,11 @@
   padding-top: 2%;
   padding-bottom: 2%;
 }
+.header-link {
+          text-decoration: none;
+          color: black;
+      }
+
 .form_auth_block_head_text {
     display: flex;
     align-items: center;
@@ -62,7 +67,7 @@
       margin: 0 auto 10px;
       resize: none;
       width: 80%;
-      height: 175px;
+      height: 155px;
       text-wrap: wrap;
       overflow-y: auto;
       border-radius: 10px;
@@ -138,8 +143,9 @@ svg {
       }
 
 .text-info {
-    padding-left: 5px;
+    padding-left: 10px;
     font-size: 0.7em;
+    text-align: center;
 }
 /*#google-login {*/
 /*    background: url('/static/img/icons/brand-google.svg') no-repeat left center;*/

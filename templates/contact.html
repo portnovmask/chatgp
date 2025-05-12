@@ -8,37 +8,41 @@
     <div class="container-fluid">
 
     <article class="form_auth_block">
-
-                <header class="form_auth_block_head_text">Контактная форма</header>
+    <div class="links-row" style="padding: 0;">
+                <a href="/about">О сервисе</a>
+                <a href="/help">Помощь</a>
+                <a href="/post">Блог</a>
+                <a href="/price">Цены</a>
+                <a href="https://t.me" target="_blank"><img src="/static/img/icons/telegram_icon.svg" alt="Telegram" style="width: 25px; height: 25px;" ></a>
+            </div>
+        <a class="header-link" href="/"><header class="form_auth_block_head_text"
+             style="padding-left: 20px;">Контактная форма</header></a>
 <form class="form_auth_block_content" action="/contact/submit" method="post">
   {% if message %}
-    <label style="color: green">{{ message }}</label>
+    <label style="color: green"><small>{{ message }}</small></label>
   {% elif error %}
-    <label style="color: red">{{ error }}</label>
+    <label style="color: red"><small>{{ error }}</small></label>
   {% else %}
-    <label for="name">Обращение от...</label>
+      <label for="name"><small>Обращение от...</small></label>
   {% endif %}
   <input type="text" id="name" name="name" placeholder="Ваше имя" value="{{ name | default('') }}" required>
-    <label for="email">Введите действующий email</label>
+    <label for="email"><small>Введите действующий email</small></label>
   <input type="email" id="email" name="email" placeholder="Email" value="{{ email | default('') }}" required>
-    <label for="message">Введите текст вашего обращения</label>
-  <textarea id="message" name="message" placeholder="Сообщение..." required>{{ message_text | default('') }}</textarea>
+    <label for="message"></label>
+  <textarea id="message" name="message" placeholder="Введите текст вашего обращения..." required>{{ message_text | default('') }}</textarea>
 
   <input type="hidden" name="form_time" value="{{ form_time }}">
   <input type="text" name="honeypot" style="display:none">
   <input type="hidden" id="recaptcha_token" name="recaptcha_token">
 
   <button type="submit" class="form_auth_button">Отправить</button>
+<p class="text-info">Отправляя обращение вы соглашаетесь с <a href="/privacy">Политикой конфиденциальности</a></p>
+<br>
 </form>
     </article>
     </div>
 </div>
-    <div class="links-row">
-                <a href="/">Главная&nbsp;</a>
-                <a href="/help">Помощь&nbsp;</a>
-                <a href="/post">Блог&nbsp;</a>
-                <a href="/price">Цены</a>
-            </div>
+
 <script src="https://www.google.com/recaptcha/api.js?render=6LeJJzUrAAAAAJD4XSZ0cc8kPkfe1bem8t37EujT"></script>
 <script>
   grecaptcha.ready(function() {
