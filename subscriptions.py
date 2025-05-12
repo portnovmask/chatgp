@@ -427,6 +427,10 @@ async def renew_subscriptions():
     return {"message": "Все отложенные подписки обновлены!"}
 
 
+
+# Отправка почты
+
+# Шаблон блоков универсального html письма
 class EmailTemplate:
     def __init__(self, **kwargs):
         self.data = {
@@ -447,6 +451,8 @@ class EmailTemplate:
         return template.render(**self.data)
 
 
+
+# SMTP клиент
 async def send_email(to_email: str, subject: str, html_content: str):
     message = EmailMessage()
     message["From"] = "noreply@example.com"
@@ -471,6 +477,7 @@ async def send_email(to_email: str, subject: str, html_content: str):
     )
 
 
+# Универсальный маршрут для отправки писем
 @router.post("/send-email/")
 async def send_email_route(background_tasks: BackgroundTasks):
     email = EmailTemplate(
@@ -490,9 +497,14 @@ async def send_email_route(background_tasks: BackgroundTasks):
     return {"message": "Письмо отправлено"}
 
 
+
+
+# Контактная форма
+
 EMAIL_REGEX = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
 
 
+# Дефолтный маршрут контактной формы
 @router.get("/contact", response_class=HTMLResponse)
 async def contact_form(request: Request):
     return templates.TemplateResponse("contact.html", {
@@ -500,6 +512,8 @@ async def contact_form(request: Request):
         "form_time": datetime.now(timezone.utc).isoformat()
     })
 
+
+# Маршрут после отправки контактной формы с проверкой каптчи, пустого поля, времени заполнения, длины строки
 @router.post("/contact/submit", response_class=HTMLResponse)
 async def submit_contact_form(
         request: Request,
@@ -520,7 +534,7 @@ async def submit_contact_form(
     else:
         try:
             form_dt = datetime.fromisoformat(form_time)
-            if (datetime.now(timezone.utc) - form_dt).total_seconds() < 3:
+            if (datetime.now(timezone.utc) - form_dt).total_seconds() < 5:
                 error = "Форма отправлена слишком быстро."
         except Exception:
             error = "Ошибка времени отправки формы."

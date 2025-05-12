@@ -17,8 +17,8 @@ logger = logging.getLogger("app_logger")
 
 SECRET_KEY = APP_SECRET_KEY
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 15
-REFRESH_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+REFRESH_TOKEN_EXPIRE_DAYS = 30
 
 # Настройка для хеширования паролей
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -92,7 +92,7 @@ async def get_user(request: Request):
     token = request.cookies.get("access_token")
     logger.info(f"def get_user - Токен в куках: {token}")
     if not token:
-        return None
+        raise HTTPException(status_code=401, detail="Access token is missing")
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -100,16 +100,16 @@ async def get_user(request: Request):
         email = payload.get("sub")
         if not email:
             logger.info("def get_user - Нет email в payload")
-            return None
+            raise HTTPException(status_code=401, detail="Token payload invalid")
 
         token_in_db = await tokens_collection.find_one({"email": email, "access_token": token})
         if not token_in_db:
             logger.info(f"def get_user - Токен не найден в БД: {token}")
-            return None
+            raise HTTPException(status_code=401, detail="Access token not found in DB")
 
         user = await users_collection.find_one({"email": email})
         if not user:
-            return None
+            raise HTTPException(status_code=401, detail="User not found")
 
         logger.info(f"def get_user - Пользователь {user['email']} авторизован: {token}")
 
@@ -130,10 +130,16 @@ async def get_user(request: Request):
         }
 
     except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
+
+from typing import Optional
+
+async def get_user_optional(request: Request) -> Optional[dict]:
+    try:
+        return await get_user(request)
+    except HTTPException:
         return None
-
-
-
 
 @router.get("/me")
 async def get_current_user(request: Request):

@@ -11,7 +11,7 @@ from auth import router as auth_router
 from blog_post import router as posts_router
 from products import router as products_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
-from auth import get_user
+from auth import get_user, get_user_optional
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
@@ -381,9 +381,11 @@ async def dash(request: Request, user: dict = Depends(get_user)):
         return templates.TemplateResponse("dash.html",
                                           {"request": request, "user": user, "plans": plans})
 
-
+from typing import Optional
 @app.get("/post", response_class=HTMLResponse)
-async def post_home(request: Request):
+async def post_home(request: Request,
+    user: Optional[dict] = Depends(get_user_optional)
+):
 
     post = await get_latest_post()
     if post:
@@ -395,10 +397,13 @@ async def post_home(request: Request):
         "request": request,
         "post": post,
         "posts": posts,
+        "user": user,
     })
 
 @app.get("/post/{slug}", response_class=HTMLResponse)
-async def view_post(request: Request, slug: str):
+async def view_post(request: Request, slug: str,
+    user: Optional[dict] = Depends(get_user_optional)
+):
     post = await get_post_by_slug(slug)
     if not post:
         return HTMLResponse("Not found", status_code=404)
@@ -411,6 +416,7 @@ async def view_post(request: Request, slug: str):
         "request": request,
         "post": post,
         "posts": posts,
+        "user": user,
     })
 
 @app.get("/change_param")  #Ручка для выбора параметров
