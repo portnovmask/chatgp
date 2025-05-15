@@ -1,11 +1,13 @@
 import certifi
 #import asyncio
-import motor.motor_asyncio
+#import motor.motor_asyncio
+from pymongo import AsyncMongoClient
 from settings import DB_HOST
 
 MONGO_URL = DB_HOST
 #email = 'sophie_turner@gameofthron.es'
-client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL,tlsCAFile=certifi.where())
+#client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL,tlsCAFile=certifi.where())
+client = AsyncMongoClient(MONGO_URL,tlsCAFile=certifi.where())
 db = client.get_database("chatgp_base")
 # test = db.get_collection("tokens")
 #
