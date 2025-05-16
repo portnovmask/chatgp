@@ -130,7 +130,8 @@ async def get_user(request: Request):
         }
 
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid access token")
+        #raise HTTPException(status_code=401, detail="Invalid access token")
+        return {}
 
 
 from typing import Optional

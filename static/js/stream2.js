@@ -2,6 +2,7 @@ const parent = document.querySelector("#article");
 
 const submitButton = document.querySelector('#submit');
 const searchButton = document.querySelector('#search-button');
+const uploadButton = document.querySelector('#upload-button');
 // const containerMain = document.querySelector(".container-main");
 
 const submitIcon = `<img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">`;

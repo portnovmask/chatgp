@@ -1,12 +1,13 @@
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException
+from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException, UploadFile, File
+from contextlib import asynccontextmanager
 from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from auth import router as auth_router
 from blog_post import router as posts_router
 from products import router as products_router
@@ -14,7 +15,9 @@ from subscriptions import router as subscription_router, get_ton_usdt_price, ren
 from auth import get_user, get_user_optional
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
+from file_utils import save_uploaded_image, image_to_base64
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
+from pathlib import Path
 import asyncio
 import markdown
 # from fastapi_utils.tasks import repeat_every
@@ -39,7 +42,32 @@ file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(mes
 if not logger.hasHandlers():
     logger.addHandler(file_handler)
 
-app = FastAPI()
+
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
+MAX_FILE_AGE = timedelta(minutes=15)  # 15 минут
+SUBSCRIPTION_RENEW_INTERVAL = 3600  # 1 час
+
+
+
+# === Современный lifespan-хендлер ===
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    tasks = [
+        asyncio.create_task(cleanup_expired_files()),
+        asyncio.create_task(auto_renew_subscriptions()),
+    ]
+    yield
+    for task in tasks:
+        task.cancel()
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
+
+
+app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -111,7 +139,6 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
     await chat.update_token_count_db(user_tokens)
     logger.info(f"Обновлены токены after_stream_processing: {user_tokens}")
 
-import requests
 
 # def get_ton_usdt_price():
 #     url = "https://api.coinlore.net/api/ticker/?id=54683"
@@ -333,6 +360,86 @@ async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
         "attempts": new_attempt_count,
         "id": stream_id
     }
+
+
+@app.post("/upload-image/")
+async def upload_image(file: UploadFile = File(...), user: dict = Depends(get_user), prompt: str = Query(...)):
+    if not user:
+        return RedirectResponse('/authorize', status_code=302)
+    if not prompt:
+        prompt = "Что изображено на картинке?"
+
+    image_chat = User(user)
+    image_chat_id = await get_last_chat_id(user) or None
+    stream_id = user_file = None
+    status = user.get("status", "trial")
+    level_index = LEVELS.index(status)
+    user_tokens = user.get("tokens", 0)
+    file_check = await save_uploaded_image(file, level_index)
+    if file_check and "/" in file_check:
+        user_file = image_to_base64(file_check)
+    if user_file:
+        assistant_content = await image_chat.get_last_chat_messages(image_chat_id, 7)
+
+        async def generate_image_rec(user_prompt, tokens, file_path, context, user_index):
+            #user_hints = f"Мы с тобой обсуждали:\n{context}.\n{user_prompt}?"
+            if user_index < 1:
+                token_usage = 1000
+            else:
+                token_usage = 7000
+            completion = await client.chat.completions.create(
+                model="gpt-4.1",
+                messages=[
+                    {"role": "assistant", "content": context},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": f"{user_prompt}"},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"{file_path}",
+                                },
+                            },
+                        ],
+                    }
+                ],
+            )
+            # Проверка лимита токенов
+            if (100000000 - tokens) <= 0:
+                logger.info(
+                    f"/upload-image-{user.get("email")}: Токенов распознавания слишком много. Токены: {tokens}\n")
+                # return
+
+            await image_chat.refresh()
+
+            if completion:
+                message_obj = completion.choices[0]
+                full_reply_content = message_obj.message.content
+
+                image_id = completion.id
+
+                await after_stream_processing(image_chat, prompt, full_reply_content, image_chat_id, image_id,
+                                              token_usage)
+                logger.info(f"/upload-image - Запустили фоновую функцию из распознавания изображения - {file.filename} с чат айди: {image_chat_id}\n")
+
+                return full_reply_content
+            else:
+                return "Ошибка распознавания изображения"
+
+        final_response = await generate_image_rec(prompt, user_tokens, user_file, assistant_content, level_index)
+
+        return {
+            "response": final_response,
+            "file_name": file.filename,
+            "id": stream_id
+        }
+    else:
+        return {
+            "response": "Ошибка обработки изображения",
+            "file_name": file.filename,
+            "id": file.filename
+        }
 
 
 @app.get("/authorize")
@@ -565,11 +672,33 @@ async def delete_chat_route(request: Request, user=Depends(get_user)):
         return {"chat_id": chat_id, "deletion_status": "not found"}
 
 
-# Запуск фонового обновления подписок
-# @app.on_event("startup")
-# @repeat_every(seconds=86400)  # Раз в сутки
-# async def auto_renew_subscriptions():
-#     await renew_subscriptions()
+# === Фоновая задача: удаление устаревших файлов ===
+async def cleanup_expired_files():
+    while True:
+        now = datetime.now(timezone.utc)
+        deleted = 0
+        for file_path in UPLOAD_DIR.glob("*"):
+            if file_path.is_file():
+                # Получаем время последней модификации файла как datetime
+                mtime = datetime.fromtimestamp(file_path.stat().st_mtime, tz=timezone.utc)
+                if now - mtime > MAX_FILE_AGE:
+                    try:
+                        file_path.unlink()
+                        deleted += 1
+                    except Exception as e:
+                        print(f"[CLEANUP] Ошибка удаления {file_path}: {e}")
+        if deleted:
+            print(f"[CLEANUP] Удалено {deleted} файлов")
+        await asyncio.sleep(600)  # каждые 10 минут
+
+# === Фоновая задача: автообновление подписок ===
+async def auto_renew_subscriptions():
+    while True:
+        try:
+            await renew_subscriptions()
+        except Exception as e:
+            print(f"[SUBSCRIPTIONS] Ошибка обновления: {e}")
+        await asyncio.sleep(SUBSCRIPTION_RENEW_INTERVAL)
 
 
 
