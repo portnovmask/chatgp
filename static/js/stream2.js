@@ -1,5 +1,5 @@
 const parent = document.querySelector("#article");
-
+const csrfToken = document.getElementById('csrf_token').value;
 const submitButton = document.querySelector('#submit');
 const searchButton = document.querySelector('#search-button');
 const uploadButton = document.querySelector('#upload-button');
@@ -97,97 +97,209 @@ function updateSummariesUI(summaries) {
 }
 
 
-if (submitButton) {
-    let eventSource = null;
+// if (submitButton) {
+//     let eventSource = null;
+//
+//     submitButton.onclick = () => {
+//         const promptInput = document.querySelector('#prompt');
+//         const prompt = promptInput.value;
+//         let streamText = ''
+//         const newElement = document.getElementById('events');
+//         promptInput.style.height = "auto";
+//
+//         if (eventSource) {
+//             eventSource.close();
+//             eventSource = null;
+//             submitButton.innerHTML = submitIcon;
+//             newElement.innerText = '';
+//
+//         }
+//
+//         if (isValidInput(prompt)) {
+//             eventSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
+//             submitButton.innerHTML = stopIcon;
+//             //newElement.innerText += prompt;
+//         } else {
+//             return;
+//         }
+//         eventSource.onmessage = async (event) => {  // Добавляем `async`
+//             if (event.data !== undefined) {
+//
+//
+//                 const data = JSON.parse(event.data); // Парсим JSON
+//                 promptInput.value = "";
+//                 const finishReason = data.finish_reason;
+//                 const totalTokens = data.usage;
+//                 let chunk_id = data.id;
+//                 const userQuery = escapeHtml(data.user_query);
+//
+//
+//                 if (finishReason === "End") {
+//                     console.log("Closing EventSource...");
+//                     streamText = await filterText(newElement.innerText)
+//                     newElement.innerText = '';
+//                     let chatBlock = `<div class="response-body">${streamText}</div>
+//                                 </div><br><hr>`
+//                     console.log(totalTokens);
+//                     console.log(data.id);
+//                     eventSource.close();
+//                     eventSource = null;
+//                     submitButton.innerHTML = submitIcon;
+//                     parent.innerHTML += `<div id="${chunk_id}">
+//                <div class="query-body">${userQuery}<button class="edit-button">
+//                <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+//                 </button>
+//                 </div>
+//                 </div>
+//             `;
+//                     parent.innerHTML += chatBlock;
+//                     Prism.highlightAll();
+//
+//                     // promptInput.style.height = "auto";
+//                     // setTimeout(() => {
+//                     //     document.querySelector(".container-main").style.display = "block";
+//                     // }, 100);
+//
+//                     setTimeout(async () => {
+//                         await fetchUpdatedSummaries();
+//                     }, 5000);
+//                     // window.location.reload();
+//                 } else if (finishReason === "stop") {
+//                     newElement.innerText += ' ';
+//                 } else {
+//
+//                     //await streamToContainer(data.content, newElement);
+//                     newElement.innerText += data.content;
+//
+//
+//                     //Прокручиваем страницу после загрузки чата
+//                     //  setTimeout(() => {
+//                     //     newElement.scrollIntoView({ behavior: "smooth", block: "end" });
+//                     //     }, 100);
+//
+//                     setTimeout(() => {
+//                         const container = document.querySelector(".container-main"); // Родитель с overflow-y: scroll;
+//                         container.scrollTop = container.scrollHeight; //  Прокручиваем к последнему элементу
+//                     }, 100);
+//
+//                 }
+//             }
+//         };
+//
+//     };
+// }
 
-    submitButton.onclick = () => {
+
+
+if (submitButton) {
+    submitButton.onclick = async () => {
         const promptInput = document.querySelector('#prompt');
         const prompt = promptInput.value;
-        let streamText = ''
         const newElement = document.getElementById('events');
+        let streamText = '';
+
         promptInput.style.height = "auto";
+        newElement.innerText = '';
 
-        if (eventSource) {
-            eventSource.close();
-            eventSource = null;
-            submitButton.innerHTML = submitIcon;
-            newElement.innerText = '';
+        if (!isValidInput(prompt)) return;
 
-        }
+        submitButton.disabled = true;
+        submitButton.innerHTML = stopIcon;
 
-        if (isValidInput(prompt)) {
-            eventSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
-            submitButton.innerHTML = stopIcon;
-            //newElement.innerText += prompt;
-        } else {
-            return;
-        }
-        eventSource.onmessage = async (event) => {  // Добавляем `async`
-            if (event.data !== undefined) {
+        try {
+            const response = await fetchWithAuth("/stream", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    prompt: prompt,
+                    csrf_token: csrfToken
+                })
+            });
 
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
 
-                const data = JSON.parse(event.data); // Парсим JSON
-                promptInput.value = "";
-                const finishReason = data.finish_reason;
-                const totalTokens = data.usage;
-                let chunk_id = data.id;
-                const userQuery = escapeHtml(data.user_query);
+            if (!response.ok) {
+                if (response.status === 403) {
+                            window.location.replace("/authorize");
+                        }
+                parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
+            }
 
+            // ⬇️ Очищаем поле ВВОДА, как только убедились, что всё пошло
+            promptInput.value = "";
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder("utf-8");
 
-                if (finishReason === "End") {
-                    console.log("Closing EventSource...");
-                    streamText = await filterText(newElement.innerText)
-                    newElement.innerText = '';
-                    let chatBlock = `<div class="response-body">${streamText}</div>
-                                </div><br><hr>`
-                    console.log(totalTokens);
-                    console.log(data.id);
-                    eventSource.close();
-                    eventSource = null;
-                    submitButton.innerHTML = submitIcon;
-                    parent.innerHTML += `<div id="${chunk_id}">
-               <div class="query-body">${userQuery}<button class="edit-button">
-               <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
-                </button>
-                </div>
-                </div>
-            `;
-                    parent.innerHTML += chatBlock;
-                    Prism.highlightAll();
+            let partial = "";
 
-                    // promptInput.style.height = "auto";
-                    // setTimeout(() => {
-                    //     document.querySelector(".container-main").style.display = "block";
-                    // }, 100);
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-                    setTimeout(async () => {
-                        await fetchUpdatedSummaries();
-                    }, 5000);
-                    // window.location.reload();
-                } else if (finishReason === "stop") {
-                    newElement.innerText += ' ';
-                } else {
+                partial += decoder.decode(value, { stream: true });
 
-                    //await streamToContainer(data.content, newElement);
-                    newElement.innerText += data.content;
+                // Можно разбивать на события (если приходят по `\n\n`)
+                const lines = partial.split("\n\n");
+                partial = lines.pop(); // сохранить неоконченный фрагмент
 
+                for (let line of lines) {
+                    if (!line.startsWith("data: ")) continue;
+                    const jsonString = line.replace("data: ", "").trim();
 
-                    //Прокручиваем страницу после загрузки чата
-                    //  setTimeout(() => {
-                    //     newElement.scrollIntoView({ behavior: "smooth", block: "end" });
-                    //     }, 100);
+                    try {
+                        const data = JSON.parse(jsonString);
 
-                    setTimeout(() => {
-                        const container = document.querySelector(".container-main"); // Родитель с overflow-y: scroll;
-                        container.scrollTop = container.scrollHeight; //  Прокручиваем к последнему элементу
-                    }, 100);
+                        const finishReason = data.finish_reason;
+                        const totalTokens = data.usage;
+                        let chunk_id = data.id;
+                        const userQuery = escapeHtml(data.user_query);
 
+                        if (finishReason === "End") {
+                            streamText = await filterText(newElement.innerText);
+                            newElement.innerText = '';
+
+                            let chatBlock = `<div class="response-body">${streamText}</div><br><hr>`;
+                            parent.innerHTML += `
+                                <div id="${chunk_id}">
+                                    <div class="query-body">${userQuery}<button class="edit-button">
+                                        <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+                                    </button></div>
+                                </div>
+                            `;
+                            parent.innerHTML += chatBlock;
+                            Prism.highlightAll();
+                            setTimeout(fetchUpdatedSummaries, 5000);
+                        } else if (finishReason === "stop") {
+                            newElement.innerText += ' ';
+                        } else {
+                            newElement.innerText += data.content;
+                            setTimeout(() => {
+                                const container = document.querySelector(".container-main");
+                                container.scrollTop = container.scrollHeight;
+                            }, 100);
+                        }
+                    } catch (err) {
+                        console.error("Ошибка парсинга JSON из потока:", err, line);
+                    }
                 }
             }
-        };
 
+        } catch (error) {
+            console.error("Ошибка при потоке:", error);
+        } finally {
+            submitButton.disabled = false;
+            submitButton.innerHTML = submitIcon;
+        }
     };
 }
+
+
+
 
       document.addEventListener("keydown", (event) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -210,12 +322,28 @@ if (searchButton) {
                   spinner.style.display = "inline-block";
 
                   try {
-                      const response = await fetchWithAuth(`/search?prompt=${encodeURIComponent(sPrompt)}`);
+                                  const response = await fetchWithAuth("/search", {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json"
+                            },
+                            body: JSON.stringify({
+                                prompt: sPrompt,
+                                csrf_token: csrfToken
+                            })
+                        });
 
-                      if (response.redirected) {
-                          window.location.href = response.url; // перенаправление на /authorize
-                          return;
-                      }
+                        if (response.redirected) {
+                            window.location.href = response.url;
+                            return;
+                        }
+
+                        if (!response.ok) {
+                            if (response.status === 403) {
+                                        window.location.replace("/authorize");
+                                    }
+                            parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
+                        }
 
                       const data = await response.json();
                       let searchBlock;

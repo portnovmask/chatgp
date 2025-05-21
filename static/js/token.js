@@ -64,18 +64,26 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Таймер для регулярного обновления access_token каждые 10 минут
-    setInterval(async () => {
-        const refreshResponse = await fetch("/refresh", {
-            method: "POST",
-            credentials: "include"
-        });
-        if (refreshResponse.ok) {
-            sendAuthEvent("token_refreshed");
-        } else {
+  setInterval(async () => {
+    if (document.visibilityState === "visible") {
+        try {
+            const refreshResponse = await fetch("/refresh", {
+                method: "POST",
+                credentials: "include"
+            });
+            if (refreshResponse.ok) {
+                sendAuthEvent("token_refreshed");
+            } else {
+                sendAuthEvent("logout");
+                window.location.replace("/authorize");
+            }
+        } catch (error) {
+            console.error("Ошибка обновления токена:", error);
             sendAuthEvent("logout");
             window.location.replace("/authorize");
         }
-    }, 10 * 60 * 1000); // каждые 10 минут
+    }
+}, 10 * 60 * 1000); // каждые 10 минут
 });
 
         async function fetchWithAuth(url, options = {}) {

@@ -73,6 +73,31 @@ def create_refresh_token(email: str):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM), expire, jti
 
 
+def generate_csrf_token(email: str, secret_key: str) -> str:
+    timestamp = str(int(datetime.now(timezone.utc).timestamp()))
+    payload = f"{email}:{timestamp}"
+    signature = hmac.new(secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return f"{payload}:{signature}"
+
+def verify_csrf_token(token: str, email: str, secret_key: str, ttl_seconds: int = 43200) -> bool:
+    try:
+        parts = token.split(":")
+        if len(parts) != 3:
+            return False
+        token_email, timestamp_str, signature = parts
+        if token_email != email:
+            return False
+        expected_sig = hmac.new(
+            secret_key.encode(), f"{token_email}:{timestamp_str}".encode(), hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected_sig, signature):
+            return False
+        now_ts = int(datetime.now(timezone.utc).timestamp())
+        return (now_ts - int(timestamp_str)) <= ttl_seconds
+    except Exception:
+        return False
+
+
 from bson import ObjectId
 
 def serialize(value):
@@ -141,6 +166,31 @@ async def get_user_optional(request: Request) -> Optional[dict]:
         return await get_user(request)
     except HTTPException:
         return None
+
+
+
+async def verify_csrf_or_guest(
+    request: Request,
+    user: Optional[dict] = Depends(get_user_optional),
+    ttl_seconds: int = 3600,
+):
+    csrf_token = request.headers.get("X-CSRF-Token")
+    if not csrf_token:
+        raise HTTPException(status_code=403, detail="CSRF token is missing")
+
+    if user:
+        email = user["email"]
+    else:
+        email = "guest"
+
+    if not verify_csrf_token(csrf_token, email, CSRF_SECRET_KEY, ttl_seconds):
+        raise HTTPException(status_code=403, detail="Invalid or expired CSRF token")
+
+    return user  if user else None # возвращаем user (может быть None для гостя)
+
+
+
+
 
 @router.get("/me")
 async def get_current_user(request: Request):
@@ -249,6 +299,7 @@ async def register(email: str = Form(...), password: str = Form(...)):
     logger.info(f"/register  - def register - создан чат по умолчанию для пользователя: {new_user['email']}\n")
     access_token, access_expires, access_jti = create_access_token(email)
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(email)
+    csrf_token = generate_csrf_token(str(email), CSRF_SECRET_KEY)
     await tokens_collection.insert_one({
         "user_id": user_id,
         "email": email,
@@ -262,6 +313,7 @@ async def register(email: str = Form(...), password: str = Form(...)):
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
+    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     return response
 
 
@@ -274,7 +326,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
     access_token, access_expires, access_jti = create_access_token(str(user["email"]))
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
-
+    csrf_token = generate_csrf_token(str(user["email"]), CSRF_SECRET_KEY)
     # Удаляем старые токены пользователя
     await tokens_collection.delete_many({"email": str(user["email"])})
 
@@ -293,6 +345,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
+    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     logger.info(f"/login  - def login - Для пользователя: {email} - в куки добавлены новые токены\n")
     return response
 
@@ -337,6 +390,7 @@ async def logout(request: Request):
     # Удаляем куки на клиенте
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
+    response.delete_cookie("csrf_token")
     return response
 
 
@@ -357,16 +411,20 @@ async def logout_all(request: Request):
         response = JSONResponse({"message": "Вышли со всех устройств"})
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
+        response.delete_cookie("csrf_token")
         return response
 
     except JWTError:
         raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
+
+
 
 async def vendor_user_login(user, vendor):
     # Авторизуем пользователя, выдаём токены
 
     access_token, access_expires, access_jti = create_access_token(str(user["email"]))
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
+    csrf_token = generate_csrf_token(str(user["email"]), CSRF_SECRET_KEY)
 
     # Удаляем старые токены пользователя
     await tokens_collection.delete_many({"email": str(user["email"])})
@@ -382,7 +440,7 @@ async def vendor_user_login(user, vendor):
         "created_at": datetime.now(timezone.utc)
     })
     logger.info(f"/{vendor}_callback  - def {vendor}_callback - Для пользователя: {user["email"]} - созданы новые токены\n")
-    return access_token, refresh_token
+    return access_token, refresh_token, csrf_token
 
 async def vendor_user_register(email, vendor, vendor_id):
     # Регистрируем нового пользователя
@@ -420,6 +478,7 @@ async def vendor_user_register(email, vendor, vendor_id):
     # Выдаём токены
     access_token, access_expires, access_jti = create_access_token(str(email))
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(email))
+    csrf_token = generate_csrf_token(str(email), CSRF_SECRET_KEY)
     user_id = str(result.inserted_id)
     await tokens_collection.insert_one({
         "user_id": user_id,
@@ -431,7 +490,7 @@ async def vendor_user_register(email, vendor, vendor_id):
         "created_at": datetime.now(timezone.utc)
     })
     logger.info(f"/{vendor}_callback  - def {vendor}_callback - Для пользователя: {email} - созданы новые токены в бд\n")
-    return access_token, refresh_token
+    return access_token, refresh_token, csrf_token
 
 
 @router.get("/auth/google")
@@ -490,7 +549,7 @@ async def google_callback(request: Request, code: str):
             raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
 
         # Авторизуем пользователя, выдаём токены
-        access_token, refresh_token = await vendor_user_login(existing_user, "google")
+        access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "google")
 
         response = RedirectResponse(url="/")
         response.set_cookie("access_token", access_token, httponly=True)
@@ -500,11 +559,12 @@ async def google_callback(request: Request, code: str):
         return response
 
     # Регистрируем нового пользователя
-    access_token, refresh_token = await vendor_user_register(email, "google", google_id)
+    access_token, refresh_token, csrf_token = await vendor_user_register(email, "google", google_id)
 
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
+    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     logger.info(
         f"/auth/google/callback  - Новый пользователь: {email} - выполнил вход через Гугл, созданы новые токены в куках и в бд\n")
     return response
@@ -555,21 +615,23 @@ async def yandex_callback(request: Request, code: str):
                 f"/auth/yandex/callback  - Этот email: {email} - уже зарегистрирован через пароль.\n")
             raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
         # Авторизуем пользователя, выдаём токены
-        access_token, refresh_token = await vendor_user_login(existing_user, "yandex")
+        access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "yandex")
 
         response = RedirectResponse(url="/")
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
         logger.info(
             f"/auth/yandex/callback  - Пользователь: {email} - выполнен вход через Yandex, обновляем токены в куках и в бд\n")
         return response
 
     # Регистрируем нового пользователя
-    access_token, refresh_token = await vendor_user_register(email, "yandex", yandex_id)
+    access_token, refresh_token, csrf_token = await vendor_user_register(email, "yandex", yandex_id)
 
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
+    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     logger.info(
         f"/auth/yandex/callback  - Пользователь: {email} - успешно авторизован через Яндекс, созданы токены в бд и куках.\n")
     return response
@@ -617,19 +679,21 @@ async def telegram_callback(request: Request):
             raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
 
         # Авторизуем пользователя, выдаём токены
-        access_token, refresh_token = await vendor_user_login(existing_user, "telegram")
+        access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "telegram")
         response = RedirectResponse(url="/")
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
         logger.info(
             f"/auth/telegram/callback  - Пользователь: {email} - выполнен вход через telegram, обновляем токены в куках и в бд\n")
         return response
 
     # Регистрируем нового пользователя
-    access_token, refresh_token = await vendor_user_register(email, "telegram", telegram_id)
+    access_token, refresh_token, csrf_token = await vendor_user_register(email, "telegram", telegram_id)
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
+    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     logger.info(
         f"/auth/telegram/callback  - Пользователь: {username} - выполнил вход через Телеграм, созданы новые токены в куки и в бд\n")
     return response
@@ -693,19 +757,21 @@ async def vk_callback(request: Request, code: str):
                 f"/auth/vk/callback  - Этот email: {email} -  уже зарегистрирован через пароль.\n")
             raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
         # Авторизуем пользователя, выдаём токены
-        access_token, refresh_token = await vendor_user_login(existing_user, "vk")
+        access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "vk")
 
         response = RedirectResponse(url="/")
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
         logger.info(
             f"/auth/vk/callback  - Пользователь: {email} - выполнен вход через VK, обновляем токены в куках и в бд\n")
         return response
     # Регистрируем нового пользователя
-    access_token, refresh_token = await vendor_user_register(email, "vk", user_id)
+    access_token, refresh_token, csrf_token = await vendor_user_register(email, "vk", user_id)
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
+    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     logger.info(
         f"/auth/vk/callback  - Пользователь: {email} - успешно авторизовался через Вконтакте, созданы токены в бд и куках.\n")
     return response

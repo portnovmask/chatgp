@@ -7,14 +7,16 @@ from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse,
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+from typing import Optional
 from datetime import datetime, timezone, timedelta
 from auth import router as auth_router
 from blog_post import router as posts_router
 from products import router as products_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
-from auth import get_user, get_user_optional
+from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_or_guest, verify_csrf_token
 import openai
-from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS
+from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY
 from file_utils import save_uploaded_image, image_to_base64
 from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
 from pathlib import Path
@@ -165,7 +167,7 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
 
     user_chat = []
     param = request.cookies.get("param", "stream")
-
+    csrf_token = request.cookies.get("csrf_token")
     #await update_user_mode(user, param)
     user_summaries = await get_user_summaries(user)
     attempts = await get_current_attempts(user)
@@ -193,14 +195,38 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
                                        "param": param,
                                        "user_summaries": user_summaries,
                                        "user_chat": user_chat,
+                                       "csrf_token": csrf_token,
                                        "attempts": attempts})
 
 
-@app.get("/stream")
-async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
+
+class PromptRequest(BaseModel):
+    prompt: str
+    csrf_token: str
+
+class ImagePromptRequest(PromptRequest):
+    image_url: Optional[str] = None
+
+class VoicePromptRequest(PromptRequest):
+    voice_clip_id: Optional[str] = None
+
+
+# @app.get("/stream")
+# async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
+#     if not user:
+#         logger.info(f" def stream: Пользователь не авторизован")
+#         raise HTTPException(status_code=401, detail="Пользователь не авторизован")
+
+@app.post("/stream")
+async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
     if not user:
-        logger.info(f" def stream: Пользователь не авторизован")
+        logger.info(f"def stream: Пользователь не авторизован")
         raise HTTPException(status_code=401, detail="Пользователь не авторизован")
+    csrf_token = request_data.csrf_token
+    user_email = user["email"]
+    if not csrf_token or not verify_csrf_token(csrf_token, user_email, CSRF_SECRET_KEY):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    prompt = request_data.prompt
     chat = User(user)
 
     chat_id = await get_last_chat_id(user) or None
@@ -266,11 +292,17 @@ async def stream(prompt: str = Query(...), user: dict = Depends(get_user)):
 
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
 
-@app.get("/search")
-async def search(prompt: str = Query(...), user: dict = Depends(get_user)):
-    print (prompt)
+@app.post("/search")
+async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
+
     if not user:
-        return RedirectResponse('/authorize', status_code=302)
+        logger.info(f"def stream: Пользователь не авторизован")
+        raise HTTPException(status_code=401, detail="Пользователь не авторизован")
+    csrf_token = request_data.csrf_token
+    user_email = user["email"]
+    if not csrf_token or not verify_csrf_token(csrf_token, user_email, CSRF_SECRET_KEY):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    prompt = request_data.prompt
 
     search_chat = User(user)
     search_chat_id = await get_last_chat_id(user) or None
@@ -443,8 +475,16 @@ async def upload_image(file: UploadFile = File(...), user: dict = Depends(get_us
 
 
 @app.get("/authorize")
-async def authorize(request: Request, mode: str = "login"):
-    return templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
+async def authorize(request: Request, mode: str = "login", user=Depends(verify_csrf_or_guest)):
+    if user:
+        return RedirectResponse('/logout', status_code=302)
+    csrf_token = request.cookies.get("csrf_token")
+    response = templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
+    if not csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY, ttl_seconds=3600):
+        guest_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response.set_cookie("csrf_token", guest_token, httponly=True, samesite="lax")
+        return response
+    return response
 
 @app.get("/help")
 async def authorize(request: Request):
