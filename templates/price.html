@@ -82,16 +82,15 @@
 {% endfor %}
 {% else %}
     {% for plan, title in plans.items() %}
-
-    <a href="#" onclick="await showModal('Для продолжения выполните вход', 'warning', {
+    <a href="#" onclick="showModal('Для продолжения выполните вход', 'warning', {
             label: 'Вход',
             url: '/authorize',
             method: 'get'
-            });">{{title}}
+            });">
         <div class="card">
             <img src="/static/img/logo/28.svg" alt="plan logo">
             <h3>{{ title }}</h3>
-            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}</div>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
             {% else %}<div class="card-price">{{ prices[plan] }}</div>
                 <div class="card-small">{{ clues[plan] }}</div>

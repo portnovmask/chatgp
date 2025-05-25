@@ -3,7 +3,47 @@
 {% block title %}Home Page{% endblock %}
 
 {% block content %}
-{% if user %}
+{% if not user %}
+
+    <div class="main-header">
+        <p>&nbsp;</p>
+        <p>&nbsp;</p>
+</div>
+
+{#       <div class="container-main">#}
+           <div class="content-wrapper">
+			<div class="guest-content">
+					<div class="intro-block"><h1>ChatGP - умный ассистент</h1>
+                <a class="new-chat-button" style="border: solid 2px #62a07b; font-size: 16px; padding: 0.5rem;" href="/authorize">Войти, чтобы продолжить</a></div>
+				<div class="box">
+				</div>
+				<div class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</div>
+				<a href="/authorize" class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</a>
+                <div class="special">
+					Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.
+				</div>
+				<a href="/authorize" class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</a>
+                <div class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</div>
+
+				<a href="/authorize" class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</a>
+				<div class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</div>
+				<a href="/authorize" class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</a>
+				<div class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</div>
+				<a href="/authorize" class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</a>
+				<a href="/authorize" class="box">Повседневная практика показывает, что реализация намеченных плановых заданий играет определяющее значение для новых предложений.</a>
+                <div  class="build-info" style="position: unset;">&copy;2025 ChatGP.Ru. Все права защищены.</div>
+			</div>
+       </div>
+{#        </div>#}
+ <script>
+
+ let colours = ['#62a07b', '#4f8b89', '#536c8d', '#5c4f79', '#613860'];
+let allTheBoxes =  document.querySelectorAll('.box');
+for(let i = 0; i < allTheBoxes.length; i++){
+	allTheBoxes[i].style.background = colours[i % 5]
+}
+ </script>
+{% else %}
 
      <div class="main-header">
          <p>&nbsp;</p>
@@ -114,6 +154,7 @@
 
 
 <script src="/static/js/stream2.js" defer></script>
+
 {% include "modal_base.html" %}
 
 <script>
@@ -143,9 +184,9 @@ async function showModal(message, status = "info", action = null) {
   openModal(modal); // из твоего modal.js
 }
 </script>
-{% else %}
-       <script>
-       window.location.href = "/authorize";
-       </script>
+{#{% else %}#}
+{#       <script>#}
+{#       window.location.href = "/authorize";#}
+{#       </script>#}
 {% endif %}
 {% endblock %}

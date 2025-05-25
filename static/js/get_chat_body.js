@@ -1,6 +1,9 @@
+const newChat = document.getElementById("new-chat-btn")
+
 document.getElementById("chat-list").addEventListener("click", async (event) => {
     const deleteBtn = event.target.closest(".delete-chat");
     const chatEntry = event.target.closest("[data-chat-id]");
+
 
     // 👉 Удаление чата
     if (deleteBtn && chatEntry) {
@@ -48,19 +51,19 @@ document.getElementById("chat-list").addEventListener("click", async (event) => 
 
 
 
+if (newChat) {
+    newChat.addEventListener("click", async () => {
+        try {
+            // Удаляем chat_id_cookie
+            document.cookie = "chat_id_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
 
-document.getElementById("new-chat-btn").addEventListener("click", async () => {
-    try {
-        // Удаляем chat_id_cookie
-        document.cookie = "chat_id_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
-
-        // Обновляем страницу, чтобы создать новый чат
-        window.location.href = "/reset_chat?new_chat=1";
-    } catch (error) {
-        console.error("Ошибка при создании нового чата:", error);
-    }
-});
-
+            // Обновляем страницу, чтобы создать новый чат
+            window.location.href = "/reset_chat?new_chat=1";
+        } catch (error) {
+            console.error("Ошибка при создании нового чата:", error);
+        }
+    });
+}
 
 
 

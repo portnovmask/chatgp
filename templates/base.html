@@ -21,7 +21,14 @@
     >
     <title>{% block title %}Чат Ассистент{% endblock %}</title>
     </head>
-
+{% set plans = {
+                        "trial": "Базовый",
+                        "basic": "Оптимум",
+                        "advanced": "Фрилансер",
+                        "business": "Бизнес",
+                        "pro": "Мыслитель",
+                        "premium": "Премиум"
+                    } %}
 <body>
 
     <!-- Шапка с кнопкой открытия меню -->
@@ -41,25 +48,21 @@
                 <div class="item tooltip"><a href="#" class="new-chat-button" data-theme-switcher="auto">
                             <img src="/static/img/icons/loader.svg" width="25" alt="свет">
                         </a><span class="tooltiptext">Свет</span></div>
+                    {% if user %}
                     <div class="item tooltip"><button id="find-chat-button" class="new-chat-button"><img src="/static/img/icons/user.svg" width="25" alt="пользователь" onclick="window.location.href='/dash'"></button><span class="tooltiptext">Пользователь</span></div>
                   <div class="item tooltip"><button id="new-chat-btn" class="new-chat-button"><img src="/static/img/icons/square-plus.svg" width="25" alt="новый чат"></button> <span class="tooltiptext">Новый чат</span></div>
+                    {% endif %}
                 <div class="item tooltip"><button id="close-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/transition-left.svg" width="25"  alt="закрыть"></button><span class="tooltiptext">Закрыть</span></div>
 
             </div>
 
             </div>
         <div class="container-icons-column">
-             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/about'" style="width: 220px"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP - умный ассистент</small></button><span class="tooltiptext">О сервисе</span></div>
-             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/dash'" style="width: 220px"><img src="/static/img/icons/blocks.svg" width="40" alt="user">
-                {% set plans = {
-                        "trial": "Базовый",
-                        "basic": "Оптимум",
-                        "advanced": "Фрилансер",
-                        "business": "Бизнес",
-                        "pro": "Мыслитель",
-                        "premium": "Премиум"
-                    } %}
-                 {% if user %}
+             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/about'" style="width: 220px"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP - о сервисе</small></button><span class="tooltiptext">О сервисе</span></div>
+
+
+                 {% if user and user.email != "guest" %}
+                     <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/dash'" style="width: 220px"><img src="/static/img/icons/blocks.svg" width="40" alt="user">
                      {% if user.stat == 'trial' and user.original_status != "trial" and user.trial_expires_at %}
                      <small>
                         <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; временно
@@ -69,9 +72,12 @@
                         <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; оплачен
                      </small>
                     {% endif %}
-                 {% endif %}
-
                  </button><span class="tooltiptext">дашборд</span></div>
+                     {% else %}
+                     <p>Рейтинг</p>
+                     <p>Последние новости</p>
+                     <p>Примеры промптов</p>
+                {% endif %}
 {#            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>#}
         </div>
 
@@ -106,7 +112,11 @@
 
                      <div class="item tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/price'">
                          <img src="/static/img/icons/stars.svg" width="20"  alt="mode">
+                         {% if user  %}
                          <small>&nbsp;Повысить план</small></button>
+                         {% else %}
+                         <small>&nbsp;Цены и подписки</small></button>
+                         {% endif %}
                          <span class="tooltiptext">Управление подписками</span></div>
          </div>
 

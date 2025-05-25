@@ -18,7 +18,7 @@ from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_o
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY
 from file_utils import save_uploaded_image, image_to_base64
-from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts
+from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts, update_user_image_upload
 from pathlib import Path
 import asyncio
 import markdown
@@ -45,7 +45,7 @@ if not logger.hasHandlers():
     logger.addHandler(file_handler)
 
 
-UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR = Path("admin/uploads")
 UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 MAX_FILE_AGE = timedelta(minutes=15)  # 15 минут
 SUBSCRIPTION_RENEW_INTERVAL = 3600  # 1 час
@@ -160,10 +160,16 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, response: Response, user: dict = Depends(get_user), chat_id: str = None,
+async def index(request: Request, response: Response, user: dict = Depends(get_user_optional), chat_id: str = None,
                 new_chat: int = Query(None)):
     if not user:
-        return RedirectResponse(url="/authorize", status_code=303)
+        guest_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+
+        response = templates.TemplateResponse("index.html",
+                                          {"request": request, "user": user,
+                                           })
+        response.set_cookie("csrf_token", guest_token, httponly=False, samesite="lax", secure=True, max_age=3600)
+        return response
 
     user_chat = []
     param = request.cookies.get("param", "stream")
@@ -296,7 +302,7 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
 async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
     if not user:
-        logger.info(f"def stream: Пользователь не авторизован")
+        logger.info(f"def search: Пользователь не авторизован")
         raise HTTPException(status_code=401, detail="Пользователь не авторизован")
     csrf_token = request_data.csrf_token
     user_email = user["email"]
@@ -394,22 +400,45 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
     }
 
 
+
 @app.post("/upload-image/")
-async def upload_image(file: UploadFile = File(...), user: dict = Depends(get_user), prompt: str = Query(...)):
+async def upload_image(request = Request, file: UploadFile = File(...), user: dict = Depends(get_user)):
     if not user:
-        return RedirectResponse('/authorize', status_code=302)
+        logger.info(f"def stream: Пользователь не авторизован")
+        raise HTTPException(status_code=401, detail="Пользователь не авторизован")
+    csrf_token = request.cookies.get("csrf_token")
+    user_email = user["email"]
+    if not csrf_token or not verify_csrf_token(csrf_token, user_email, CSRF_SECRET_KEY):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+
+    status = user.get("status", "trial")
+    level_index = LEVELS.index(status)
+    if file:
+        file_check = await save_uploaded_image(file, level_index)
+        if file_check and "/" in file_check:
+            await update_user_image_upload(user, file_check)
+
+@app.post("/rec-image/")
+async def rec_image(request_data: PromptRequest, user: dict = Depends(get_user)):
+    if not user:
+        logger.info(f"def stream: Пользователь не авторизован")
+        raise HTTPException(status_code=401, detail="Пользователь не авторизован")
+    csrf_token = request_data.csrf_token
+    email = user.get("email")
+    current_user = User(user)
+    if not csrf_token or not verify_csrf_token(csrf_token, email, CSRF_SECRET_KEY):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    prompt = request_data.prompt
+    file = await current_user.get_user_image_upload_from_db()
     if not prompt:
         prompt = "Что изображено на картинке?"
-
+    user_file = image_to_base64(file)
     image_chat = User(user)
     image_chat_id = await get_last_chat_id(user) or None
-    stream_id = user_file = None
+    stream_id = None
     status = user.get("status", "trial")
     level_index = LEVELS.index(status)
     user_tokens = user.get("tokens", 0)
-    file_check = await save_uploaded_image(file, level_index)
-    if file_check and "/" in file_check:
-        user_file = image_to_base64(file_check)
     if user_file:
         assistant_content = await image_chat.get_last_chat_messages(image_chat_id, 7)
 
@@ -453,7 +482,7 @@ async def upload_image(file: UploadFile = File(...), user: dict = Depends(get_us
 
                 await after_stream_processing(image_chat, prompt, full_reply_content, image_chat_id, image_id,
                                               token_usage)
-                logger.info(f"/upload-image - Запустили фоновую функцию из распознавания изображения - {file.filename} с чат айди: {image_chat_id}\n")
+                logger.info(f"/upload-image - Запустили фоновую функцию из распознавания изображения от пользователя - {user.get("email")} с чат айди: {image_chat_id}\n")
 
                 return full_reply_content
             else:
@@ -463,50 +492,50 @@ async def upload_image(file: UploadFile = File(...), user: dict = Depends(get_us
 
         return {
             "response": final_response,
-            "file_name": file.filename,
+            "file_name": user_file,
             "id": stream_id
         }
     else:
         return {
-            "response": "Ошибка обработки изображения",
-            "file_name": file.filename,
-            "id": file.filename
+            "response": "Ошибка распознавания изображения",
+            "file_name": user_file,
+            "id": stream_id
         }
 
 
 @app.get("/authorize")
 async def authorize(request: Request, mode: str = "login", user=Depends(verify_csrf_or_guest)):
-    if user:
+    if user and user.get("email") != "guest":
         return RedirectResponse('/logout', status_code=302)
     csrf_token = request.cookies.get("csrf_token")
     response = templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
     if not csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY, ttl_seconds=3600):
         guest_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
-        response.set_cookie("csrf_token", guest_token, httponly=True, samesite="lax")
+        response.set_cookie("csrf_token", guest_token, httponly=False, samesite="lax")
         return response
     return response
 
 @app.get("/help")
-async def authorize(request: Request):
+async def get_help(request: Request):
     return templates.TemplateResponse("help.html", {"request": request})
 
 @app.get("/privacy")
-async def authorize(request: Request):
+async def privacy(request: Request):
     return templates.TemplateResponse("privacy.html", {"request": request})
 
 
 @app.get("/about")
-async def authorize(request: Request):
+async def about(request: Request):
     return templates.TemplateResponse("about.html", {"request": request})
 
 
 
 
 @app.get("/price")
-async def price(request: Request, user: dict = Depends(get_user)):
+async def price(request: Request, user: dict = Depends(get_user_optional)):
     ton_to_usdt = float(await get_ton_usdt_price())
     if not user:
-        return RedirectResponse('/authorize', status_code=302)
+        return templates.TemplateResponse("price.html", {"request": request, "ton_to_usdt": ton_to_usdt})
     return templates.TemplateResponse("price.html", {"request": request, "user": user, "ton_to_usdt": ton_to_usdt})
 
 

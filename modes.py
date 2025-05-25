@@ -16,6 +16,25 @@ async def update_user_mode(user, mode: str):
 
 
 
+async def update_user_image_upload(user, route: str):
+
+    await users_data_collection.update_one(
+        {"email": user.get("email")},
+        {"$set": {"mode.$[].image_upload": route}}
+    )
+
+
+
+
+async def update_user_file_upload(user, route: str):
+
+    await users_data_collection.update_one(
+        {"email": user.get("email")},
+        {"$set": {"mode.$[].file_upload": route}}
+    )
+
+
+
 async def delete_chat(user, chat_id):
     email = user.get("email")
 
@@ -299,6 +318,36 @@ class User:
             return None  # Если mode отсутствует
 
         return me_data["mode"][0].get("current_mode")  #  Берём current_mode из первого элемента массива
+
+
+
+    async def get_user_image_upload_from_db(self):
+        me_data = await users_data_collection.find_one(
+            {"email": self.user.get("email")},
+            {"mode": 1, "_id": 0}  #  Запрашиваем весь массив mode
+        )
+
+        if not me_data or not me_data.get("mode"):
+            return None  # Если mode отсутствует
+
+        return me_data["mode"][0].get("image_upload")  #  Берём image_upload из первого элемента массива
+
+
+
+    async def get_user_file_upload_from_db(self):
+        me_data = await users_data_collection.find_one(
+            {"email": self.user.get("email")},
+            {"mode": 1, "_id": 0}  #  Запрашиваем весь массив mode
+        )
+
+        if not me_data or not me_data.get("mode"):
+            return None  # Если mode отсутствует
+
+        return me_data["mode"][0].get("file_upload")  #  Берём file_upload из первого элемента массива
+
+
+
+
 
     async def add_to_chat_db(self, prompt: str, body: str, chat_id: str = "new", stream_id: str = None,
                              summary: str = "Без названия"):

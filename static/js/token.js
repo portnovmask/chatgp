@@ -2,6 +2,11 @@
 let sendAuthEvent;
 let listenAuthEvents;
 
+function isAuthenticated() {
+    return document.cookie.includes("has_auth=true");
+}
+
+
 // Проверяем поддержку BroadcastChannel
 if ("BroadcastChannel" in window) {
     // ✅ BroadcastChannel поддерживается
@@ -43,6 +48,11 @@ document.addEventListener("DOMContentLoaded", async () => {
             window.location.replace("/authorize");
         }
     });
+    // ✅ Проверяем: если у пользователя нет access_token, не обновляем
+    if (!isAuthenticated()) {
+        console.log("👤 Гость. Пропускаем refresh.");
+        return;
+    }
 
     // Немедленно обновляем токен, если он устарел
     const refreshResponse = await fetch("/refresh", {
@@ -64,26 +74,18 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Таймер для регулярного обновления access_token каждые 10 минут
-  setInterval(async () => {
-    if (document.visibilityState === "visible") {
-        try {
-            const refreshResponse = await fetch("/refresh", {
-                method: "POST",
-                credentials: "include"
-            });
-            if (refreshResponse.ok) {
-                sendAuthEvent("token_refreshed");
-            } else {
-                sendAuthEvent("logout");
-                window.location.replace("/authorize");
-            }
-        } catch (error) {
-            console.error("Ошибка обновления токена:", error);
+    setInterval(async () => {
+        const refreshResponse = await fetch("/refresh", {
+            method: "POST",
+            credentials: "include"
+        });
+        if (refreshResponse.ok) {
+            sendAuthEvent("token_refreshed");
+        } else {
             sendAuthEvent("logout");
             window.location.replace("/authorize");
         }
-    }
-}, 10 * 60 * 1000); // каждые 10 минут
+    }, 10 * 60 * 1000); // каждые 10 минут
 });
 
         async function fetchWithAuth(url, options = {}) {

@@ -43,7 +43,7 @@ DEFAULT_CHAT = {
 
 
 # Дефолтный режим
-MODE = {"current_mode": "basic", "current_chat": None}
+MODE = {"current_mode": "basic", "image_upload": None, "file_upload": None, "current_chat": None}
 
 
 
@@ -162,6 +162,10 @@ async def get_user(request: Request):
 from typing import Optional
 
 async def get_user_optional(request: Request) -> Optional[dict]:
+    token = request.cookies.get("access_token")
+    if not token:
+        return None  # Нет токена — точно гость
+
     try:
         return await get_user(request)
     except HTTPException:
@@ -174,7 +178,7 @@ async def verify_csrf_or_guest(
     user: Optional[dict] = Depends(get_user_optional),
     ttl_seconds: int = 3600,
 ):
-    csrf_token = request.headers.get("X-CSRF-Token")
+    csrf_token = request.cookies.get("csrf_token")
     if not csrf_token:
         raise HTTPException(status_code=403, detail="CSRF token is missing")
 
@@ -186,7 +190,7 @@ async def verify_csrf_or_guest(
     if not verify_csrf_token(csrf_token, email, CSRF_SECRET_KEY, ttl_seconds):
         raise HTTPException(status_code=403, detail="Invalid or expired CSRF token")
 
-    return user  if user else None # возвращаем user (может быть None для гостя)
+    return user  if user else {"email": "guest"} # возвращаем user (может быть None для гостя)
 
 
 
@@ -255,6 +259,7 @@ async def refresh_token(request: Request):
         response = JSONResponse({"message": "Токены обновлены"})
         response.set_cookie("access_token", new_access_token, httponly=True)
         response.set_cookie("refresh_token", new_refresh_token, httponly=True)
+        response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
         return response
 
     except JWTError:
@@ -314,6 +319,7 @@ async def register(email: str = Form(...), password: str = Form(...)):
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     return response
 
 
@@ -346,6 +352,7 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(f"/login  - def login - Для пользователя: {email} - в куки добавлены новые токены\n")
     return response
 
@@ -367,10 +374,12 @@ async def add_email(request: Request, email: str = Form(...), user: dict = Depen
 async def logout(request: Request):
     """Выход и удаление токенов из БД"""
     refresh_token = request.cookies.get("refresh_token")
-    response = RedirectResponse(url="/authorize")
+    response = RedirectResponse(url="/")
 
     if not refresh_token:
         logger.info(f"/logout - refresh_token не найден в куках")
+        response.delete_cookie("csrf_token")
+        response.delete_cookie("has_auth")
         return response
 
     try:
@@ -391,6 +400,7 @@ async def logout(request: Request):
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
     response.delete_cookie("csrf_token")
+    response.delete_cookie("has_auth")
     return response
 
 
@@ -412,6 +422,7 @@ async def logout_all(request: Request):
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
         response.delete_cookie("csrf_token")
+        response.delete_cookie("has_auth")
         return response
 
     except JWTError:
@@ -554,6 +565,8 @@ async def google_callback(request: Request, code: str):
         response = RedirectResponse(url="/")
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+        response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
         logger.info(
             f"/auth/google/callback  - Пользователь: {email} - выполнен вход через Гугл, обновляем токены в куках и в бд\n")
         return response
@@ -565,6 +578,7 @@ async def google_callback(request: Request, code: str):
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(
         f"/auth/google/callback  - Новый пользователь: {email} - выполнил вход через Гугл, созданы новые токены в куках и в бд\n")
     return response
@@ -621,6 +635,7 @@ async def yandex_callback(request: Request, code: str):
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
         response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+        response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
         logger.info(
             f"/auth/yandex/callback  - Пользователь: {email} - выполнен вход через Yandex, обновляем токены в куках и в бд\n")
         return response
@@ -632,6 +647,7 @@ async def yandex_callback(request: Request, code: str):
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(
         f"/auth/yandex/callback  - Пользователь: {email} - успешно авторизован через Яндекс, созданы токены в бд и куках.\n")
     return response
@@ -684,6 +700,7 @@ async def telegram_callback(request: Request):
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
         response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+        response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
         logger.info(
             f"/auth/telegram/callback  - Пользователь: {email} - выполнен вход через telegram, обновляем токены в куках и в бд\n")
         return response
@@ -694,6 +711,7 @@ async def telegram_callback(request: Request):
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(
         f"/auth/telegram/callback  - Пользователь: {username} - выполнил вход через Телеграм, созданы новые токены в куки и в бд\n")
     return response
@@ -763,6 +781,7 @@ async def vk_callback(request: Request, code: str):
         response.set_cookie("access_token", access_token, httponly=True)
         response.set_cookie("refresh_token", refresh_token, httponly=True)
         response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+        response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
         logger.info(
             f"/auth/vk/callback  - Пользователь: {email} - выполнен вход через VK, обновляем токены в куках и в бд\n")
         return response
@@ -772,6 +791,7 @@ async def vk_callback(request: Request, code: str):
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(
         f"/auth/vk/callback  - Пользователь: {email} - успешно авторизовался через Вконтакте, созданы токены в бд и куках.\n")
     return response
