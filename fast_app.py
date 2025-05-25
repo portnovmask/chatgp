@@ -160,7 +160,7 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
 
 
 @app.get("/", response_class=HTMLResponse)
-async def index(request: Request, response: Response, user: dict = Depends(get_user_optional), chat_id: str = None,
+async def index(request: Request, response: Response, user: dict | None = Depends(get_user_optional), chat_id: str = None,
                 new_chat: int = Query(None)):
     if not user:
         guest_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
@@ -168,7 +168,7 @@ async def index(request: Request, response: Response, user: dict = Depends(get_u
         response = templates.TemplateResponse("index.html",
                                           {"request": request, "user": user,
                                            })
-        response.set_cookie("csrf_token", guest_token, httponly=False, samesite="lax", secure=True, max_age=3600)
+        response.set_cookie("csrf_token", guest_token, httponly=False, samesite="lax", secure=True, max_age=900)
         return response
 
     user_chat = []
@@ -402,9 +402,9 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
 
 @app.post("/upload-image/")
-async def upload_image(request = Request, file: UploadFile = File(...), user: dict = Depends(get_user)):
+async def upload_image(request: Request, file: UploadFile = File(...), user: dict = Depends(get_user)):
     if not user:
-        logger.info(f"def stream: Пользователь не авторизован")
+        logger.info(f"def upload_image: Пользователь не авторизован")
         raise HTTPException(status_code=401, detail="Пользователь не авторизован")
     csrf_token = request.cookies.get("csrf_token")
     user_email = user["email"]
@@ -516,26 +516,44 @@ async def authorize(request: Request, mode: str = "login", user=Depends(verify_c
     return response
 
 @app.get("/help")
-async def get_help(request: Request):
+async def get_help(request: Request, user: dict | None = Depends(get_user_optional)):
+    if not user:
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("help.html", {"request": request})
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
+        return response
     return templates.TemplateResponse("help.html", {"request": request})
 
 @app.get("/privacy")
-async def privacy(request: Request):
+async def privacy(request: Request, user: dict | None = Depends(get_user_optional)):
+    if not user:
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("privacy.html", {"request": request})
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
+        return response
     return templates.TemplateResponse("privacy.html", {"request": request})
 
 
 @app.get("/about")
-async def about(request: Request):
+async def about(request: Request, user: dict | None = Depends(get_user_optional)):
+    if not user:
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("about.html", {"request": request})
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
+        return response
     return templates.TemplateResponse("about.html", {"request": request})
 
 
 
 
 @app.get("/price")
-async def price(request: Request, user: dict = Depends(get_user_optional)):
+async def price(request: Request, user: dict | None = Depends(get_user_optional)):
     ton_to_usdt = float(await get_ton_usdt_price())
     if not user:
-        return templates.TemplateResponse("price.html", {"request": request, "ton_to_usdt": ton_to_usdt})
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("price.html", {"request": request, "ton_to_usdt": ton_to_usdt})
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
+        return response
     return templates.TemplateResponse("price.html", {"request": request, "user": user, "ton_to_usdt": ton_to_usdt})
 
 
@@ -557,10 +575,10 @@ async def dash(request: Request, user: dict = Depends(get_user)):
         return templates.TemplateResponse("dash.html",
                                           {"request": request, "user": user, "plans": plans})
 
-from typing import Optional
+
 @app.get("/post", response_class=HTMLResponse)
 async def post_home(request: Request,
-    user: Optional[dict] = Depends(get_user_optional)
+    user: dict | None = Depends(get_user_optional)
 ):
 
     post = await get_latest_post()
@@ -569,6 +587,16 @@ async def post_home(request: Request,
             post["content"], extensions=["extra", "sane_lists", "nl2br"]
         )
     posts = await get_all_post_titles()
+    if not user:
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("blog.html", {
+            "request": request,
+            "post": post,
+            "posts": posts,
+            "user": user,
+        })
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
+        return response
     return templates.TemplateResponse("blog.html", {
         "request": request,
         "post": post,
@@ -578,8 +606,12 @@ async def post_home(request: Request,
 
 @app.get("/post/{slug}", response_class=HTMLResponse)
 async def view_post(request: Request, slug: str,
-    user: Optional[dict] = Depends(get_user_optional)
+    user: dict | None = Depends(get_user_optional)
 ):
+    if not user:
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+
+
     post = await get_post_by_slug(slug)
     if not post:
         return HTMLResponse("Not found", status_code=404)
@@ -588,6 +620,16 @@ async def view_post(request: Request, slug: str,
         post["content"], extensions=["extra", "sane_lists", "nl2br"]
     )
     posts = await get_all_post_titles()
+    if not user:
+        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("blog.html", {
+        "request": request,
+        "post": post,
+        "posts": posts,
+        "user": user,
+    })
+        response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
+        return response
     return templates.TemplateResponse("blog.html", {
         "request": request,
         "post": post,
