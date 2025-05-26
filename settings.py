@@ -1,5 +1,6 @@
 import os
 import dotenv
+from pathlib import Path
 
 dotenv.load_dotenv('.env')
 
@@ -51,6 +52,8 @@ PRETTY_NAMES = {
     "premium": "Премиум"
 }
 PRICES = [0, 1, 4, 8, 12, 32]
+UPLOAD_DIR = Path("admin/uploads")
+UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 def pri():
 

@@ -2,7 +2,14 @@ const parent = document.querySelector("#article");
 const csrfToken = document.getElementById('csrf_token').value;
 const submitButton = document.querySelector('#submit');
 const searchButton = document.querySelector('#search-button');
-const uploadButton = document.querySelector('#upload-button');
+const showUploadBtn = document.getElementById("show-upload-btn");
+const uploadWrapper = document.getElementById("upload-wrapper");
+const uploadInput = document.getElementById("upload-input");
+const uploadButton = document.getElementById("upload-btn");
+const previewDiv = document.getElementById("image-preview");
+const deleteIconButton = document.getElementById("delete-icon-button");
+const textarea = document.querySelector(".text-area");
+const paramButton = document.getElementById("param-toggle");
 // const containerMain = document.querySelector(".container-main");
 
 const submitIcon = `<img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">`;
@@ -23,12 +30,19 @@ async function filterText(text) {
 
 //Регулирование высоты поля ввода
 
-    document.addEventListener("input", function (event) {
-    if (event.target.tagName.toLowerCase() === "textarea") {
-        event.target.style.height = "auto"; // Сбрасываем высоту, чтобы пересчитать
-        event.target.style.height = event.target.scrollHeight + "px"; // Устанавливаем новую высоту
-    }
-});
+//     document.addEventListener("input", function (event) {
+//     if (event.target.tagName.toLowerCase() === "textarea") {
+//         event.target.style.height = "auto"; // Сбрасываем высоту, чтобы пересчитать
+//         event.target.style.height = event.target.scrollHeight + "px"; // Устанавливаем новую высоту
+//     }
+// });
+
+if (textarea) {
+    textarea.addEventListener("input", function () {
+        this.style.height = "auto";
+        this.style.height = this.scrollHeight + "px";
+    });
+}
 
 // Функция проверки содержимого поля
 function isValidInput(text) {
@@ -406,11 +420,11 @@ if (searchButton) {
     }
 
     function updateToggleButtonText(currentParam) {
-        const button = document.getElementById("param-toggle");
+
         if (currentParam === "search") {
-            button.innerHTML = `чат<img src="/static/img/icons/message.svg" width="18" height="18"  alt="чат">`;
+            paramButton.innerHTML = `чат<img src="/static/img/icons/message.svg" width="18" height="18"  alt="чат">`;
         } else {
-            button.innerHTML = `поиск<img src="/static/img/icons/world.svg" width="18" height="18" alt="поиск">`;
+            paramButton.innerHTML = `поиск<img src="/static/img/icons/world.svg" width="18" height="18" alt="поиск">`;
         }
     }
 
@@ -424,3 +438,93 @@ if (searchButton) {
         });
     });
 
+if (showUploadBtn) {
+    showUploadBtn.addEventListener("click", () => {
+        uploadWrapper.style.display = "block";
+        textarea.style.display = "none";
+        paramButton.style.display = "none";
+        submitButton.style.display = "none";
+    });
+}
+
+if (uploadButton) {
+    uploadButton.addEventListener("click", async () => {
+        const file = uploadInput.files[0];
+        if (!file) {
+          console.log("Нет файла");
+        return;
+        }
+
+
+
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("csrf_token", csrfToken);
+
+        try {
+            const response = await fetchWithAuth("/upload-image/", {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.redirected) {
+                window.location.href = response.url;
+                return;
+            }
+
+            if (!response.ok) {
+                alert("Ошибка загрузки изображения");
+                return;
+            }
+
+            const result = await response.json();
+
+            if (result.path) {
+                uploadWrapper.style.display = "none";
+                textarea.style.display = "block";
+                paramButton.style.display = "block";
+                submitButton.style.display = "block";
+                previewDiv.innerHTML = `
+                    <img src="${result.path}" alt="uploaded" style="width: 30px; height: auto;" />
+                    <button id="delete-icon-button" class="floating-button">x</button>
+                `;
+                const img = previewDiv.querySelector("img");
+                img.onerror = () => {
+                    img.style.display = "none";
+                                        if (deleteIconButton) {
+                        deleteIconButton.style.display = "none";
+                    }
+                    console.log("Картинка удалена или путь указан неверный - Йодо.");
+
+                };
+            }
+
+        } catch (error) {
+            console.error("Ошибка при загрузке изображения:", error);
+        }
+    });
+}
+
+
+if (deleteIconButton) {
+    deleteIconButton.addEventListener("click", async (e) => {
+        e.preventDefault();
+
+        const csrfToken = getCookie("csrf_token");
+        const formData = new FormData();
+        formData.append("csrf_token", csrfToken);
+
+        const response = await fetchWithAuth("/delete-image/", {
+            method: "POST",
+            body: formData
+        });
+
+        if (response.ok) {
+            // Удалить иконку с DOM
+            const icon = document.querySelector(".user-icon");
+            if (icon) icon.remove();
+        } else {
+            console.error("Ошибка удаления изображения");
+        }
+    });
+}

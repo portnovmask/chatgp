@@ -70,7 +70,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const response = await fetchWithAuth("/me");
     if (response.ok) {
         const data = await response.json();
-        console.log("✅ Данные пользователя:", data);
+        //console.log("✅ Данные пользователя:", data);
     }
 
     // Таймер для регулярного обновления access_token каждые 10 минут

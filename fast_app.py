@@ -16,10 +16,12 @@ from products import router as products_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
 from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_or_guest, verify_csrf_token
 import openai
-from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY
+from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR
 from file_utils import save_uploaded_image, image_to_base64
-from modes import User, get_user_summaries, get_chat_body_by_id, get_last_chat_id, set_chat, reset_chat, delete_chat, get_current_attempts, update_user_image_upload
-from pathlib import Path
+from modes import (User, get_user_summaries, get_chat_body_by_id, get_last_chat_id,
+                   set_chat, reset_chat, delete_chat, get_current_attempts,
+                   update_user_image_upload, delete_user_image_upload)
+#from pathlib import Path
 import asyncio
 import markdown
 # from fastapi_utils.tasks import repeat_every
@@ -45,8 +47,6 @@ if not logger.hasHandlers():
     logger.addHandler(file_handler)
 
 
-UPLOAD_DIR = Path("admin/uploads")
-UPLOAD_DIR.mkdir(exist_ok=True, parents=True)
 MAX_FILE_AGE = timedelta(minutes=15)  # 15 минут
 SUBSCRIPTION_RENEW_INTERVAL = 3600  # 1 час
 
@@ -80,6 +80,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/admin/uploads", StaticFiles(directory=UPLOAD_DIR.resolve()), name="uploads")
 app.include_router(auth_router)
 app.include_router(posts_router)
 app.include_router(products_router)
@@ -401,22 +402,49 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
 
 
+from fastapi import Form
+
 @app.post("/upload-image/")
-async def upload_image(request: Request, file: UploadFile = File(...), user: dict = Depends(get_user)):
+async def upload_image(
+    request: Request,
+    file: UploadFile = File(...),
+    csrf_token: str = Form(...),
+    user: dict = Depends(get_user)
+):
     if not user:
         logger.info(f"def upload_image: Пользователь не авторизован")
-        raise HTTPException(status_code=401, detail="Пользователь не авторизован")
-    csrf_token = request.cookies.get("csrf_token")
+        return RedirectResponse('/authorize', status_code=302)
+
     user_email = user["email"]
-    if not csrf_token or not verify_csrf_token(csrf_token, user_email, CSRF_SECRET_KEY):
-        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+    stored_token = request.cookies.get("csrf_token")
+    if not stored_token or csrf_token != stored_token or not verify_csrf_token(stored_token, user_email, CSRF_SECRET_KEY):
+        return RedirectResponse('/authorize', status_code=302)
 
     status = user.get("status", "trial")
     level_index = LEVELS.index(status)
+
     if file:
         file_check = await save_uploaded_image(file, level_index)
         if file_check and "/" in file_check:
             await update_user_image_upload(user, file_check)
+            return JSONResponse(content={"path": file_check})
+
+
+@app.post("/delete-image/")
+async def delete_uploaded_image(
+    request: Request,
+    csrf_token: str = Form(...),
+    user: dict = Depends(get_user)
+):
+    if not user:
+        return RedirectResponse("/authorize", status_code=302)
+
+    stored_token = request.cookies.get("csrf_token")
+    if not stored_token or csrf_token != stored_token or not verify_csrf_token(stored_token, user["email"], CSRF_SECRET_KEY):
+        return RedirectResponse("/authorize", status_code=302)
+
+    await delete_user_image_upload(user)
+    return {"status": "deleted"}
 
 @app.post("/rec-image/")
 async def rec_image(request_data: PromptRequest, user: dict = Depends(get_user)):

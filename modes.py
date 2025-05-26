@@ -26,7 +26,27 @@ async def update_user_image_upload(user, route: str):
 
 
 
-async def update_user_file_upload(user, route: str):
+async def update_user_file_upload(user):
+
+    await users_data_collection.update_one(
+        {"email": user.get("email")},
+        {"$set": {"mode.$[].file_upload": None}}
+    )
+
+
+
+
+async def delete_user_image_upload(user):
+
+    await users_data_collection.update_one(
+        {"email": user.get("email")},
+        {"$set": {"mode.$[].image_upload": None}}
+    )
+
+
+
+
+async def delete_user_file_upload(user, route: str):
 
     await users_data_collection.update_one(
         {"email": user.get("email")},

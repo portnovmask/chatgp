@@ -626,7 +626,7 @@ a.visited {
     /*overflow:hidden;*/
 }
 
-.main-footer > textarea {
+.text-area {
     left: 0;
     flex-grow: 1;
     border: solid 2px #ecebeb;
@@ -647,6 +647,29 @@ a.visited {
     line-height: 20px;
     padding: 4px 42px 4px 1rem;
     transition: height 0.2s ease-in-out;
+    z-index: 10;
+}
+.upload{
+  left: 0;
+    flex-grow: 1;
+    border: solid 2px #ecebeb;
+    border-radius: 20px;
+    box-shadow: #afabab 3px 3px 7px;
+    bottom: 7vh;
+    width: 100%;
+    min-height: 100px;
+    max-height: 300px;
+    /*overflow-y: auto;*/
+    /*resize: none;*/
+    /*font-family: sans-serif;*/
+    font-size: 18px;
+    font-style: normal;
+    text-size-adjust: 100%;
+    /*font-weight: 400;*/
+    /*height: 30px;*/
+    line-height: 20px;
+    padding: 4px 42px 4px 1rem;
+    /*transition: height 0.2s ease-in-out;*/
     z-index: 10;
 }
 

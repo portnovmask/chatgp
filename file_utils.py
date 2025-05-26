@@ -6,12 +6,11 @@ from fastapi import UploadFile, HTTPException
 from io import BytesIO
 import pytesseract
 import logging
-
+from settings import UPLOAD_DIR
 
 logger = logging.getLogger("app_logger")
 
-UPLOAD_DIR = Path("uploads")
-UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
 
 MAX_FILE_SIZE_MB = 10
 MAX_WIDTH, MAX_HEIGHT = 768, 2000
