@@ -341,7 +341,7 @@ a.visited {
     overflow-y: scroll;
     font-family: sans-serif;
     /*font-size: 14px;*/
-    height: 98vh;
+    height: 75vh;
     overflow-wrap: break-word;
     text-rendering: optimizelegibility;
     text-size-adjust: 100%;
@@ -615,7 +615,7 @@ a.visited {
     justify-content: space-between;
     margin-right: calc(14vw - 30px);
     margin-left: calc(14vw - 30px);
-    min-height: 150px;
+    min-height: 160px;
     max-height: 350px;
     background: #ffffff;
     padding: 5px;
@@ -632,9 +632,9 @@ a.visited {
     border: solid 2px #ecebeb;
     border-radius: 20px;
     box-shadow: #afabab 3px 3px 7px;
-    bottom: 7vh;
+    margin-bottom: 1rem;
     width: 100%;
-    min-height: 100px;
+    min-height: 130px;
     max-height: 300px;
     overflow-y: auto;
     resize: none;
@@ -645,39 +645,146 @@ a.visited {
     font-weight: 400;
     height: 30px;
     line-height: 20px;
-    padding: 4px 42px 4px 1rem;
+    padding: 4px 42px 3.5rem 1rem;
     transition: height 0.2s ease-in-out;
     z-index: 10;
 }
 .upload{
-  left: 0;
-    flex-grow: 1;
-    border: solid 2px #ecebeb;
-    border-radius: 20px;
-    box-shadow: #afabab 3px 3px 7px;
-    bottom: 7vh;
+    opacity: 0;
+    position: absolute;
+    cursor: pointer;
+    min-height: 200px;
+    height: 100%;
     width: 100%;
-    min-height: 100px;
+    left: 0;
+    bottom: 7vh;
+    flex-grow: 1;
     max-height: 300px;
-    /*overflow-y: auto;*/
-    /*resize: none;*/
-    /*font-family: sans-serif;*/
-    font-size: 18px;
+
+}
+.upload-label {
+    /*position: relative;*/
+    display: inline-block;
+    min-height: 200px;
+    height: 100%;
+    width: 100%;
+    border: 2px dashed #ecebeb;
+    border-radius: 20px;
+    margin-bottom: 1rem;
     font-style: normal;
     text-size-adjust: 100%;
-    /*font-weight: 400;*/
-    /*height: 30px;*/
     line-height: 20px;
-    padding: 4px 42px 4px 1rem;
-    /*transition: height 0.2s ease-in-out;*/
-    z-index: 10;
+    padding: 48px;
 }
 
+.upload-label:hover {
+    box-shadow: #afabab 3px 3px 7px;
+}
+
+.upload-label-drop{
+    display: block;
+    font-weight: 600;
+    color: #363636;
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.upload-label-or{
+        font-weight: 500;
+        font-size: 12px;
+        color: #6b7280;
+        display: block;
+        margin-bottom: 8px;
+}
+
+.upload-label-browse{
+    font-weight: 500;
+    font-size: 14px;
+    color: #363636;
+    display: inline-block;
+    padding: 8px 28px;
+    border: 1px solid #e0e0e0;
+    border-radius: 20px;
+
+}
 /*кнопка отправки запроса в чат*/
+.upload-btn {
+    text-align: center;
+    font-weight: 500;
+    bottom: 1rem;
+    background-color: lightcyan;
+    color: #777575;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    width: 100%;
+    padding: 8px 28px;
+    margin-bottom: 1rem;
+    z-index: 12;
+    border: 1px solid #ddd;
+    animation: borderBlink 1s infinite;
+
+}
+
+@keyframes borderBlink {
+  0%, 100% {
+    border-color: #00aaff;
+  }
+  50% {
+    border-color: #ffffff;
+  }
+}
+
+
+.upload-btn:hover {
+    /*background-color: #ddd;*/
+    border: 1px solid #015050;
+    /* Меняем цвет при наведении */
+}
+
+.upload-btn:active {
+    border: 1px solid #015050;
+    /*color: */
+}
+
+
+.upload-btn:focus {
+   /*transform: scale(1.1);*/
+    background-color: #cce8b6;
+}
+
+.image-thumb {
+    position: absolute;
+    bottom: 2rem; /* добавь если кнопка прилипает к верху */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /*gap: 6px;*/
+    left: 250px;
+    z-index: 12;
+}
+
+.delete-image-thumb-button {
+    position: absolute;
+    display: none;
+    top: -31px;
+    /*left: 2.1rem;*/
+    background: #ecebeb;
+    /*color: #a10e0e;*/
+    border: solid 1px #651a1a;
+    padding: 1px 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 100px;
+    z-index: 18;
+}
+
+
 
 .transparent-button {
     position: absolute;
-    bottom: 1.5rem; /* добавь если кнопка прилипает к верху */
+    bottom: 3rem; /* добавь если кнопка прилипает к верху */
     display: flex;
     align-items: center;
     justify-content: space-evenly;
@@ -725,8 +832,8 @@ a.visited {
     bottom: 2rem; /* добавь если кнопка прилипает к верху */
     display: flex;
     align-items: center;
-    justify-content: space-evenly;
-    /*gap: 6px;*/
+    justify-content: center;
+    gap: 6px;
     left: 1rem;
     color: #777575;
     background-color: transparent;

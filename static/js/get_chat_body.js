@@ -112,10 +112,9 @@ async function fetchChatData(chatId) {
     Prism.highlightAll();
          // Прокручиваем страницу после загрузки чата
         setTimeout(() => {
-            chatArticle.scrollIntoView({ behavior: "smooth", block: "end" });
-        }, 100);
-
-        document.cookie = `chat_id_cookie=${data.chat_id}; path=/; max-age=3600`;
+                                const container = document.querySelector(".container-main");
+                                container.scrollTop = container.scrollHeight;
+                            }, 100);
 
     } catch (error) {
         console.error("Ошибка при загрузке чата:", error);

@@ -532,12 +532,12 @@ async def rec_image(request_data: PromptRequest, user: dict = Depends(get_user))
 
 
 @app.get("/authorize")
-async def authorize(request: Request, mode: str = "login", user=Depends(verify_csrf_or_guest)):
-    if user and user.get("email") != "guest":
+async def authorize(request: Request, mode: str = "login", user: dict | None = Depends(get_user_optional)):
+    if user:
         return RedirectResponse('/logout', status_code=302)
     csrf_token = request.cookies.get("csrf_token")
     response = templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
-    if not csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY, ttl_seconds=3600):
+    if not csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY, 3600):
         guest_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
         response.set_cookie("csrf_token", guest_token, httponly=False, samesite="lax")
         return response

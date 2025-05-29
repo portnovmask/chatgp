@@ -7,7 +7,8 @@ dotenv.load_dotenv('.env')
 
 APY_KEY = os.environ['APY_KEY']
 APP_SECRET_KEY = os.environ['APP_SECRET_KEY']
-CSRF_SECRET_KEY= os.environ['CSRF_SECRET_KEY']
+CSRF_SECRET_KEY = os.environ['CSRF_SECRET_KEY']
+FERNET_KEY = os.environ['FERNET_KEY']
 MAIL_USERNAME = os.environ['MAIL_USERNAME']
 MAIL_PASSWORD = os.environ['MAIL_PASSWORD']
 SQL_USERNAME = os.environ['SQL_USERNAME']

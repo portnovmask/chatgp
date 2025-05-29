@@ -10,6 +10,7 @@ const previewDiv = document.getElementById("image-preview");
 const deleteIconButton = document.getElementById("delete-icon-button");
 const textarea = document.querySelector(".text-area");
 const paramButton = document.getElementById("param-toggle");
+const uploadInfo = document.getElementById("upload-info");
 // const containerMain = document.querySelector(".container-main");
 
 const submitIcon = `<img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">`;
@@ -206,6 +207,7 @@ function updateSummariesUI(summaries) {
 
 
 if (submitButton) {
+
     submitButton.onclick = async () => {
         const promptInput = document.querySelector('#prompt');
         const prompt = promptInput.value;
@@ -219,6 +221,14 @@ if (submitButton) {
 
         submitButton.disabled = true;
         submitButton.innerHTML = stopIcon;
+
+        //удаляем картинку
+        if (previewDiv) {
+        const icon = previewDiv.querySelector("img");
+        if (icon) icon.remove();
+        deleteIconButton.style.display = "none";
+        showUploadBtn.disabled = false;
+        }
 
         try {
             const response = await fetchWithAuth("/stream", {
@@ -441,6 +451,8 @@ if (searchButton) {
 if (showUploadBtn) {
     showUploadBtn.addEventListener("click", () => {
         uploadWrapper.style.display = "block";
+        uploadInfo.innerText='Из файла';
+        showUploadBtn.style.display = "none";
         textarea.style.display = "none";
         paramButton.style.display = "none";
         submitButton.style.display = "none";
@@ -452,6 +464,7 @@ if (uploadButton) {
         const file = uploadInput.files[0];
         if (!file) {
           console.log("Нет файла");
+          uploadInfo.innerText='Выберите файл!';
         return;
         }
 
@@ -481,26 +494,43 @@ if (uploadButton) {
 
             if (result.path) {
                 uploadWrapper.style.display = "none";
+                showUploadBtn.style.display = "block";
+                showUploadBtn.disabled = true;
                 textarea.style.display = "block";
                 paramButton.style.display = "block";
                 submitButton.style.display = "block";
-                previewDiv.innerHTML = `
-                    <img src="${result.path}" alt="uploaded" style="width: 30px; height: auto;" />
-                    <button id="delete-icon-button" class="floating-button">x</button>
-                `;
+                const thumbImg = document.createElement('img');
+                thumbImg.src = result.path;
+                thumbImg.style.height = "40px";
+                thumbImg.style.width = "auto";
+                previewDiv.prepend(thumbImg);
+                deleteIconButton.style.display = "block";
+
+                // `
+                //     <img src="${result.path}" alt="uploaded" style=" width: 40px; height: auto;" />
+                //
+                // `;
+
                 const img = previewDiv.querySelector("img");
                 img.onerror = () => {
                     img.style.display = "none";
                                         if (deleteIconButton) {
                         deleteIconButton.style.display = "none";
+                        showUploadBtn.disabled = false;
                     }
                     console.log("Картинка удалена или путь указан неверный - Йодо.");
 
                 };
+
+                setTimeout(() => {
+                                const container = document.querySelector(".container-main");
+                                container.scrollTop = container.scrollHeight;
+                            }, 100);
             }
 
         } catch (error) {
             console.error("Ошибка при загрузке изображения:", error);
+            showUploadBtn.disabled = false;
         }
     });
 }
@@ -509,7 +539,7 @@ if (uploadButton) {
 if (deleteIconButton) {
     deleteIconButton.addEventListener("click", async (e) => {
         e.preventDefault();
-
+        console.log("deleteIconButton");
         const csrfToken = getCookie("csrf_token");
         const formData = new FormData();
         formData.append("csrf_token", csrfToken);
@@ -521,8 +551,11 @@ if (deleteIconButton) {
 
         if (response.ok) {
             // Удалить иконку с DOM
-            const icon = document.querySelector(".user-icon");
+            console.log("delete-image ok");
+            const icon = previewDiv.querySelector("img");
             if (icon) icon.remove();
+            deleteIconButton.style.display = "none";
+            showUploadBtn.disabled = false;
         } else {
             console.error("Ошибка удаления изображения");
         }

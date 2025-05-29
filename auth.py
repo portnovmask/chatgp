@@ -6,7 +6,7 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from starlette.responses import HTMLResponse
-
+from cryptography.fernet import Fernet
 from models.users import users_collection
 from models.tokens import tokens_collection
 from models.user_data import users_data_collection
@@ -45,7 +45,7 @@ DEFAULT_CHAT = {
 # Дефолтный режим
 MODE = {"current_mode": "basic", "image_upload": None, "file_upload": None, "current_chat": None}
 
-
+fernet = Fernet(FERNET_KEY)
 
 def create_access_token(email: str):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -75,26 +75,35 @@ def create_refresh_token(email: str):
 
 def generate_csrf_token(email: str, secret_key: str) -> str:
     timestamp = str(int(datetime.now(timezone.utc).timestamp()))
-    payload = f"{email}:{timestamp}"
+    encrypted_email = fernet.encrypt(email.encode()).decode()
+    payload = f"{encrypted_email}:{timestamp}"
     signature = hmac.new(secret_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
     return f"{payload}:{signature}"
 
-def verify_csrf_token(token: str, email: str, secret_key: str, ttl_seconds: int = 43200) -> bool:
+def verify_csrf_token(token: str, email, secret_key: str, ttl_seconds: int = 43200) -> bool | str:
     try:
         parts = token.split(":")
         if len(parts) != 3:
             return False
-        token_email, timestamp_str, signature = parts
-        if token_email != email:
-            return False
+
+        encrypted_email, timestamp_str, signature = parts
         expected_sig = hmac.new(
-            secret_key.encode(), f"{token_email}:{timestamp_str}".encode(), hashlib.sha256
+            secret_key.encode(), f"{encrypted_email}:{timestamp_str}".encode(), hashlib.sha256
         ).hexdigest()
         if not hmac.compare_digest(expected_sig, signature):
             return False
+
+        decrypted_email = fernet.decrypt(encrypted_email.encode()).decode()
+
+        if decrypted_email != email:
+            return False
+
         now_ts = int(datetime.now(timezone.utc).timestamp())
-        return (now_ts - int(timestamp_str)) <= ttl_seconds
-    except Exception:
+        if (now_ts - int(timestamp_str)) > ttl_seconds:
+            return False
+
+        return decrypted_email  # можно вернуть, если хочешь использовать email дальше
+    except Exception as e:
         return False
 
 
