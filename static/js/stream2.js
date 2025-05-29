@@ -17,6 +17,11 @@ const submitIcon = `<img src="/static/img/icons/send-2.svg" width="18" height="1
 
 const stopIcon = `<img src="/static/img/icons/player-stop.svg" width="18" height="18" autofocus alt="stop">`;
 
+function generateId() {
+  return 'id-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
+}
+
+const uniqueId = generateId(); // Например: id-lkfn8r1ggkx
 
 
 async function filterText(text) {
@@ -249,7 +254,7 @@ if (submitButton) {
 
             if (!response.ok) {
                 if (response.status === 403) {
-                            window.location.replace("/authorize");
+                            window.location.replace("/logout");
                         }
                 parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
             }
@@ -260,7 +265,13 @@ if (submitButton) {
             const decoder = new TextDecoder("utf-8");
 
             let partial = "";
-
+            parent.innerHTML += `
+                                <div id="${generateId()}">
+                                    <div class="query-body">${escapeHtml(prompt)}<button class="edit-button" disabled>
+                                        <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+                                    </button></div>
+                                </div>
+                            `;
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -288,15 +299,22 @@ if (submitButton) {
                             newElement.innerText = '';
 
                             let chatBlock = `<div class="response-body">${streamText}</div><br><hr>`;
-                            parent.innerHTML += `
-                                <div id="${chunk_id}">
-                                    <div class="query-body">${userQuery}<button class="edit-button">
-                                        <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
-                                    </button></div>
-                                </div>
-                            `;
+                            // parent.innerHTML += `
+                            //     <div id="${chunk_id}">
+                            //         <div class="query-body">${userQuery}<button class="edit-button">
+                            //             <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+                            //         </button></div>
+                            //     </div>
+                            // `;
                             parent.innerHTML += chatBlock;
                             Prism.highlightAll();
+
+                            // Активируем последнюю добавленную кнопку .edit-button
+                            const buttons = parent.querySelectorAll(".edit-button");
+                            const lastButton = buttons[buttons.length - 1];
+                            if (lastButton) {
+                              lastButton.disabled = false;
+                            }
                             setTimeout(fetchUpdatedSummaries, 5000);
                         } else if (finishReason === "stop") {
                             newElement.innerText += ' ';
@@ -344,6 +362,13 @@ if (searchButton) {
                   searchButton.disabled = true;
                   label.style.display = "none";
                   spinner.style.display = "inline-block";
+                  parent.innerHTML += `<div id="${generateId()}">
+               <div class="query-body">${escapeHtml(sPrompt)}<button class="edit-button" disabled>
+               <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+                </button>
+                </div>
+                </div>
+            `;
 
                   try {
                                   const response = await fetchWithAuth("/search", {
@@ -364,7 +389,7 @@ if (searchButton) {
 
                         if (!response.ok) {
                             if (response.status === 403) {
-                                        window.location.replace("/authorize");
+                                        window.location.replace("/logout");
                                     }
                             parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
                         }
@@ -375,29 +400,35 @@ if (searchButton) {
                       if (data.status === "error" || data.status === "info") {
                           searchBlock = `<div class="response-body">${data.message}</div>
                                 </div><br><hr>`;
-                          parent.innerHTML += `<div id="${data.id}">
-               <div class="query-body">${sPrompt}<button class="edit-button">
-               <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
-                </button>
-                </div>
-                </div>
-            `;
+            //               parent.innerHTML += `<div id="${data.id}">
+            //    <div class="query-body">${escapeHtml(sPrompt)}<button class="edit-button" disabled>
+            //    <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+            //     </button>
+            //     </div>
+            //     </div>
+            // `;
                           parent.innerHTML += searchBlock;
                           searchPrompt.value = "";
                       } else {
                           let filteredText = await filterText(data.response)
                           searchBlock = `<div class="response-body">${filteredText}</div>
                                 </div><br><hr>`;
-                          parent.innerHTML += `<div id="${data.id}">
-               <div class="query-body">${sPrompt}<button class="edit-button">
-               <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
-                </button>
-                </div>
-                </div>
-            `;
+            //               parent.innerHTML += `<div id="${data.id}">
+            //    <div class="query-body">${sPrompt}<button class="edit-button">
+            //    <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+            //     </button>
+            //     </div>
+            //     </div>
+            // `;
                           parent.innerHTML += searchBlock;
                           searchPrompt.value = "";
                           Prism.highlightAll();
+                          // Активируем последнюю добавленную кнопку .edit-button
+                            const buttons = parent.querySelectorAll(".edit-button");
+                            const lastButton = buttons[buttons.length - 1];
+                            if (lastButton) {
+                              lastButton.disabled = false;
+                            }
 
                           setTimeout(async () => {
                         await fetchUpdatedSummaries();

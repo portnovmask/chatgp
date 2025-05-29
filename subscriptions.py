@@ -184,7 +184,7 @@ async def get_subscription(user: dict = Depends(get_user)):
 @router.post("/subscribe/")
 async def subscribe(level: str, user: dict = Depends(get_user)):
     if not user:
-        return RedirectResponse(url="/authorize")
+        return RedirectResponse(url="/")
     email = user["email"]
 
     if level not in LEVELS:
@@ -211,7 +211,7 @@ from qr_utils import generate_qr_base64
 @router.get("/payment/{payment_id}")
 async def payment_page(request: Request, payment_id: str, level: str, user: dict = Depends(get_user)):
     if not user:
-        return RedirectResponse(url="/authorize")
+        return RedirectResponse(url="/")
     email = user.get("email")
 
     price = PRICES[LEVELS.index(level)]
@@ -256,7 +256,7 @@ async def payment_page(request: Request, payment_id: str, level: str, user: dict
 @router.post("/ton/verify-payment/")
 async def verify_ton_payment(request: Request, level: str, user: dict = Depends(get_user)):
     if not user:
-        return RedirectResponse(url="/authorize")
+        return RedirectResponse(url="/")
     if level not in LEVELS:
         logger.info(f"verify_ton_payment - Некорректный уровень подписки, email: {user.get("email")}, level: {level}")
         raise HTTPException(status_code=400, detail="Некорректный уровень подписки")

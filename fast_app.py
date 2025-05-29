@@ -413,12 +413,12 @@ async def upload_image(
 ):
     if not user:
         logger.info(f"def upload_image: Пользователь не авторизован")
-        return RedirectResponse('/authorize', status_code=302)
+        return RedirectResponse('/', status_code=302)
 
     user_email = user["email"]
     stored_token = request.cookies.get("csrf_token")
     if not stored_token or csrf_token != stored_token or not verify_csrf_token(stored_token, user_email, CSRF_SECRET_KEY):
-        return RedirectResponse('/authorize', status_code=302)
+        return RedirectResponse('/', status_code=302)
 
     status = user.get("status", "trial")
     level_index = LEVELS.index(status)
@@ -437,11 +437,11 @@ async def delete_uploaded_image(
     user: dict = Depends(get_user)
 ):
     if not user:
-        return RedirectResponse("/authorize", status_code=302)
+        return RedirectResponse("/", status_code=302)
 
     stored_token = request.cookies.get("csrf_token")
     if not stored_token or csrf_token != stored_token or not verify_csrf_token(stored_token, user["email"], CSRF_SECRET_KEY):
-        return RedirectResponse("/authorize", status_code=302)
+        return RedirectResponse("/", status_code=302)
 
     await delete_user_image_upload(user)
     return {"status": "deleted"}
@@ -588,7 +588,7 @@ async def price(request: Request, user: dict | None = Depends(get_user_optional)
 @app.get("/dash")
 async def dash(request: Request, user: dict = Depends(get_user)):
     if not user:
-        return RedirectResponse('/authorize', status_code=302)
+        return RedirectResponse('/', status_code=302)
     else:
         plans = {
             "trial": "Базовый",
@@ -681,7 +681,7 @@ async def change_param(request: Request, user: dict = Depends(get_user), param: 
             mode = param
         response.set_cookie(key="param", value=mode, max_age=3600)  # Меняем куки
     else:
-        response = RedirectResponse(url="/authorize")
+        response = RedirectResponse(url="/")
     return response
 
 

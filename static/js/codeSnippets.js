@@ -1,6 +1,9 @@
 
  window.addEventListener("DOMContentLoaded", () => {
-  document.getElementById("scroll-anchor")?.scrollIntoView({ behavior: "smooth" });
+  setTimeout(() => {
+                                const container = document.querySelector(".container-main");
+                                container.scrollTop = container.scrollHeight;
+                            }, 100);
 });
 
 

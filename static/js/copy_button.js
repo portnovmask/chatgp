@@ -43,10 +43,19 @@ document.addEventListener("click", async event => {
 
     if (editButton) {
         const targetElement = editButton.closest(".query-body");
-        if (targetElement) {
+        const editQuery = document.querySelector("#prompt");
+        const editSearch = document.getElementById("search-input");
+        if (targetElement && editQuery){
+            const targetValue = targetElement.innerText;
             targetElement.remove();
-            promptInput.value = "";// Удаляем элемент
-            console.log("Элемент удален");
+            editQuery.value += targetValue;// Вставляем редактируемое значение в поле ввода
+            console.log("Элемент добавлен на редактирование");
+        }
+        if (targetElement && editSearch){
+            const targetValue = targetElement.innerText;
+            targetElement.remove();
+            editSearch.value += targetValue;// Вставляем редактируемое значение в поле ввода
+            console.log("Элемент добавлен на редактирование");
         }
         return; // Прерываем выполнение, так как нашли кнопку удаления
     }
