@@ -11,6 +11,8 @@ const deleteIconButton = document.getElementById("delete-icon-button");
 const textarea = document.querySelector(".text-area");
 const paramButton = document.getElementById("param-toggle");
 const uploadInfo = document.getElementById("upload-info");
+let imagePath = null;
+const fallbackPath = "/static/img/icons/user.svg";
 // const containerMain = document.querySelector(".container-main");
 
 const submitIcon = `<img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">`;
@@ -32,6 +34,13 @@ async function filterText(text) {
     });
     const data = await response.json();
     return data.formatted_text; // Возвращает HTML
+}
+
+function validateImage(imagePath, fallbackPath, callback) {
+  const img = new Image();
+  img.onload = () => callback(imagePath);         // если загрузилось — используем оригинал
+  img.onerror = () => callback(fallbackPath);     // если ошибка — используем заглушку
+  img.src = imagePath;
 }
 
 //Регулирование высоты поля ввода
@@ -117,98 +126,6 @@ function updateSummariesUI(summaries) {
 }
 
 
-// if (submitButton) {
-//     let eventSource = null;
-//
-//     submitButton.onclick = () => {
-//         const promptInput = document.querySelector('#prompt');
-//         const prompt = promptInput.value;
-//         let streamText = ''
-//         const newElement = document.getElementById('events');
-//         promptInput.style.height = "auto";
-//
-//         if (eventSource) {
-//             eventSource.close();
-//             eventSource = null;
-//             submitButton.innerHTML = submitIcon;
-//             newElement.innerText = '';
-//
-//         }
-//
-//         if (isValidInput(prompt)) {
-//             eventSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
-//             submitButton.innerHTML = stopIcon;
-//             //newElement.innerText += prompt;
-//         } else {
-//             return;
-//         }
-//         eventSource.onmessage = async (event) => {  // Добавляем `async`
-//             if (event.data !== undefined) {
-//
-//
-//                 const data = JSON.parse(event.data); // Парсим JSON
-//                 promptInput.value = "";
-//                 const finishReason = data.finish_reason;
-//                 const totalTokens = data.usage;
-//                 let chunk_id = data.id;
-//                 const userQuery = escapeHtml(data.user_query);
-//
-//
-//                 if (finishReason === "End") {
-//                     console.log("Closing EventSource...");
-//                     streamText = await filterText(newElement.innerText)
-//                     newElement.innerText = '';
-//                     let chatBlock = `<div class="response-body">${streamText}</div>
-//                                 </div><br><hr>`
-//                     console.log(totalTokens);
-//                     console.log(data.id);
-//                     eventSource.close();
-//                     eventSource = null;
-//                     submitButton.innerHTML = submitIcon;
-//                     parent.innerHTML += `<div id="${chunk_id}">
-//                <div class="query-body">${userQuery}<button class="edit-button">
-//                <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
-//                 </button>
-//                 </div>
-//                 </div>
-//             `;
-//                     parent.innerHTML += chatBlock;
-//                     Prism.highlightAll();
-//
-//                     // promptInput.style.height = "auto";
-//                     // setTimeout(() => {
-//                     //     document.querySelector(".container-main").style.display = "block";
-//                     // }, 100);
-//
-//                     setTimeout(async () => {
-//                         await fetchUpdatedSummaries();
-//                     }, 5000);
-//                     // window.location.reload();
-//                 } else if (finishReason === "stop") {
-//                     newElement.innerText += ' ';
-//                 } else {
-//
-//                     //await streamToContainer(data.content, newElement);
-//                     newElement.innerText += data.content;
-//
-//
-//                     //Прокручиваем страницу после загрузки чата
-//                     //  setTimeout(() => {
-//                     //     newElement.scrollIntoView({ behavior: "smooth", block: "end" });
-//                     //     }, 100);
-//
-//                     setTimeout(() => {
-//                         const container = document.querySelector(".container-main"); // Родитель с overflow-y: scroll;
-//                         container.scrollTop = container.scrollHeight; //  Прокручиваем к последнему элементу
-//                     }, 100);
-//
-//                 }
-//             }
-//         };
-//
-//     };
-// }
-
 
 
 if (submitButton) {
@@ -257,14 +174,20 @@ if (submitButton) {
                             window.location.replace("/logout");
                         }
                 parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
+                imagePath = null;
             }
 
             // ⬇️ Очищаем поле ВВОДА, как только убедились, что всё пошло
             promptInput.value = "";
             const reader = response.body.getReader();
             const decoder = new TextDecoder("utf-8");
-
             let partial = "";
+            if (imagePath) {
+                validateImage(imagePath, fallbackPath, (finalSrc) => {
+                imagePath.src = finalSrc;
+            });
+                imagePath.style.display = "block";
+            }
             parent.innerHTML += `
                                 <div id="${generateId()}">
                                     <div class="query-body">${escapeHtml(prompt)}<button class="edit-button" disabled>
@@ -525,17 +448,26 @@ if (uploadButton) {
 
             if (result.path) {
                 uploadWrapper.style.display = "none";
-                showUploadBtn.style.display = "block";
-                showUploadBtn.disabled = true;
+                // showUploadBtn.style.display = "block";
+                // showUploadBtn.disabled = true;
                 textarea.style.display = "block";
-                paramButton.style.display = "block";
-                submitButton.style.display = "block";
+                paramButton.style.display = "flex";
+                submitButton.style.display = "flex";
                 const thumbImg = document.createElement('img');
                 thumbImg.src = result.path;
                 thumbImg.style.height = "40px";
                 thumbImg.style.width = "auto";
                 previewDiv.prepend(thumbImg);
                 deleteIconButton.style.display = "block";
+                const imageWrapper = document.createElement("div");
+                imageWrapper.classList.add("image-wrapper");
+                imagePath = document.createElement('img');
+                imagePath.src = result.path;
+                imagePath.classList.add("image-wrapper-img");
+                imageWrapper.appendChild(imagePath);
+                parent.append(imageWrapper);
+
+
 
                 // `
                 //     <img src="${result.path}" alt="uploaded" style=" width: 40px; height: auto;" />
@@ -545,9 +477,10 @@ if (uploadButton) {
                 const img = previewDiv.querySelector("img");
                 img.onerror = () => {
                     img.style.display = "none";
+                    imagePath = null;
                                         if (deleteIconButton) {
                         deleteIconButton.style.display = "none";
-                        showUploadBtn.disabled = false;
+                        showUploadBtn.style.display = "flex";
                     }
                     console.log("Картинка удалена или путь указан неверный - Йодо.");
 
@@ -561,7 +494,8 @@ if (uploadButton) {
 
         } catch (error) {
             console.error("Ошибка при загрузке изображения:", error);
-            showUploadBtn.disabled = false;
+            showUploadBtn.style.display = "flex";
+            imagePath = null;
         }
     });
 }
@@ -586,9 +520,106 @@ if (deleteIconButton) {
             const icon = previewDiv.querySelector("img");
             if (icon) icon.remove();
             deleteIconButton.style.display = "none";
-            showUploadBtn.disabled = false;
+            showUploadBtn.style.display = "flex";
+            imagePath = null;
         } else {
             console.error("Ошибка удаления изображения");
         }
     });
 }
+
+
+
+
+
+// if (submitButton) {
+//     let eventSource = null;
+//
+//     submitButton.onclick = () => {
+//         const promptInput = document.querySelector('#prompt');
+//         const prompt = promptInput.value;
+//         let streamText = ''
+//         const newElement = document.getElementById('events');
+//         promptInput.style.height = "auto";
+//
+//         if (eventSource) {
+//             eventSource.close();
+//             eventSource = null;
+//             submitButton.innerHTML = submitIcon;
+//             newElement.innerText = '';
+//
+//         }
+//
+//         if (isValidInput(prompt)) {
+//             eventSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
+//             submitButton.innerHTML = stopIcon;
+//             //newElement.innerText += prompt;
+//         } else {
+//             return;
+//         }
+//         eventSource.onmessage = async (event) => {  // Добавляем `async`
+//             if (event.data !== undefined) {
+//
+//
+//                 const data = JSON.parse(event.data); // Парсим JSON
+//                 promptInput.value = "";
+//                 const finishReason = data.finish_reason;
+//                 const totalTokens = data.usage;
+//                 let chunk_id = data.id;
+//                 const userQuery = escapeHtml(data.user_query);
+//
+//
+//                 if (finishReason === "End") {
+//                     console.log("Closing EventSource...");
+//                     streamText = await filterText(newElement.innerText)
+//                     newElement.innerText = '';
+//                     let chatBlock = `<div class="response-body">${streamText}</div>
+//                                 </div><br><hr>`
+//                     console.log(totalTokens);
+//                     console.log(data.id);
+//                     eventSource.close();
+//                     eventSource = null;
+//                     submitButton.innerHTML = submitIcon;
+//                     parent.innerHTML += `<div id="${chunk_id}">
+//                <div class="query-body">${userQuery}<button class="edit-button">
+//                <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
+//                 </button>
+//                 </div>
+//                 </div>
+//             `;
+//                     parent.innerHTML += chatBlock;
+//                     Prism.highlightAll();
+//
+//                     // promptInput.style.height = "auto";
+//                     // setTimeout(() => {
+//                     //     document.querySelector(".container-main").style.display = "block";
+//                     // }, 100);
+//
+//                     setTimeout(async () => {
+//                         await fetchUpdatedSummaries();
+//                     }, 5000);
+//                     // window.location.reload();
+//                 } else if (finishReason === "stop") {
+//                     newElement.innerText += ' ';
+//                 } else {
+//
+//                     //await streamToContainer(data.content, newElement);
+//                     newElement.innerText += data.content;
+//
+//
+//                     //Прокручиваем страницу после загрузки чата
+//                     //  setTimeout(() => {
+//                     //     newElement.scrollIntoView({ behavior: "smooth", block: "end" });
+//                     //     }, 100);
+//
+//                     setTimeout(() => {
+//                         const container = document.querySelector(".container-main"); // Родитель с overflow-y: scroll;
+//                         container.scrollTop = container.scrollHeight; //  Прокручиваем к последнему элементу
+//                     }, 100);
+//
+//                 }
+//             }
+//         };
+//
+//     };
+// }
