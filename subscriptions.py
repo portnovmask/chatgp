@@ -5,7 +5,6 @@ from fastapi.templating import Jinja2Templates
 import uuid
 import httpx
 import re
-from sqlalchemy.testing.provision import upsert
 from starlette.responses import RedirectResponse
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone

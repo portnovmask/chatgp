@@ -53,7 +53,7 @@ PRETTY_NAMES = {
     "premium": "Премиум"
 }
 PRICES = [0, 1, 4, 8, 12, 32]
-UPLOAD_DIR = Path("admin/uploads")
+UPLOAD_DIR = Path("tmp/uploads").resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 def pri():

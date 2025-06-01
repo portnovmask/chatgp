@@ -92,7 +92,7 @@
             <h3>{{ title }}</h3>
             {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
-            {% else %}<div class="card-price">{{ prices[plan] }}</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
             <div class="card-medium">{{ descriptions[plan] }}</div>

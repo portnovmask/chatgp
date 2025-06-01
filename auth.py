@@ -1,7 +1,7 @@
 import logging
 import uuid
 from fastapi import APIRouter, Request, Form, Depends, HTTPException
-from fastapi.responses import RedirectResponse, JSONResponse
+from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
@@ -804,3 +804,22 @@ async def vk_callback(request: Request, code: str):
     logger.info(
         f"/auth/vk/callback  - Пользователь: {email} - успешно авторизовался через Вконтакте, созданы токены в бд и куках.\n")
     return response
+
+
+
+@router.get("/image-preview/{filename}")
+async def image_preview(filename: str, user=Depends(get_user)):
+    if not user:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Абсолютный путь до файла
+    file_path = (UPLOAD_DIR / filename).resolve()
+
+    # Проверка безопасности
+    if not str(file_path).startswith(str(UPLOAD_DIR)):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(path=file_path)

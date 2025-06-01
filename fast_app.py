@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 from logging.handlers import RotatingFileHandler
 from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException, UploadFile, File
 from contextlib import asynccontextmanager
@@ -80,7 +81,7 @@ app.add_middleware(
 )
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/admin/uploads", StaticFiles(directory=UPLOAD_DIR.resolve()), name="uploads")
+app.mount("/tmp/uploads", StaticFiles(directory=UPLOAD_DIR.resolve()), name="uploads")
 app.include_router(auth_router)
 app.include_router(posts_router)
 app.include_router(products_router)
@@ -210,6 +211,7 @@ async def index(request: Request, response: Response, user: dict | None = Depend
 class PromptRequest(BaseModel):
     prompt: str
     csrf_token: str
+    extras: str | None = None
 
 class ImagePromptRequest(PromptRequest):
     image_url: Optional[str] = None
@@ -234,7 +236,10 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
     if not csrf_token or not verify_csrf_token(csrf_token, user_email, CSRF_SECRET_KEY):
         raise HTTPException(status_code=403, detail="Invalid CSRF token")
     prompt = request_data.prompt
+    extras = request_data.extras
     chat = User(user)
+    prompt_pic = await chat.get_user_image_upload_from_db()
+    user_message =  {"role": "user", "content": prompt}
 
     chat_id = await get_last_chat_id(user) or None
     logger.info(f"Выбранный chat_id stream get_last_chat_id: {chat_id}")
@@ -245,6 +250,26 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
 
     user_tokens = user.get("tokens", 0)  # Предотвращаем ошибку, если у user нет "tokens"
     request_params = await chat.request_params()
+
+    if extras and extras==prompt_pic:
+        #file_path = f"http://127.0.0.1:8000/tmp/uploads/{prompt_pic}" ссылка заработает, когда будет сервер
+        file_path = "https://ketome.ru/wp-content/uploads/2024/05/pohudenie-s-pomoschyu-ketoza-na-keto.jpg" # заглушка для демонстрации работы распознавания изображений
+        user_message = {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": f"{prompt}"},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"{file_path}",
+                                },
+                            },
+                        ],
+                    }
+        await delete_user_image_upload(user)
+
+
+
     async def generate_stream(context, hit_limits):
         token_usage = 0
         collected_messages = []
@@ -262,7 +287,8 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
             messages=[
                 {"role": "system", "content": request_params.get("content", system_content)},
                 {"role": "assistant", "content": context},
-                {"role": "user", "content": prompt}
+                # {"role": "user", "content": prompt}
+                user_message
             ],
             temperature=request_params.get("temperature", 0.2),
             stream=True,
@@ -426,8 +452,9 @@ async def upload_image(
     if file:
         file_check = await save_uploaded_image(file, level_index)
         if file_check and "/" in file_check:
-            await update_user_image_upload(user, file_check)
-            return JSONResponse(content={"path": file_check})
+            file_name = os.path.basename(file_check)
+            await update_user_image_upload(user, file_name)
+            return JSONResponse(content={"path": file_name})
 
 
 @app.post("/delete-image/")

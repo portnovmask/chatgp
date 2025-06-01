@@ -12,6 +12,7 @@ const textarea = document.querySelector(".text-area");
 const paramButton = document.getElementById("param-toggle");
 const uploadInfo = document.getElementById("upload-info");
 let imagePath = null;
+let imgLink = null;
 const fallbackPath = "/static/img/icons/user.svg";
 // const containerMain = document.querySelector(".container-main");
 
@@ -38,9 +39,9 @@ async function filterText(text) {
 
 function validateImage(imagePath, fallbackPath, callback) {
   const img = new Image();
-  img.onload = () => callback(imagePath);         // если загрузилось — используем оригинал
+  img.onload = () => callback('/image-preview/' + imagePath);         // если загрузилось — используем оригинал
   img.onerror = () => callback(fallbackPath);     // если ошибка — используем заглушку
-  img.src = imagePath;
+  img.src = '/image-preview/' + imagePath;
 }
 
 //Регулирование высоты поля ввода
@@ -160,7 +161,9 @@ if (submitButton) {
                 },
                 body: JSON.stringify({
                     prompt: prompt,
-                    csrf_token: csrfToken
+                    csrf_token: csrfToken,
+                    extras: imgLink || ""
+
                 })
             });
 
@@ -175,6 +178,7 @@ if (submitButton) {
                         }
                 parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
                 imagePath = null;
+                showUploadBtn.style.display = "flex";
             }
 
             // ⬇️ Очищаем поле ВВОДА, как только убедились, что всё пошло
@@ -238,6 +242,7 @@ if (submitButton) {
                             if (lastButton) {
                               lastButton.disabled = false;
                             }
+
                             setTimeout(fetchUpdatedSummaries, 5000);
                         } else if (finishReason === "stop") {
                             newElement.innerText += ' ';
@@ -259,6 +264,7 @@ if (submitButton) {
         } finally {
             submitButton.disabled = false;
             submitButton.innerHTML = submitIcon;
+            showUploadBtn.style.display = "flex";
         }
     };
 }
@@ -301,7 +307,9 @@ if (searchButton) {
                             },
                             body: JSON.stringify({
                                 prompt: sPrompt,
-                                csrf_token: csrfToken
+                                csrf_token: csrfToken,
+                                extras: ""
+
                             })
                         });
 
@@ -441,6 +449,7 @@ if (uploadButton) {
 
             if (!response.ok) {
                 alert("Ошибка загрузки изображения");
+                showUploadBtn.style.display = "flex";
                 return;
             }
 
@@ -454,7 +463,8 @@ if (uploadButton) {
                 paramButton.style.display = "flex";
                 submitButton.style.display = "flex";
                 const thumbImg = document.createElement('img');
-                thumbImg.src = result.path;
+                imgLink = result.path;
+                thumbImg.src = '/image-preview/' + result.path;
                 thumbImg.style.height = "40px";
                 thumbImg.style.width = "auto";
                 previewDiv.prepend(thumbImg);
@@ -462,7 +472,7 @@ if (uploadButton) {
                 const imageWrapper = document.createElement("div");
                 imageWrapper.classList.add("image-wrapper");
                 imagePath = document.createElement('img');
-                imagePath.src = result.path;
+                imagePath.src = '/image-preview/' + result.path;
                 imagePath.classList.add("image-wrapper-img");
                 imageWrapper.appendChild(imagePath);
                 parent.append(imageWrapper);

@@ -3,7 +3,7 @@ const newChat = document.getElementById("new-chat-btn")
 document.getElementById("chat-list").addEventListener("click", async (event) => {
     const deleteBtn = event.target.closest(".delete-chat");
     const chatEntry = event.target.closest("[data-chat-id]");
-
+    const chatWindow = document.querySelector("#article");
 
     // 👉 Удаление чата
     if (deleteBtn && chatEntry) {
@@ -25,6 +25,7 @@ document.getElementById("chat-list").addEventListener("click", async (event) => 
 
             if (result.deletion_status === "deleted") {
                 chatEntry.remove();
+                window.location.reload();
             } else {
                 alert("Не удалось удалить чат.");
             }
