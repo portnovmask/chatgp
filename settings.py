@@ -13,8 +13,17 @@ MAIL_USERNAME = os.environ['MAIL_USERNAME']
 MAIL_PASSWORD = os.environ['MAIL_PASSWORD']
 SQL_USERNAME = os.environ['SQL_USERNAME']
 SQL_PASSWORD = os.environ['SQL_PASSWORD']
-DB_NAME = os.environ['DB_NAME']
-DB_HOST = os.environ['DB_HOST']
+#DB_NAME = os.environ['DB_NAME']
+DB_NAME = os.environ['MONGO_INITDB_DATABASE']
+# DB_HOST = os.environ['DB_HOST']
+
+
+DB_USER = os.getenv("MONGO_INITDB_ROOT_USERNAME")
+DB_PASSWORD = os.getenv("MONGO_INITDB_ROOT_PASSWORD")
+DB_HOST = os.getenv("DB_HOST", "mongo")  # имя сервиса в docker-compose
+
+MONGO_URL = f"mongodb://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:27017"
+
 GOOGLE_CLIENT_ID = os.environ['GOOGLE_CLIENT_ID']
 GOOGLE_CLIENT_SECRET = os.environ['GOOGLE_CLIENT_SECRET']
 GOOGLE_REDIRECT_URI = os.environ['GOOGLE_REDIRECT_URI']

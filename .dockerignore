@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# Docker
+.dockerignore
+Dockerfile
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+
+# Environment
+.env
+
+# Byte-compiled files
+*.egg-info/
+*.egg
+
+# Static/media if generated
+*.log
+*.bak
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+!static/
+!templates/

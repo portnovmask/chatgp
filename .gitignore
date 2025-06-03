@@ -11,3 +11,28 @@ static/vid
 static/post
 static/site.webmanifest
 static/css/normalize.css
+
+# Docker volumes, caches
+volumes/
+*.pid
+*.log
+
+# Docker environment overrides
+
+.env.*
+
+# Docker Compose override (локальные конфигурации)
+docker-compose.override.yml
+docker-compose.local.yml
+
+# Docker build artifacts
+**/__pycache__/
+**/*.pyc
+*.db
+*.sqlite3
+
+# Docker-related temp
+docker-compose*.bak
+*.tar
+*.img
+*.bak

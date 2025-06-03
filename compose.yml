@@ -1,0 +1,35 @@
+services:
+  web:
+    build: .
+    container_name: fastapi_app
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+
+  nginx:
+    image: nginx:stable
+    container_name: nginx_proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./static:/app/static
+    depends_on:
+      - web
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    env_file:
+      - .env
+    volumes:
+      - mongo_data:/data/db
+
+
+volumes:
+  mongo_data:

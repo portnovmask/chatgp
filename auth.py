@@ -5,7 +5,6 @@ from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from starlette.responses import HTMLResponse
 from cryptography.fernet import Fernet
 from models.users import users_collection
 from models.tokens import tokens_collection

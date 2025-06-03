@@ -1,11 +1,10 @@
 from fastapi import APIRouter, HTTPException, Depends, Request, BackgroundTasks, Form
 import logging
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uuid
 import httpx
 import re
-from starlette.responses import RedirectResponse
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
 import random
@@ -18,7 +17,7 @@ from settings import TON_WALLET, LEVELS, PRETTY_NAMES, PRICES, RECAPTCHA_SECRET
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
-locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
+locale.setlocale(locale.LC_TIME, '')
 
 logger = logging.getLogger("app_logger")
 

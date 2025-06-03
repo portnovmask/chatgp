@@ -1,14 +1,31 @@
-import certifi
+#import certifi
 #import asyncio
-#import motor.motor_asyncio
 from pymongo import AsyncMongoClient
-from settings import DB_HOST
+from settings import DB_NAME, MONGO_URL
 
-MONGO_URL = DB_HOST
+#MONGO_URL = DB_HOST
 #email = 'sophie_turner@gameofthron.es'
 #client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_URL,tlsCAFile=certifi.where())
-client = AsyncMongoClient(MONGO_URL,tlsCAFile=certifi.where())
-db = client.get_database("chatgp_base")
+client = AsyncMongoClient(MONGO_URL) # ,tlsCAFile=certifi.where())
+db = client.get_database(DB_NAME)
+
+
+# Коллекции
+tokens = db.get_collection("tokens")
+blog_posts = db.get_collection("blog_posts")
+users = db.get_collection("users")
+user_data = db.get_collection("user_data")
+
+# Создание индексов
+async def create_indexes():
+    await tokens.create_index("email", unique=True)
+    await users.create_index("email", unique=True)
+    await users.create_index("subscription.pending_activation_date")
+    await user_data.create_index("email", unique=True)
+
+# Инициализация базы данных
+async def init_db():
+    await create_indexes()
 # test = db.get_collection("tokens")
 #
 # async def create_indexes():

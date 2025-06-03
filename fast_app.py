@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+from database import init_db
 from logging.handlers import RotatingFileHandler
 from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException, UploadFile, File
 from contextlib import asynccontextmanager
@@ -22,10 +23,8 @@ from file_utils import save_uploaded_image, image_to_base64
 from modes import (User, get_user_summaries, get_chat_body_by_id, get_last_chat_id,
                    set_chat, reset_chat, delete_chat, get_current_attempts,
                    update_user_image_upload, delete_user_image_upload)
-#from pathlib import Path
 import asyncio
 import markdown
-# from fastapi_utils.tasks import repeat_every
 from blog_post import get_post_by_slug, get_all_post_titles, get_latest_post
 access_logger = logging.getLogger("uvicorn.access")
 
@@ -56,6 +55,9 @@ SUBSCRIPTION_RENEW_INTERVAL = 3600  # 1 час
 # === Современный lifespan-хендлер ===
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Сначала инициализация БД
+    await init_db()
+
     tasks = [
         asyncio.create_task(cleanup_expired_files()),
         asyncio.create_task(auto_renew_subscriptions()),
