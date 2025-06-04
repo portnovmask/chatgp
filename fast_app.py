@@ -14,7 +14,7 @@ from typing import Optional
 from datetime import datetime, timezone, timedelta
 from auth import router as auth_router
 from blog_post import router as posts_router
-from products import router as products_router
+from mail import router as mail_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
 from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_or_guest, verify_csrf_token
 import openai
@@ -86,7 +86,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/tmp/uploads", StaticFiles(directory=UPLOAD_DIR.resolve()), name="uploads")
 app.include_router(auth_router)
 app.include_router(posts_router)
-app.include_router(products_router)
+app.include_router(mail_router)
 
 app.include_router(subscription_router)
 

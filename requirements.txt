@@ -21,3 +21,4 @@ Unidecode
 python-dotenv
 python-jose
 cryptography
+itsdangerous

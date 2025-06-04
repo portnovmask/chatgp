@@ -20,7 +20,7 @@
                     <p class="item-content"><script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="chatgp_login_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
                     <script type="text/javascript">
                       function onTelegramAuth(user) {
-                        alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+                        showModal('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')', "info");
                       }
                     </script>
                         </p>
@@ -36,7 +36,7 @@
         autocomplete="пароль"  value="">
                 <button class="form_auth_button" type="submit">Войти</button>
             </form>
-                <small id="error-message"></small>
+                <small id="error-message" style="text-align: center"></small>
                 <label for="show-register">или</label>
                 <input  id="show-register" type="button" value="Новый аккаунт">
                 <br>
@@ -56,7 +56,7 @@
                     <p class="item-content"><script async src="https://telegram.org/js/telegram-widget.js?22" data-telegram-login="chatgp_login_bot" data-size="large" data-onauth="onTelegramAuth(user)" data-request-access="write"></script>
                     <script type="text/javascript">
                       function onTelegramAuth(user) {
-                        alert('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')');
+                        showModal('Logged in as ' + user.first_name + ' ' + user.last_name + ' (' + user.id + (user.username ? ', @' + user.username : '') + ')', 'info');
                       }
                     </script>
                         </p>
@@ -74,7 +74,7 @@
                 <input type="password" id="confirm-password" name="confirm-password" placeholder="Повторите пароль"
         autocomplete="повтор пароля"  value="">
                 <button  class="form_auth_button" type="submit">Создать аккаунт</button>
-                <small id="error-message-reg"></small>
+                <small id="error-message-reg" style="text-align: center"></small>
             </form>
             <input id="show-login" type="button" value="Уже есть email аккаунт">
                 <p class="text-info">Регистрируясь вы соглашаетесь с <a href="/privacy">Политикой конфиденциальности</a></p>
@@ -153,7 +153,10 @@
         const response = await fetch("/register", {
             method: "POST",
             body: formDataReg,
-            credentials: "include"
+            credentials: "include",
+            headers: {
+        "Accept": "application/json"  //  Ключевой момент!
+    }
         });
 
         if (!response.ok) {
@@ -162,10 +165,13 @@
             errorDivReg.textContent = data.detail;  // Выводим ошибку с сервера
             errorDivReg.style.display = "block";
         } else {
-            form.submit(); // Отправляем форму, если все ок
+            //form.submit(); // Отправляем форму, если все ок
+            const data = await response.json();
+            window.location.href = data.next_url;
         }
     } catch (error) {
         console.error("Ошибка запроса:", error);
+        await showModal("Ошибка регистрации, попробуйте еще раз!", "danger");
     }
 });
 
@@ -198,9 +204,38 @@
         }
     } catch (error) {
         console.error("Ошибка запроса:", error);
+        await showModal("Ошибка входа, проверьте данные и попробуйте еще раз!", "danger");
     }
 });
 
+
+async function showModal(message, status = "info", action = null) {
+  const modal = document.getElementById("modal-feedback");
+
+  // Установить данные
+  modal.querySelector("h3").textContent = message;
+  modal.classList.remove("success", "error", "warning", "info");
+  modal.classList.add(status);
+
+  // Обработка action
+  const formWrapper = modal.querySelector(".modal-actions");
+  formWrapper.innerHTML = "";
+  if (action) {
+    const form = document.createElement("form");
+    form.method = action.method || "get";
+    form.action = action.url;
+    const button = document.createElement("button");
+    button.type = "submit";
+    button.textContent = action.label;
+    button.classList.add("action-button");
+    form.appendChild(button);
+    formWrapper.appendChild(form);
+  }
+
+  openModal(modal); // из твоего modal.js
+}
 </script>
 
+
+{% include "modal_base.html" %}
 {% endblock %}

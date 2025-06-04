@@ -2,7 +2,7 @@
  window.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
                                 const container = document.querySelector(".container-main");
-                                container.scrollTop = container.scrollHeight;
+                                if (container) container.scrollTop = container.scrollHeight;
                             }, 100);
 });
 

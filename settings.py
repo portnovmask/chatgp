@@ -8,6 +8,8 @@ dotenv.load_dotenv('.env')
 APY_KEY = os.environ['APY_KEY']
 APP_SECRET_KEY = os.environ['APP_SECRET_KEY']
 CSRF_SECRET_KEY = os.environ['CSRF_SECRET_KEY']
+EMAIL_CONFIRM_KEY = os.environ['EMAIL_CONFIRM_KEY']
+CONFIRM_SALT = os.environ['CONFIRM_SALT']
 FERNET_KEY = os.environ['FERNET_KEY']
 MAIL_USERNAME = os.environ['MAIL_USERNAME']
 MAIL_PASSWORD = os.environ['MAIL_PASSWORD']
@@ -50,7 +52,8 @@ VK_USERINFO_URL = os.environ['VK_USERINFO_URL']
 TON_SECRET_KEY = os.environ['TON_SECRET_KEY']
 TON_WALLET = os.environ['TON_WALLET']
 RECAPTCHA_SECRET = os.environ['RECAPTCHA_SECRET']
-
+LOGO_URL = "https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png"
+BASE_URL = "https://chatgp.ru"
 LEVELS = ["trial", "basic", "advanced", "business", "pro", "premium"]
 ATTEMPT_LIMITS = [0, 30, 120, 400, 200, 600]
 PRETTY_NAMES = {

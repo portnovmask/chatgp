@@ -1,6 +1,6 @@
 import logging
 import uuid
-from fastapi import APIRouter, Request, Form, Depends, HTTPException
+from fastapi import APIRouter, Request, Form, Depends, HTTPException, BackgroundTasks
 from fastapi.responses import RedirectResponse, JSONResponse, FileResponse
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
@@ -10,6 +10,7 @@ from models.users import users_collection
 from models.tokens import tokens_collection
 from models.user_data import users_data_collection
 from settings import *
+from mail import EmailTemplate, send_email, generate_confirmation_token
 
 router = APIRouter()
 logger = logging.getLogger("app_logger")
@@ -275,19 +276,59 @@ async def refresh_token(request: Request):
         raise HTTPException(status_code=401, detail="Недействительный токен устарел или удалены куки")
 
 @router.post("/register")
-async def register(email: str = Form(...), password: str = Form(...)):
+async def register(request: Request,
+                   background_tasks: BackgroundTasks,
+                   email: str = Form(...),
+                   password: str = Form(...)):
     """Регистрация нового пользователя"""
+    is_fetch = request.headers.get("accept") == "application/json"
     register_time = datetime.now(timezone.utc)
     status = "trial"
     tokens = 0
+    token = generate_confirmation_token(email)
+    confirm_url = f"{request.base_url}confirm-email?token={token}"
+    email_template = EmailTemplate(
+        logo_url=LOGO_URL,
+        header_link=str(request.base_url),
+        header_text="Добро пожаловать!",
+        description="Это письмо содержит важную информацию.",
+        recipient_name=email,
+        body_text="Спасибо за регистрацию на нашем сервисе. Пожалуйста, подтвердите вашу почту.",
+        action_label="Подтвердить Email",
+        action_url=confirm_url,
+        footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+    )
+
     existing_user = await users_collection.find_one({"email": email})
     if existing_user:
-        logger.info(f"/register  - def register - попытка добавить существующего пользователя\n")
-        raise HTTPException(status_code=400, detail="Пользователь уже существует")
+        if existing_user.get("contact") == "not_confirmed":
+            # Повторная отправка письма подтверждении
 
+            repeat_email = EmailTemplate(
+                logo_url=LOGO_URL,
+                header_link=str(request.base_url),
+                header_text="Подтвердите почту",
+                description="Вы уже начинали регистрацию.",
+                recipient_name=email,
+                body_text="Похоже, вы не подтвердили свою почту. Нажмите на кнопку ниже, чтобы завершить регистрацию.",
+                action_label="Подтвердить Email",
+                action_url=confirm_url,
+                footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+            )
+            html = repeat_email.render()
+            background_tasks.add_task(send_email, email, "Подтверждение регистрации", html)
+
+            response = RedirectResponse(url="/confirm-notice", status_code=303)
+            return response
+
+        logger.info(f"/register  - def register - попытка добавить существующего пользователя\n")
+        if is_fetch:
+            return JSONResponse(status_code=400, content={"detail": "Пользователь уже существует"})
+        raise HTTPException(status_code=400, detail="Пользователь уже существует")
+        #return JSONResponse({"message": "Пользователь уже существует", "status": "danger"})
     hashed_password = pwd_context.hash(password)
     new_user = {"email": email,
-                "contact": email,
+                "contact": "not_confirmed",
                 "password": hashed_password,
                 "registered_at": register_time,
                 "auth_provider": "local",
@@ -296,38 +337,49 @@ async def register(email: str = Form(...), password: str = Form(...)):
                 "tokens": tokens,
                 "original_status": status,
                 "trial_expires_at": None}
-    result = await users_collection.insert_one(new_user)
+    #result = await users_collection.insert_one(new_user)
+    await users_collection.insert_one(new_user)
     logger.info(f"/register  - def register - пользователь: {new_user['email']} создан\n")
-    user_id = str(result.inserted_id)  #  Теперь _id точно есть
+
+    #user_id = str(result.inserted_id)  #  Теперь _id точно есть
 
     # Данные для нового пользователя
-    user_data = {
-        "user_id": user_id,
-        "email": email,
-        "status": status,
-        "mode": [MODE],
-        "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
-    }
-    await users_data_collection.insert_one(user_data)
-    logger.info(f"/register  - def register - создан чат по умолчанию для пользователя: {new_user['email']}\n")
-    access_token, access_expires, access_jti = create_access_token(email)
-    refresh_token, refresh_expires, refresh_jti = create_refresh_token(email)
-    csrf_token = generate_csrf_token(str(email), CSRF_SECRET_KEY)
-    await tokens_collection.insert_one({
-        "user_id": user_id,
-        "email": email,
-        "access_token": access_token,
-        "access_jti": access_jti,
-        "refresh_token": refresh_token,
-        "refresh_jti": refresh_jti,
-        "created_at": datetime.now(timezone.utc)
-    })
-    logger.info(f"/register  - def register - пользователь успешно зарегистрирован, токены добавлены в бд\n")
-    response = RedirectResponse(url="/", status_code=303)
-    response.set_cookie("access_token", access_token, httponly=True)
-    response.set_cookie("refresh_token", refresh_token, httponly=True)
-    response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
-    response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
+    # user_data = {
+    #     "user_id": user_id,
+    #     "email": email,
+    #     "status": status,
+    #     "mode": [MODE],
+    #     "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
+    # }
+    # await users_data_collection.insert_one(user_data)
+    # logger.info(f"/register  - def register - создан чат по умолчанию для пользователя: {new_user['email']}\n")
+    # access_token, access_expires, access_jti = create_access_token(email)
+    # refresh_token, refresh_expires, refresh_jti = create_refresh_token(email)
+    # csrf_token = generate_csrf_token(str(email), CSRF_SECRET_KEY)
+    # await tokens_collection.insert_one({
+    #     "user_id": user_id,
+    #     "email": email,
+    #     "access_token": access_token,
+    #     "access_jti": access_jti,
+    #     "refresh_token": refresh_token,
+    #     "refresh_jti": refresh_jti,
+    #     "created_at": datetime.now(timezone.utc)
+    # })
+    # logger.info(f"/register  - def register - пользователь успешно зарегистрирован, токены добавлены в бд\n")
+    if is_fetch:
+        response = JSONResponse(content={"next_url": "/confirm-notice"})
+
+        html = email_template.render()
+        background_tasks.add_task(send_email, email, "Подтверждение почты", html)
+        return response
+    response = RedirectResponse(url="/confirm-notice", status_code=303)
+    # response.set_cookie("access_token", access_token, httponly=True)
+    # response.set_cookie("refresh_token", refresh_token, httponly=True)
+    # response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
+    # response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
+
+    html = email_template.render()
+    background_tasks.add_task(send_email, email, "Подтверждение почты", html)
     return response
 
 
@@ -355,6 +407,21 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
         "created_at": datetime.now(timezone.utc)
         })
     logger.info(f"/login  - def login - Для пользователя: {email} - созданы новые токены\n")
+    user_id = str(user["_id"])
+    status = user["status"]
+    existing_data = await users_data_collection.find_one({"user_id": user_id})
+    if not existing_data:
+        user_data = {
+            "user_id": user_id,
+            "email": email,
+            "status": status,
+            "mode": [MODE],
+            "chats": [DEFAULT_CHAT]
+        }
+        await users_data_collection.insert_one(user_data)
+        logger.info(f"/login - создан user_data для {email}")
+    else:
+        logger.info(f"/login - user_data уже существует для {email}")
 
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie("access_token", access_token, httponly=True)
@@ -435,6 +502,11 @@ async def logout_all(request: Request):
 
     except JWTError:
         raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
+
+
+
+
+
 
 
 

@@ -1,5 +1,5 @@
 const parent = document.querySelector("#article");
-const csrfToken = document.getElementById('csrf_token').value;
+const csrfToken = document.getElementById('csrf_token');
 const submitButton = document.querySelector('#submit');
 const searchButton = document.querySelector('#search-button');
 const showUploadBtn = document.getElementById("show-upload-btn");
@@ -161,7 +161,7 @@ if (submitButton) {
                 },
                 body: JSON.stringify({
                     prompt: prompt,
-                    csrf_token: csrfToken,
+                    csrf_token: csrfToken.value,
                     extras: imgLink || ""
 
                 })
@@ -307,7 +307,7 @@ if (searchButton) {
                             },
                             body: JSON.stringify({
                                 prompt: sPrompt,
-                                csrf_token: csrfToken,
+                                csrf_token: csrfToken.value,
                                 extras: ""
 
                             })
@@ -434,7 +434,7 @@ if (uploadButton) {
 
         const formData = new FormData();
         formData.append("file", file);
-        formData.append("csrf_token", csrfToken);
+        formData.append("csrf_token", csrfToken.value);
 
         try {
             const response = await fetchWithAuth("/upload-image/", {
