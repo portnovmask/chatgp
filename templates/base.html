@@ -19,6 +19,11 @@
   rel="stylesheet"
   href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.conditional.cyan.min.css"
     >
+<!-- `sizes="any"` is to fix Chrome bug -->
+<link rel="icon" href="/favicon.ico" sizes="any" />
+<link rel="icon" href="/icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.webmanifest" />
     <title>{% block title %}Чат Ассистент{% endblock %}</title>
     </head>
 {% set plans = {
@@ -58,7 +63,7 @@
 
             </div>
         <div class="container-icons-column">
-             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/about'" style="width: 220px"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP - о сервисе</small></button><span class="tooltiptext">О сервисе</span></div>
+             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/about'" style="width: 220px; justify-content: start; gap: 1rem;"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP - о сервисе</small></button><span class="tooltiptext">О сервисе</span></div>
 
 
                  {% if user and user.email != "guest" %}
@@ -69,14 +74,21 @@
                      </small>
                      {% else %}
                      <small>
-                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; оплачен
+                        <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; план
                      </small>
                     {% endif %}
                  </button><span class="tooltiptext">дашборд</span></div>
                      {% else %}
-                     <p>Рейтинг</p>
-                     <p>Последние новости</p>
-                     <p>Примеры промптов</p>
+                     <p><small>Поддержите отзывом и донатом</small></p>
+                     <iframe src="https://yandex.ru/sprav/widget/rating-badge/233067138754?type=rating" width="150" height="50" frameborder="0"></iframe>
+                     <p><span><img src="/static/img/icons/boosty_logo.svg" width="50px"><small>cсылка для донатов</small></span>
+                         <span><a href="https://boosty.to/ketome.ru/donate" target="_blank"><img src="/static/img/pics/ketome.ru-donate.png"></a></span>
+                         <span style="background-color: whitesmoke; font-size: 10px;">Серафименко Сергей ... 700р.</span><br>
+                        <span style="background-color: whitesmoke; font-size: 10px;">Плетнёва Анна ........ 500р.</span><br>
+                        <span style="background-color: whitesmoke; font-size: 10px;">Сысоев Дмитрий ...... 250р.</span><br>
+                        <span style="background-color: whitesmoke; font-size: 10px;">Ступин Кирилл ....... 5000р.</span><br>
+                     </p>
+                     <p>&nbsp;</p>
                 {% endif %}
 {#            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>#}
         </div>

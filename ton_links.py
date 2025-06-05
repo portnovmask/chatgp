@@ -7,9 +7,9 @@ import urllib.parse
 from settings import TON_WALLET, TON_SECRET_KEY # если используешь pydantic.BaseSettings
 
 def generate_payment_link(email: str, level: str, amount: float, payment_id: str) -> dict:
-
-    # base_url = f"https://tonkeeper.app/transfer/{TON_WALLET}"
-    base_url = "https://tonkeeper.app/transfer/TEST_PUBLIC_KEY" # Тестовая ссылка
+    user_amount = amount
+    base_url = f"https://app.tonkeeper.com/transfer/{TON_WALLET}"
+    #base_url = "https://tonkeeper.app/transfer/TEST_PUBLIC_KEY" # Тестовая ссылка
 
     # параметры для подписи
     params = {

@@ -390,6 +390,9 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     if not user or not pwd_context.verify(password, user["password"]):
         logger.info(f"/login  - def login - Для ввода: {email} - пароль или email не верны\n")
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+    if user.get("contact") and user.get("contact") == "not_confirmed":
+        logger.info(f"/login  - def login - Пользователь: {email} - не подтвердил email\n")
+        raise HTTPException(status_code=401, detail="Подтвердите электронную почту")
     access_token, access_expires, access_jti = create_access_token(str(user["email"]))
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
     csrf_token = generate_csrf_token(str(user["email"]), CSRF_SECRET_KEY)

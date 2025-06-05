@@ -51,6 +51,7 @@ VK_TOKEN_URL = os.environ['VK_TOKEN_URL']
 VK_USERINFO_URL = os.environ['VK_USERINFO_URL']
 TON_SECRET_KEY = os.environ['TON_SECRET_KEY']
 TON_WALLET = os.environ['TON_WALLET']
+TON_API_KEY = os.environ['TON_API_KEY']
 RECAPTCHA_SECRET = os.environ['RECAPTCHA_SECRET']
 LOGO_URL = "https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png"
 BASE_URL = "https://chatgp.ru"
@@ -64,7 +65,7 @@ PRETTY_NAMES = {
     "pro": "Мыслитель",
     "premium": "Премиум"
 }
-PRICES = [0, 1, 4, 8, 12, 32]
+PRICES = [0, 4, 12, 33, 36, 96]
 UPLOAD_DIR = Path("tmp/uploads").resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 

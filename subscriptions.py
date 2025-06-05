@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 import random
 from auth import get_user
 import locale
-from settings import TON_WALLET, LEVELS, PRETTY_NAMES, PRICES, LOGO_URL, BASE_URL
+from settings import TON_WALLET, TON_API_KEY, LEVELS, PRETTY_NAMES, PRICES, LOGO_URL, BASE_URL
 from mail import EmailTemplate, send_email, generate_confirmation_token
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -41,38 +41,47 @@ async def get_ton_usdt_price():
     return 2.70
 
 # 🔹 Функция для проверки платежа через TON API, когда он будет
+
 import requests
 
+async def get_ton_transaction(min_amount_ton: float = 1.0):
+    url = f"https://tonapi.io/v2/blockchain/accounts/{TON_WALLET}/transactions"
+    headers = {
+        "Authorization": f"Bearer {TON_API_KEY}"
+    }
 
-# def get_ton_transaction(min_amount_ton: float = 1.0):
-#     url = f"https://tonapi.io/v2/accounts/{TON_WALLET}/transactions"
-#     response = requests.get(url)
-#
-#     if response.status_code != 200:
-#         logger.info(f"get_ton_transaction - Не удалось подключиться к tonapi.io, ошибка: {response.status_code}")
-#         return None
-#
-#     data = response.json()
-#     for tx in data.get("transactions", []):
-#         in_msg = tx.get("in_msg")
-#         if not in_msg:
-#             continue
-#
-#         try:
-#             value_nano = int(in_msg.get("value", "0"))
-#             value_ton = value_nano / 1_000_000_000
-#             if value_ton >= min_amount_ton:
-#                 return {
-#                     "hash": tx["hash"],
-#                     "value_nano": value_nano,
-#                     "value_ton": value_ton,
-#                     "source": in_msg.get("source"),
-#                 }
-#         except (TypeError, ValueError):
-#             logger.info(f"get_ton_transaction - Не удалось проверить транзакцию")
-#             continue
-#
-#     return None
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            logger.info(f"get_ton_transaction - Ошибка {exc.response.status_code}: {exc.response.text}")
+            return None
+        except httpx.RequestError as exc:
+            logger.info(f"get_ton_transaction - Ошибка запроса: {exc}")
+            return None
+
+    data = response.json()
+    for tx in data.get("transactions", []):
+        in_msg = tx.get("in_msg")
+        if not in_msg:
+            continue
+
+        try:
+            value_nano = int(in_msg.get("value", "0"))
+            value_ton = value_nano / 1_000_000_000
+            if value_ton >= min_amount_ton:
+                return {
+                    "hash": tx["hash"],
+                    "value_nano": value_nano,
+                    "value_ton": value_ton,
+                    "source": in_msg.get("source"),
+                }
+        except (TypeError, ValueError):
+            logger.info("get_ton_transaction - Ошибка при обработке транзакции")
+            continue
+
+    return None
 
 
 # Функция отображения человеческого времени
@@ -80,29 +89,29 @@ def format_datetime_pretty(dt: datetime) -> str:
     return dt.strftime("%-d %B %Yг в %H:%M")
 
 
-# Функция эмуляции транзакций
-def mock_get_ton_transactions(expected_amount_ton: float):
-    # Преобразуем TON в нанотоны, умножая на 1_000_000_000
-    nano_ton = int(expected_amount_ton * 1_000_000_000)
-
-    if nano_ton > 0:
-        return {
-            "transactions": [
-                {
-                    "hash": f"tx_{random.randint(1000, 9999)}",
-                    "in_msg": {
-                        "source": "FAKE_WALLET_ADDRESS",
-                        "value": nano_ton  # Используем целое число
-                    }
-                }
-            ]
-        }
-    else:
-        return {}
-
-
-# Подменяем функцию
-get_ton_transactions = mock_get_ton_transactions
+# # Функция эмуляции транзакций
+# def mock_get_ton_transactions(expected_amount_ton: float):
+#     # Преобразуем TON в нанотоны, умножая на 1_000_000_000
+#     nano_ton = int(expected_amount_ton * 1_000_000_000)
+#
+#     if nano_ton > 0:
+#         return {
+#             "transactions": [
+#                 {
+#                     "hash": f"tx_{random.randint(1000, 9999)}",
+#                     "in_msg": {
+#                         "source": "FAKE_WALLET_ADDRESS",
+#                         "value": nano_ton  # Используем целое число
+#                     }
+#                 }
+#             ]
+#         }
+#     else:
+#         return {}
+#
+#
+# # Подменяем функцию
+# get_ton_transactions = mock_get_ton_transactions
 
 
 # 🔹 Получение подписки пользователя
@@ -211,8 +220,8 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
     if not user:
         return RedirectResponse(url="/")
     email = user.get("email")
-
-    price = PRICES[LEVELS.index(level)]
+    usdt_price = await get_ton_usdt_price()
+    price = (PRICES[LEVELS.index(level)]/usdt_price)*1000000000
     payment = generate_payment_link(email, level, price, payment_id)
     qr = generate_qr_base64(payment["url"])
 
@@ -280,19 +289,23 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
     current_expiry = user.get("subscription", {}).get("expires_at")
     current_index = LEVELS.index(current_status)
     new_index = LEVELS.index(level)
-
     if new_index == current_index:
         return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
 
     price = PRICES[new_index]
-    transactions = get_ton_transactions(price).get("transactions", [])
+    transactions = await get_ton_transaction(price)
 
     if not transactions:
         logger.info(
             f"verify_ton_payment - Платеж не найден или не подтверждён, email: {user.get("email")}, level: {level}")
-        raise HTTPException(status_code=402, detail="Платеж не найден или не подтверждён")
+        return {"message": "Платёж не найден или пока не подтвержден!", "status": "warning"}
 
-    tx = transactions[0]
+
+    data = transactions.get("transactions", [])
+
+
+
+    tx = data[0]
     tx_id = tx.get("hash")
     in_msg = tx.get("in_msg", {})
     sender = in_msg.get("source")
@@ -400,10 +413,10 @@ async def renew_subscriptions():
         new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
         new_index = LEVELS.index(new_level)
         new_price = PRICES[new_index]
-        transactions = get_ton_transactions(new_price).get("transactions", [])
-
+        transactions = await get_ton_transaction(new_price)
+        data = transactions.get("transactions", [])
         if transactions:
-            for tx in transactions:
+            for tx in data:
                 tx_id = tx.get("hash")
                 in_msg = tx.get("in_msg", {})
 
