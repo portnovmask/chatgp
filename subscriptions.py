@@ -329,7 +329,7 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
         })
 
     now = datetime.now(timezone.utc)
-    new_expiry = now + timedelta(days=7)
+    new_expiry = now + timedelta(days=30)
 
     # 🔼 Повышение — активируем сразу
     if new_index > current_index:

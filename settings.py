@@ -56,7 +56,7 @@ RECAPTCHA_SECRET = os.environ['RECAPTCHA_SECRET']
 LOGO_URL = "https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png"
 BASE_URL = "https://chatgp.ru"
 LEVELS = ["trial", "basic", "advanced", "business", "pro", "premium"]
-ATTEMPT_LIMITS = [0, 30, 120, 400, 200, 600]
+ATTEMPT_LIMITS = [5, 30, 100, 500, 300, 500]
 PRETTY_NAMES = {
     "trial": "Базовый",
     "basic": "Оптимум",
@@ -65,7 +65,7 @@ PRETTY_NAMES = {
     "pro": "Мыслитель",
     "premium": "Премиум"
 }
-PRICES = [0, 4, 12, 33, 36, 96]
+PRICES = [0, 18, 50, 140, 160, 500]
 UPLOAD_DIR = Path("tmp/uploads").resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 

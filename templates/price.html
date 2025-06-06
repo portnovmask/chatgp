@@ -9,14 +9,14 @@
         <aside class="sidebar">
             <a href="/" class="logo"></a>
             <h2>Выберите подходящий план</h2>
-            <p><small>Подписка оформляется на неделю.
+            <p><small>Подписка оформляется на 30 дней.
                 Цены приведены в USDT,
                 но расчеты производятся в Тон.
-                При оплате за месяц, пол года или год вперед
+                При оплате за пол года или год вперед
                 предоставляются скидки - индивидуально.
                 Доступна подписка через Бусти,
                 обращайтесь в поддержку. Отменить подписку
-                до истечения 7 дней со дня оплаты невозможно.</small></p>
+                до истечения 30 дней со дня оплаты невозможно.</small></p>
              <div class="links-row">
                  <a href="/about">О сервисе&nbsp;</a>
                 <a href="/post">Блог&nbsp;</a>
@@ -24,6 +24,9 @@
                 <a href="/contact">Контакты&nbsp;</a>
                 <a href="/help">Помощь</a>
             </div>
+            <h3>Поддержать донатом</h3>
+            <a href="https://boosty.to/ketome.ru/donate"  target="_blank">
+                <img src="/static/img/pics/ketome.ru-donate.png" width="150px" alt="boosty"></a>
         </aside>
 
         <div class="grid">
@@ -37,22 +40,22 @@
 } %}
 
 {% set descriptions = {
-    "trial": "Бесплатно навсегда! 2 млн. токенов в день, 5 веб-поисков в неделю, модель 4o-mini, чтение фото.",
-    "basic": "Взвешенный подход. 6 млн. токенов в день, 30 веб-поисков в неделю, модель 4o-mini, чтение фото.",
-    "advanced": "Для активных. 10 млн. токенов в день, 100 веб-поисков в неделю, модель 4o, чтение фото.",
-    "business": "Для групп из 3 - 5 пользователей. 50 млн. токенов в день, 500 веб-поисков в неделю, модель 4o, чтение фото..",
-    "pro": "Для программирования и анализа. 20 млн. токенов в день, 300 веб-поисков в неделю, модель o3, чтение фото.",
-    "premium": "Максимум возможностей, без ограничений токенов, 500 веб-поисков в неделю, модель 4.1, чтение фото."
+    "trial": "Бесплатно навсегда! 2 млн. токенов в день, 20 веб-поисков в месяц, модель 4o-mini, чтение фото.",
+    "basic": "Взвешенный подход. 6 млн. токенов в день, 120 веб-поисков в месяц, модель 4o-mini, чтение фото.",
+    "advanced": "Для активных. 10 млн. токенов в день, 400 веб-поисков в месяц, модель 4o, чтение фото.",
+    "business": "Для групп из 3 - 5 пользователей. 50 млн. токенов в день, 2000 веб-поисков в месяц, модель 4o, чтение фото..",
+    "pro": "Для программирования и анализа. 20 млн. токенов в день, 1200 веб-поисков в месяц, модель o3, чтение фото.",
+    "premium": "Максимум возможностей, без ограничений токенов, 2000 веб-поисков в месяц, модель 4.1, чтение фото."
 } %}
 
 
  {% set prices = {
     "trial": 0,
-    "basic": 5 ,
-    "advanced": 12,
-    "business": 33,
-    "pro": 36,
-    "premium": 96
+    "basic": 18 ,
+    "advanced": 50,
+    "business": 140,
+    "pro": 160,
+    "premium": 500
 } %}
 {% set clues = {
     "trial": "Бесплатно навсегда",
@@ -71,9 +74,9 @@
         <div class="card {% if user.original_status == plan %}active{% endif %}">
             <img src="/static/img/logo/28.svg" alt="plan logo">
             <h3>{{ title }}</h3>
-            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
-            {% else %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
             <div class="card-medium">{{ descriptions[plan] }}</div>
@@ -90,9 +93,9 @@
         <div class="card">
             <img src="/static/img/logo/28.svg" alt="plan logo">
             <h3>{{ title }}</h3>
-            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
-            {% else %}<div class="card-price">{{ prices[plan] }}USDT/в неделю</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
             <div class="card-medium">{{ descriptions[plan] }}</div>

@@ -63,11 +63,11 @@
 
             </div>
         <div class="container-icons-column">
-             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/about'" style="width: 220px; justify-content: start; gap: 1rem;"><img src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP - о сервисе</small></button><span class="tooltiptext">О сервисе</span></div>
+             <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/about'" style="width: 220px;  justify-content: start; gap: 0.5rem;"><img style="padding-left: 5px;" src="/static/img/logo/29.svg" width="40" alt="chatgp"><small>ChatGP - о сервисе</small></button><span class="tooltiptext">О сервисе</span></div>
 
 
                  {% if user and user.email != "guest" %}
-                     <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/dash'" style="width: 220px"><img src="/static/img/icons/blocks.svg" width="40" alt="user">
+                     <div class="item-content tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/dash'" style="width: 220px; justify-content: start; gap: 0.5rem;"><img style="padding-left: 5px;" src="/static/img/icons/blocks.svg" width="40" alt="user">
                      {% if user.stat == 'trial' and user.original_status != "trial" and user.trial_expires_at %}
                      <small>
                         <b style="text-transform: uppercase;">{{ plans[user.status] }} </b>&nbsp; временно
@@ -81,12 +81,12 @@
                      {% else %}
                      <p><small>Поддержите отзывом и донатом</small></p>
                      <iframe src="https://yandex.ru/sprav/widget/rating-badge/233067138754?type=rating" width="150" height="50" frameborder="0"></iframe>
-                     <p><span><img src="/static/img/icons/boosty_logo.svg" width="50px"><small>cсылка для донатов</small></span>
-                         <span><a href="https://boosty.to/ketome.ru/donate" target="_blank"><img src="/static/img/pics/ketome.ru-donate.png"></a></span>
-                         <span style="background-color: whitesmoke; font-size: 10px;">Серафименко Сергей ... 700р.</span><br>
-                        <span style="background-color: whitesmoke; font-size: 10px;">Плетнёва Анна ........ 500р.</span><br>
-                        <span style="background-color: whitesmoke; font-size: 10px;">Сысоев Дмитрий ...... 250р.</span><br>
-                        <span style="background-color: whitesmoke; font-size: 10px;">Ступин Кирилл ....... 5000р.</span><br>
+                     <p><a href="https://boosty.to/ketome.ru/donate" target="_blank" style="a:hover{background-color: transparent;}"><img src="/static/img/icons/boosty_logo.svg" width="80px"></a>
+                         <span><img src="/static/img/pics/ketome.ru-donate.png"></span>
+                         <span style="font-size: 10px;">Серафименко Сергей ... 700р.</span><br>
+                        <span style="font-size: 10px;">Плетнёва Анна ........ 500р.</span><br>
+                        <span style="font-size: 10px;">Сысоев Дмитрий ...... 250р.</span><br>
+                        <span style="font-size: 10px;">Ступин Кирилл ....... 5000р.</span><br>
                      </p>
                      <p>&nbsp;</p>
                 {% endif %}
