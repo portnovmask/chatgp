@@ -228,7 +228,7 @@ class VoicePromptRequest(PromptRequest):
 #         logger.info(f" def stream: Пользователь не авторизован")
 #         raise HTTPException(status_code=401, detail="Пользователь не авторизован")
 
-@app.post("/stream")
+@app.post("/api/stream")
 async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
     if not user:
         logger.info(f"def stream: Пользователь не авторизован")
@@ -327,7 +327,7 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
 
     return StreamingResponse(generate_stream(assistant_content, user_tokens), media_type="text/event-stream")
 
-@app.post("/search")
+@app.post("/api/search")
 async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
     if not user:
@@ -432,7 +432,7 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
 from fastapi import Form
 
-@app.post("/upload-image/")
+@app.post("/api/upload-image/")
 async def upload_image(
     request: Request,
     file: UploadFile = File(...),
@@ -457,9 +457,11 @@ async def upload_image(
             file_name = os.path.basename(file_check)
             await update_user_image_upload(user, file_name)
             return JSONResponse(content={"path": file_name})
+        return None
+    return None
 
 
-@app.post("/delete-image/")
+@app.post("/api/delete-image/")
 async def delete_uploaded_image(
     request: Request,
     csrf_token: str = Form(...),
@@ -480,11 +482,13 @@ async def delete_uploaded_image(
 @app.get("/authorize")
 async def authorize(request: Request, mode: str = "login", user: dict | None = Depends(get_user_optional)):
     if user:
-        return RedirectResponse('/logout', status_code=302)
+        return RedirectResponse('/api/logout', status_code=302)
     csrf_token = request.cookies.get("csrf_token")
-    response = templates.TemplateResponse("authorize.html", {"request": request, "mode": mode})
+    response = templates.TemplateResponse("authorize.html", {"request": request, "mode": mode, "csrf_token": csrf_token})
     if not csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY, 3600):
         guest_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
+        response = templates.TemplateResponse("authorize.html",
+                                              {"request": request, "mode": mode, "csrf_token": guest_token,})
         response.set_cookie("csrf_token", guest_token, httponly=False, samesite="lax")
         return response
     return response
@@ -582,9 +586,6 @@ async def post_home(request: Request,
 async def view_post(request: Request, slug: str,
     user: dict | None = Depends(get_user_optional)
 ):
-    if not user:
-        csrf_token = generate_csrf_token("guest", CSRF_SECRET_KEY)
-
 
     post = await get_post_by_slug(slug)
     if not post:
@@ -611,7 +612,7 @@ async def view_post(request: Request, slug: str,
         "user": user,
     })
 
-@app.get("/change_param")  #Ручка для выбора параметров
+@app.get("/api/change_param")  #Ручка для выбора параметров
 async def change_param(request: Request, user: dict = Depends(get_user), param: str = "stream"):
     response = RedirectResponse(url="/")  # Перенаправляем на корень
     #Логика получения параметра и проверки доступа пользователя к нему
@@ -631,7 +632,7 @@ async def change_param(request: Request, user: dict = Depends(get_user), param: 
     return response
 
 
-@app.get("/get_chat_body")
+@app.get("/api/get_chat_body")
 async def get_chat_body(chat_id: str, user: dict = Depends(get_user)):
     if not user:
         logger.info(f" get_chat_body: Пользователь не авторизован")
@@ -647,7 +648,7 @@ async def get_chat_body(chat_id: str, user: dict = Depends(get_user)):
     return response
 
 
-@app.get("/reset_chat")
+@app.get("/api/reset_chat")
 async def reset_chat_route(response: Response, user: dict = Depends(get_user), new_chat: int = Query(None)):
     if new_chat:
         await reset_chat(user)
@@ -655,7 +656,7 @@ async def reset_chat_route(response: Response, user: dict = Depends(get_user), n
     return RedirectResponse(url="/", status_code=303)
 
 
-@app.post("/update_summaries")
+@app.post("/api/update_summaries")
 async def update_summaries(
         request: Request, user: dict = Depends(get_user)
 ):
@@ -697,7 +698,7 @@ import markdown2
 CODE_BLOCK_RE = re.compile(r"```(.*?)```", re.DOTALL)
 
 
-@app.post("/format-text/")
+@app.post("/api/format-text/")
 async def format_text(request: Request):
     """Получает текст от фронта и оборачивает кодовые блоки"""
     data = await request.json()
@@ -737,7 +738,7 @@ templates.env.filters['datetimeformat'] = format_datetime
 # Регистрируем фильтр форматирования блоков кода
 templates.env.filters["format_code_blocks"] = format_code_blocks
 
-@app.post("/delete-chat/")
+@app.post("/api/delete-chat/")
 async def delete_chat_route(request: Request, user=Depends(get_user)):
 
     if not user:

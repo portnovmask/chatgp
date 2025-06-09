@@ -1,6 +1,8 @@
 import uuid
 import base64
 from pathlib import Path
+from typing import Any, Coroutine
+
 from PIL import Image, UnidentifiedImageError
 from fastapi import UploadFile, HTTPException
 from io import BytesIO

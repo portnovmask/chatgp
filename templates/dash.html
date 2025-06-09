@@ -22,7 +22,7 @@
             <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
             <p class="card-small">Добавить электронную почту, чтобы оставаться на связи</p>
 
-            <form  class="form_auth_block" id="add-email" method="post" action="/add_email">
+            <form  class="form_auth_block" id="add-email" method="post" action="/api/add_email">
                 <label class="form_auth_block_label" for="email">Email для связи:</label>
                 <input   type="email" id="email" name="email" placeholder="myemail@example.com"
         autocomplete="email">
@@ -192,7 +192,7 @@
                 }
 
                 try {
-                    const response = await fetch('/add_email', {
+                    const response = await fetch('/api/add_email', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',

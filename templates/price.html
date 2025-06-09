@@ -125,7 +125,7 @@ async function handleSubscription(event, selectedPlan, currentPlan) {
     }
 
     try {
-        const response = await fetchWithAuth(`/subscribe/?level=${selectedPlan}`, { method: "POST" });
+        const response = await fetchWithAuth(`/api/subscribe/?level=${selectedPlan}`, { method: "POST" });
         const data = await response.json();
 
         if (response.ok) {
@@ -151,7 +151,7 @@ async function handleSubscription(event, selectedPlan, currentPlan) {
 
 async function subscribe(level) {
     const token = localStorage.getItem("access_token");  //  Получаем токен из локального хранилища
-    const response = await fetchWithAuth(`/subscribe/?level=${level}`, {
+    const response = await fetchWithAuth(`/api/subscribe/?level=${level}`, {
         method: "POST",
         headers: {
             "Authorization": `Bearer ${token}`  //  Передаем токен вместо email
@@ -165,7 +165,7 @@ async function subscribe(level) {
 async function checkSubscription() {
     const token = localStorage.getItem("access_token");  //  Получаем токен
 
-    const response = await fetchWithAuth(`/subscription/`, {  //  Email не нужен в URL
+    const response = await fetchWithAuth(`/api/subscription/`, {  //  Email не нужен в URL
         method: "GET",
         headers: {
             "Authorization": `Bearer ${token}`  //  Передаем токен

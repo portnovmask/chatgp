@@ -13,7 +13,7 @@ document.getElementById("chat-list").addEventListener("click", async (event) => 
         if (!confirmDelete) return;
 
         try {
-            const response = await fetchWithAuth("/delete-chat/", {
+            const response = await fetchWithAuth("/api/delete-chat/", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -59,7 +59,7 @@ if (newChat) {
             document.cookie = "chat_id_cookie=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;";
 
             // Обновляем страницу, чтобы создать новый чат
-            window.location.href = "/reset_chat?new_chat=1";
+            window.location.href = "/api/reset_chat?new_chat=1";
         } catch (error) {
             console.error("Ошибка при создании нового чата:", error);
         }
@@ -70,7 +70,7 @@ if (newChat) {
 
 async function fetchChatData(chatId) {
     try {
-        const response = await fetchWithAuth(`/get_chat_body?chat_id=${chatId}`);
+        const response = await fetchWithAuth(`/api/get_chat_body?chat_id=${chatId}`);
 
         if (!response.ok) {
             throw new Error(`Ошибка сервера: ${response.status}`);

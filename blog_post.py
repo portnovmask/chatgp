@@ -9,7 +9,7 @@ from qr_utils import slugify
 from typing import Optional
 
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 from pydantic import BaseModel
 

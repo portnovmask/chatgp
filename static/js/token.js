@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Немедленно обновляем токен, если он устарел
-    const refreshResponse = await fetch("/refresh", {
+    const refreshResponse = await fetch("/api/refresh", {
         method: "POST",
         credentials: "include"
     });
@@ -67,7 +67,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
 
     // Запрашиваем данные о пользователе после обновления токена
-    const response = await fetchWithAuth("/me");
+    const response = await fetchWithAuth("/api/me");
     if (response.ok) {
         const data = await response.json();
         //console.log("✅ Данные пользователя:", data);
@@ -75,7 +75,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     // Таймер для регулярного обновления access_token каждые 10 минут
     setInterval(async () => {
-        const refreshResponse = await fetch("/refresh", {
+        const refreshResponse = await fetch("/api/refresh", {
             method: "POST",
             credentials: "include"
         });
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         if (response.status === 401) {
             console.log("Access token expired, refreshing...");
-            const refreshResponse = await fetch("/refresh", {
+            const refreshResponse = await fetch("/api/refresh", {
                 method: "POST",
                 credentials: "include"
             });

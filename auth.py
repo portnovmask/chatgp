@@ -12,7 +12,7 @@ from models.user_data import users_data_collection
 from settings import *
 from mail import EmailTemplate, send_email, generate_confirmation_token
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 logger = logging.getLogger("app_logger")
 
 SECRET_KEY = APP_SECRET_KEY
@@ -279,12 +279,17 @@ async def refresh_token(request: Request):
 async def register(request: Request,
                    background_tasks: BackgroundTasks,
                    email: str = Form(...),
-                   password: str = Form(...)):
+                   password: str = Form(...),
+                   csrf_token: str = Form(...),):
     """Регистрация нового пользователя"""
     is_fetch = request.headers.get("accept") == "application/json"
     register_time = datetime.now(timezone.utc)
     status = "trial"
     tokens = 0
+    csrf_token_cookie = request.cookies.get("csrf_token")
+    if not csrf_token_cookie or not csrf_token or csrf_token_cookie != csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY):
+        logger.info(f"/register  - def register - ошибка csrf_token не совпадает или просрочен\n")
+        return RedirectResponse(url="/", status_code=303)
     token = generate_confirmation_token(email)
     confirm_url = f"{request.base_url}confirm-email?token={token}"
     email_template = EmailTemplate(
@@ -318,7 +323,7 @@ async def register(request: Request,
             html = repeat_email.render()
             background_tasks.add_task(send_email, email, "Подтверждение регистрации", html)
 
-            response = RedirectResponse(url="/confirm-notice", status_code=303)
+            response = RedirectResponse(url="/api/confirm-notice", status_code=303)
             return response
 
         logger.info(f"/register  - def register - попытка добавить существующего пользователя\n")
@@ -367,12 +372,12 @@ async def register(request: Request,
     # })
     # logger.info(f"/register  - def register - пользователь успешно зарегистрирован, токены добавлены в бд\n")
     if is_fetch:
-        response = JSONResponse(content={"next_url": "/confirm-notice"})
+        response = JSONResponse(content={"next_url": "/api/confirm-notice"})
 
         html = email_template.render()
         background_tasks.add_task(send_email, email, "Подтверждение почты", html)
         return response
-    response = RedirectResponse(url="/confirm-notice", status_code=303)
+    response = RedirectResponse(url="/api/confirm-notice", status_code=303)
     # response.set_cookie("access_token", access_token, httponly=True)
     # response.set_cookie("refresh_token", refresh_token, httponly=True)
     # response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
@@ -384,8 +389,14 @@ async def register(request: Request,
 
 
 @router.post("/login")
-async def login(request: Request, email: str = Form(...), password: str = Form(...)):
+async def login(request: Request, email: str = Form(...), password: str = Form(...), csrf_token: str = Form(...)):
     """Авторизация с проверкой пароля"""
+    csrf_token_cookie = request.cookies.get("csrf_token")
+    if not csrf_token_cookie or not csrf_token or csrf_token_cookie != csrf_token or not verify_csrf_token(csrf_token,
+                                                                                                           "guest",
+                                                                                                           CSRF_SECRET_KEY):
+        logger.info(f"/login  - def login - ошибка csrf_token не совпадает или просрочен\n")
+        return RedirectResponse(url="/", status_code=303)
     user = await users_collection.find_one({"email": email})
     if not user or not pwd_context.verify(password, user["password"]):
         logger.info(f"/login  - def login - Для ввода: {email} - пароль или email не верны\n")

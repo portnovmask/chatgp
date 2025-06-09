@@ -12,7 +12,7 @@ from auth import get_user
 import locale
 from settings import TON_WALLET, TON_API_KEY, LEVELS, PRETTY_NAMES, PRICES, LOGO_URL, BASE_URL
 from mail import EmailTemplate, send_email, generate_confirmation_token
-router = APIRouter()
+router = APIRouter(prefix="/api")
 templates = Jinja2Templates(directory="templates")
 
 locale.setlocale(locale.LC_TIME, '')
@@ -207,7 +207,7 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
     })
 
     # Вставка URL параметров в редирект
-    return {"redirect": f"/payment/{payment_id}?level={level}"}
+    return {"redirect": f"/api/payment/{payment_id}?level={level}"}
 
 
 # routes/ton.py

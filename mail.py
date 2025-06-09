@@ -11,7 +11,7 @@ from settings import EMAIL_CONFIRM_KEY, CONFIRM_SALT, RECAPTCHA_SECRET
 import logging
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-router = APIRouter()
+router = APIRouter(prefix="/api")
 
 templates = Jinja2Templates(directory="templates")
 

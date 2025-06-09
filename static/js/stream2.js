@@ -28,7 +28,7 @@ const uniqueId = generateId(); // Например: id-lkfn8r1ggkx
 
 
 async function filterText(text) {
-    const response = await fetchWithAuth("/format-text/", {
+    const response = await fetchWithAuth("/api/format-text/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: text })
@@ -72,7 +72,7 @@ function isValidInput(text) {
 
 async function fetchUpdatedSummaries() {
     try {
-        const response = await fetchWithAuth("/update_summaries", {
+        const response = await fetchWithAuth("/api/update_summaries", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
@@ -154,7 +154,7 @@ if (submitButton) {
         }
 
         try {
-            const response = await fetchWithAuth("/stream", {
+            const response = await fetchWithAuth("/api/stream", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -174,7 +174,7 @@ if (submitButton) {
 
             if (!response.ok) {
                 if (response.status === 403) {
-                            window.location.replace("/logout");
+                            window.location.replace("/api/logout");
                         }
                 parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
                 imagePath = null;
@@ -300,7 +300,7 @@ if (searchButton) {
             `;
 
                   try {
-                                  const response = await fetchWithAuth("/search", {
+                                  const response = await fetchWithAuth("/api/search", {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json"
@@ -320,7 +320,7 @@ if (searchButton) {
 
                         if (!response.ok) {
                             if (response.status === 403) {
-                                        window.location.replace("/logout");
+                                        window.location.replace("/api/logout");
                                     }
                             parent.innerHTML += `<div class="response-body">Ошибка соединения, повторите попытку позже</div>`;
                         }
@@ -406,7 +406,7 @@ if (searchButton) {
 
         document.getElementById("param-toggle").addEventListener("click", () => {
             const nextParam = currentParam === "stream" ? "search" : "stream";
-            window.location.href = `/change_param?param=${nextParam}`;
+            window.location.href = `/api/change_param?param=${nextParam}`;
         });
     });
 
@@ -437,7 +437,7 @@ if (uploadButton) {
         formData.append("csrf_token", csrfToken.value);
 
         try {
-            const response = await fetchWithAuth("/upload-image/", {
+            const response = await fetchWithAuth("/api/upload-image/", {
                 method: "POST",
                 body: formData
             });
@@ -464,7 +464,7 @@ if (uploadButton) {
                 submitButton.style.display = "flex";
                 const thumbImg = document.createElement('img');
                 imgLink = result.path;
-                thumbImg.src = '/image-preview/' + result.path;
+                thumbImg.src = '/api/image-preview/' + result.path;
                 thumbImg.style.height = "40px";
                 thumbImg.style.width = "auto";
                 previewDiv.prepend(thumbImg);
@@ -472,7 +472,7 @@ if (uploadButton) {
                 const imageWrapper = document.createElement("div");
                 imageWrapper.classList.add("image-wrapper");
                 imagePath = document.createElement('img');
-                imagePath.src = '/image-preview/' + result.path;
+                imagePath.src = '/api/image-preview/' + result.path;
                 imagePath.classList.add("image-wrapper-img");
                 imageWrapper.appendChild(imagePath);
                 parent.append(imageWrapper);
@@ -519,7 +519,7 @@ if (deleteIconButton) {
         const formData = new FormData();
         formData.append("csrf_token", csrfToken);
 
-        const response = await fetchWithAuth("/delete-image/", {
+        const response = await fetchWithAuth("/api/delete-image/", {
             method: "POST",
             body: formData
         });

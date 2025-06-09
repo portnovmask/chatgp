@@ -31,7 +31,7 @@
     <p class="card-small" style="text-align: center">Или перейдите по ссылке:</p>
      <a class="card-small" style="text-align: center" href="{{ payment_url }}" target="_blank">Оплатить по ссылке</a>
     <p class="card-small" style="text-align: center">Вернитесь на эту страницу и нажмите:</p>
-    <form action="/ton/verify-payment/?level={{ level }}" method="post">
+    <form action="/api/ton/verify-payment/?level={{ level }}" method="post">
         <button class="form_button" style="font-weight: bolder" type="submit">Я оплатил</button>
     </form>
         </div>

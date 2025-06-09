@@ -17,7 +17,7 @@
             </div>
         <a class="header-link" href="/"><header class="form_auth_block_head_text"
              style="padding-left: 20px;">Напишите нам</header></a>
-<form class="form_auth_block_content" action="/contact/submit" method="post">
+<form class="form_auth_block_content" action="/api/contact/submit" method="post">
   {% if message %}
     <label style="color: green"><small>{{ message }}</small></label>
   {% elif error %}
