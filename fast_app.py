@@ -10,11 +10,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing import Optional
 from datetime import datetime, timezone, timedelta
 from auth import router as auth_router
 from blog_post import router as posts_router
 from mail import router as mail_router
+from admin import admin_router as admin_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
 from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_or_guest, verify_csrf_token
 import openai
@@ -90,19 +92,44 @@ app.include_router(mail_router)
 
 app.include_router(subscription_router)
 
+app.include_router(admin_router)
 
 
 templates = Jinja2Templates(directory="templates")
 
-# @app.get("/", response_class=HTMLResponse)
-# async def read_root(request: Request):
-#    return templates.TemplateResponse("index.html", {"request": request})
+
 
 client = openai.AsyncOpenAI(api_key=APY_KEY)
 
-# TOKEN_LIMIT = True
-#client2 = openai.AsyncOpenAI(api_key=APY_KEY)
 
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 401:
+        # Не обрабатываем 401 — пусть вернётся стандартный JSON
+        raise exc
+
+    if exc.status_code == 400:
+        return templates.TemplateResponse("errors/400.html", {"request": request}, status_code=404)
+
+    if exc.status_code == 403:
+        return templates.TemplateResponse("errors/403.html", {"request": request}, status_code=404)
+
+    if exc.status_code == 404:
+        return templates.TemplateResponse("errors/404.html", {"request": request}, status_code=404)
+
+    if exc.status_code == 405:
+        return templates.TemplateResponse("errors/405.html", {"request": request}, status_code=404)
+
+    if exc.status_code == 500:
+        return templates.TemplateResponse("errors/500.html", {"request": request}, status_code=500)
+
+    if exc.status_code == 501:
+        return templates.TemplateResponse("errors/501.html", {"request": request}, status_code=404)
+
+    # Все остальные ошибки — общая HTML-страница
+    return templates.TemplateResponse(
+        "errors/generic.html", {"request": request, "code": exc.status_code}, status_code=exc.status_code
+    )
 
 async def generate_summary(data, words: int = 2):
     logger.info(f"Данные пришли в функцию generate_summary: {data}")

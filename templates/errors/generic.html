@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>404 - Page is not found</title>
+    <title>{{ code }}</title>
     <style>
         * {
             margin: 0;
@@ -16,7 +16,7 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background: linear-gradient(135deg, #5a922d, #cce8b6);
+            background: linear-gradient(135deg, #2a3602, #5a922d);
             color: white;
             text-align: center;
             padding: 20px;
@@ -36,7 +36,7 @@
             display: inline-block;
             padding: 12px 24px;
             background: white;
-            color: #cce8b6;
+            color: #2a3602;
             text-decoration: none;
             font-weight: bold;
             border-radius: 8px;
@@ -49,9 +49,9 @@
 </head>
 <body>
     <div class="container">
-        <h1>404</h1>
-        <p>Уппс! Страница не найдена :(</p>
-        <p>Это случается, когда ссылка на страницу устарела или такая страница не существует вовсе.</p>
+        <h1>{{ code }}</h1>
+        <p>Уппс! Произошла ошибка {{ code }} :(</p>
+
         <a href="/">Вернуться домой</a>
     </div>
 </body>

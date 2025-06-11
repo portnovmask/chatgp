@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ панель</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .block { border: 1px solid #ccc; padding: 1em; margin-bottom: 2em; }
+        .success { color: green; }
+        .fail { color: red; }
+        label { display: block; margin-top: 0.5em; }
+        input, textarea { width: 100%; padding: 0.4em; margin-top: 0.3em; }
+    </style>
+</head>
+<body>
+
+<h1>Добро пожаловать в админ-панель</h1>
+
+{% if message %}
+  <div class="{{ message.status }}">
+    {{ message.detail }}
+  </div>
+{% endif %}
+
+<div class="block">
+    <h2>Поиск пользователя</h2>
+    <form method="post" action="/admin/admin-dashboard">
+        <label>Email пользователя:
+            <input type="email" name="user_id" required>
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Получить информацию</button>
+    </form>
+
+    {% if user_info %}
+        <h3>Результаты:</h3>
+        <pre>{{ user_info | tojson(indent=2) }}</pre>
+    {% endif %}
+</div>
+
+<div class="block">
+    <h2>Обновить данные пользователя</h2>
+    <form method="post" action="/admin/update-user-data">
+        <label>Email:
+            <input type="email" name="user_id" required>
+        </label>
+        <label>Статус:
+            <input type="text" name="data.status">
+        </label>
+        <label>Токены:
+            <input type="number" name="data.tokens">
+        </label>
+        <label>Контакт:
+            <input type="text" name="data.contact">
+        </label>
+        <label>Попытки:
+            <input type="number" name="data.attempts">
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Обновить</button>
+    </form>
+</div>
+
+<div class="block">
+    <h2>Обновить подписку пользователя</h2>
+    <form method="post" action="/admin/update-user-subscription">
+        <label>Email:
+            <input type="email" name="user_id" required>
+        </label>
+        <label>Уровень:
+            <input type="text" name="data.level">
+        </label>
+        <label>Tx ID:
+            <input type="text" name="data.tx_id">
+        </label>
+        <label>Сумма:
+            <input type="number" name="data.amount">
+        </label>
+        <label>Отправитель:
+            <input type="text" name="data.sender">
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Обновить подписку</button>
+    </form>
+</div>
+
+<div class="block">
+    <h2>Удалить пост</h2>
+    <form method="post" action="/admin/drop-post">
+        <label>Slug поста:
+            <input type="text" name="slug" required>
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Удалить</button>
+    </form>
+</div>
+
+</body>
+</html>
