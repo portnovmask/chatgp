@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Response, Depends, HTTPException
+from fastapi import APIRouter, Request, Response, Depends, HTTPException, Form
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pymongo import UpdateOne
@@ -9,7 +9,7 @@ from models.users import users_collection
 from models.tokens import tokens_collection
 from models.blog import blog_posts_collection
 from datetime import datetime, timezone, timedelta
-from auth import get_user, verify_csrf_token
+from auth import get_user, verify_csrf_token as verify_csrf
 from settings import *
 import json
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
@@ -70,14 +70,14 @@ async  def get_user_updates(email):
 
 
 @admin_router.api_route("/admin-dashboard", methods=["GET", "POST"], response_class=HTMLResponse)
-async def admin_dashboard(request: Request, response: Response, user: dict = Depends(get_user)):
+async def admin_dashboard(request: Request, user: dict = Depends(get_user)):
    csrf_token = request.cookies.get("csrf_token")
 
    if not user or user.get("email") != ADMIN:
       logger.info(f"Несанкционированная попытка входа: {user.get('email') if user else 'аноним'}")
-      raise HTTPException(status_code=401, detail="Not authorized")
+      raise HTTPException(status_code=403, detail="Access_denied")
 
-   if not csrf_token or not verify_csrf_token(csrf_token, ADMIN, CSRF_SECRET_KEY):
+   if not csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
       logger.info(f"Неверный или отсутствующий CSRF токен от {user['email']}")
       return templates.TemplateResponse("admin-dashboard.html", {
          "request": request,
@@ -102,11 +102,13 @@ async def admin_dashboard(request: Request, response: Response, user: dict = Dep
 
 
 @admin_router.post("/get-user-info")
-async def get_user_info(request_data: UserDataRequest, request=Request):
-    email = request_data.user_id
-    csrf_token = request.get("csrf_token")
-    form_csrf = request_data.csrf_token
-    if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
+async def get_user_info(
+    request: Request,
+    user_id: str = Form(...),
+    csrf_token: str = Form(...)):
+    email = user_id
+    cookie_csrf_token = request.cookies.get("csrf_token")
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
        return templates.TemplateResponse("admin-dashboard.html", {
           "request": request,
           "csrf_token": csrf_token,
@@ -122,39 +124,47 @@ async def get_user_info(request_data: UserDataRequest, request=Request):
 
 
 @admin_router.post("/update-user-data")
-async def update_user_data(request_data: UserDataRequest, request=Request):
-    email = request_data.user_id
-    csrf_token = request.get("csrf_token")
-    form_csrf = request_data.csrf_token
-    if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
+async def update_user_data(
+    request: Request,
+    user_id: str = Form(...),
+    status: str = Form(...),
+    tokens: int = Form(...),
+    contact: str = Form(...),
+    attempts: int = Form(...),
+    csrf_token: str = Form(...)
+        ):
+
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
        return templates.TemplateResponse("admin-dashboard.html", {
           "request": request,
           "csrf_token": csrf_token,
           "message": {"status": "fail", "detail": "CSRF токен недействителен"}
        })
-    current_user = await users_collection.find_one({"email": email})
+    edit_user = await users_collection.find_one({"email": user_id})
     updates = []
-    data = request_data.data
 
-    if current_user and data:
-        status = data.get("status") if data.get("status") else current_user["status"]
-        tokens = data.get("tokens") if data.get("tokens") else current_user["tokens"]
-        contact = data.get("contact") if data.get("contact") else current_user["contact"]
-        attempts = data.get("attempts") if data.get("attempts") else current_user["attempts"]
+
+    if edit_user:
+        new_status = status if status else edit_user["status"]
+        new_tokens = tokens if tokens else edit_user["tokens"]
+        new_contact = contact if contact else edit_user["contact"]
+        new_attempts = attempts if attempts else edit_user["attempts"]
         updates.append(UpdateOne(
-           {"email": current_user["email"]},
+           {"email": edit_user["email"]},
            {"$set": {
-              "status": status,
-              "tokens": tokens,
-              "contact": contact,
-              "attempts": attempts,
+              "status": new_status,
+              "tokens": new_tokens,
+              "contact": new_contact,
+              "attempts": new_attempts,
               "updated_at": datetime.now(timezone.utc)
            }}
         ))
 
     if updates:
         await users_collection.bulk_write(updates)
-        user_info = await get_user_updates(email)
+        user_info = await get_user_updates(user_id)
         return templates.TemplateResponse("admin-dashboard.html", {
             "request": request,
             "user_info": user_info,
@@ -168,48 +178,54 @@ async def update_user_data(request_data: UserDataRequest, request=Request):
     })
 
 @admin_router.post("/update-user-subscription")
-async def add_user_payment(request_data: UserDataRequest, request: Request):
-    email = request_data.user_id
-    csrf_token = request.get("csrf_token")
-    form_csrf = request_data.csrf_token
-    if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
+async def add_user_payment(
+    request: Request,
+    user_id: str = Form(...),
+    level: str = Form(...),
+    tx_id: str = Form(...),
+    amount: int = Form(...),
+    sender: str = Form(...),
+    csrf_token: str = Form(...)):
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
        return templates.TemplateResponse("admin-dashboard.html", {
           "request": request,
           "csrf_token": csrf_token,
           "message": {"status": "fail", "detail": "CSRF токен недействителен"}
        })
-    current_user = await users_collection.find_one({"email": email})
-    data = request_data.data
-    if current_user and data:
-        level = data.get("level") if data.get("level") else current_user["level"]
-        tx_id = data.get("tx_id") if data.get("tx_id") else current_user["tx_id"]
-        amount = data.get("amount") if data.get("amount") else current_user["amount"]
-        sender = data.get("sender") if data.get("sender") else current_user["sender"]
+    edit_user = await users_collection.find_one({"email": user_id})
+
+    if edit_user:
+        new_level = level if level else edit_user["level"]
+        new_tx_id = tx_id if tx_id else edit_user["tx_id"]
+        new_amount = amount if amount else edit_user["amount"]
+        new_sender = sender if sender else edit_user["sender"]
         time_now = datetime.now(timezone.utc)
         new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
-        await users_collection.update_one({"email": email}, {
+        await users_collection.update_one({"email": user_id}, {
             "$set": {
-                "status": level,
-                "original_status": level,
+                "status": new_level,
+                "original_status": new_level,
                 "tokens": 0,
                 "attempts": 0,
                 "updated_at": datetime.now(timezone.utc),
-                "subscription.level": level,
+                "subscription.level": new_level,
                 "subscription.expires_at": new_expiry,
                 "subscription.next_billing_date": new_expiry,
                 "subscription.is_active": True,
-                "subscription.transaction_id": tx_id
+                "subscription.transaction_id": new_tx_id
             },
             "$push": {
                 "subscription.payment_history": {
-                    "tx_id": tx_id,
-                    "amount": amount,
-                    "source": sender,
+                    "tx_id": new_tx_id,
+                    "amount": new_amount,
+                    "source": new_sender,
                     "date": time_now
                 }
             }
         })
-        user_info = await get_user_updates(email)
+        user_info = await get_user_updates(user_id)
         return templates.TemplateResponse("admin-dashboard.html", {
             "request": request,
             "user_info": user_info,
@@ -223,76 +239,148 @@ async def add_user_payment(request_data: UserDataRequest, request: Request):
     })
 
 
-@admin_router.post("/assign-user-collections")
-async def assign_user_collections(request_data: UserDataRequest, request: Request):
-   email = request_data.user_id
-   csrf_token = request.get("csrf_token")
-   form_csrf = request_data.csrf_token
-   if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
-      return templates.TemplateResponse("admin-dashboard.html", {
-         "request": request,
-         "csrf_token": csrf_token,
-         "message": {"status": "fail", "detail": "CSRF токен недействителен"}
-      })
-   current_user = await users_collection.find_one({"email": email})
-   data = request_data.data
-   if current_user and data:
-      pass
-
-
-@admin_router.post("/drop-user")
-async def drop_user(request_data: UserDataRequest, request: Request):
-   email = request_data.user_id
-   csrf_token = request.get("csrf_token")
-   form_csrf = request_data.csrf_token
-   if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
-      return templates.TemplateResponse("admin-dashboard.html", {
-         "request": request,
-         "csrf_token": csrf_token,
-         "message": {"status": "fail", "detail": "CSRF токен недействителен"}
-      })
-   current_user = await users_collection.find_one({"email": email})
-   data = request_data.data
-   if current_user and data:
-      pass
-
-
-@admin_router.post("/drop-user-collections")
-async def drop_user_collections(request_data: UserDataRequest, request: Request):
-   email = request_data.user_id
-   csrf_token = request.get("csrf_token")
-   form_csrf = request_data.csrf_token
-   if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
-      return templates.TemplateResponse("admin-dashboard.html", {
-         "request": request,
-         "csrf_token": csrf_token,
-         "message": {"status": "fail", "detail": "CSRF токен недействителен"}
-      })
-   current_user = await users_collection.find_one({"email": email})
-   data = request_data.data
-   if current_user and data:
-      pass
-
 
 @admin_router.post("/drop-post")
-async def drop_post(request_data: PostDataRequest, request: Request):
-    post_slug = request_data.slug
-    csrf_token = request.get("csrf_token")
-    form_csrf = request_data.csrf_token
-    if not csrf_token or csrf_token != form_csrf or not verify_csrf_token(form_csrf, ADMIN, CSRF_SECRET_KEY):
+async def drop_post(
+    request: Request,
+    slug: str = Form(...),
+    csrf_token: str = Form(...)):
+
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
        return templates.TemplateResponse("admin-dashboard.html", {
           "request": request,
           "csrf_token": csrf_token,
           "message": {"status": "fail", "detail": "CSRF токен недействителен"}
        })
 
-    existing = await blog_posts_collection.find_one({"slug": post_slug})
+    existing = await blog_posts_collection.find_one({"slug": slug})
     if existing:
         post_id = existing.get("_id")
         await blog_posts_collection.delete_one({"_id": post_id})
-        return {"slug": post_slug, "status": "dropped"}
+        return templates.TemplateResponse("admin-dashboard.html", {
+            "request": request,
+            "csrf_token": csrf_token,
+            "message": {"status": "success", "detail": "Пост успешно удалён, убедитесь, что пост отсутствует по слагу"},
+            "slug": slug
+        })
 
-    return {"slug": post_slug, "status": "fail"}
+    return templates.TemplateResponse("admin-dashboard.html", {
+        "request": request,
+        "csrf_token": csrf_token,
+        "message": {"status": "fail", "detail": "Не удалось найти и удалить пост, проверьте слаг ниже"},
+        "slug": slug
+            })
+
+
+
+@admin_router.post("/drop-user")
+async def drop_user(
+    request: Request,
+    user_id: str = Form(...),
+    user_id_repeat: str = Form(...),
+    psw: str = Form(...),
+    csrf_token: str = Form(...)):
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
+       return templates.TemplateResponse("admin-dashboard.html", {
+         "request": request,
+         "csrf_token": csrf_token,
+         "user_delete_message": {"status": "fail", "detail": "CSRF токен недействителен"}
+        })
+    delete_user = await users_collection.find_one({"email": user_id})
+
+    if delete_user:
+       if user_id != user_id_repeat:
+           return templates.TemplateResponse("admin-dashboard.html", {
+               "request": request,
+               "csrf_token": csrf_token,
+               "user_delete_message": {"status": "fail", "detail": "Повторный ввод email не совпадает, проверьте ввод"}
+           })
+       if not psw or psw != ADMIN_PIN:
+           return templates.TemplateResponse("admin-dashboard.html", {
+               "request": request,
+               "csrf_token": csrf_token,
+               "user_delete_message": {"status": "fail", "detail": "Неверный пин-код"}
+           })
+       await users_collection.delete_one({"email": user_id})
+       await tokens_collection.delete_one({"email": user_id})
+       return templates.TemplateResponse("admin-dashboard.html", {
+       "request": request,
+       "csrf_token": csrf_token,
+       "user_delete_message": {"status": "success", "detail": "Пользователь удалён"}
+   })
+    return templates.TemplateResponse("admin-dashboard.html", {
+       "request": request,
+       "csrf_token": csrf_token,
+       "user_delete_message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"}
+   })
+
+@admin_router.post("/drop-user-collections")
+async def drop_user_collections(
+    request: Request,
+    user_id: str = Form(...),
+    data_user_id_repeat: str = Form(...),
+    data_psw: str = Form(...),
+    csrf_token: str = Form(...)):
+
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
+       return templates.TemplateResponse("admin-dashboard.html", {
+         "request": request,
+         "csrf_token": csrf_token,
+         "data_delete_message": {"status": "fail", "detail": "CSRF токен недействителен"}
+       })
+    current_user_data = await users_data_collection.find_one({"email": user_id})
+
+    if current_user_data:
+       if user_id != data_user_id_repeat:
+           return templates.TemplateResponse("admin-dashboard.html", {
+               "request": request,
+               "csrf_token": csrf_token,
+               "data_delete_message": {"status": "fail", "detail": "Повторный ввод email не совпадает, проверьте ввод"}
+           })
+       if not data_psw or data_psw != ADMIN_PIN:
+           return templates.TemplateResponse("admin-dashboard.html", {
+               "request": request,
+               "csrf_token": csrf_token,
+               "data_delete_message": {"status": "fail", "detail": "Неверный пин-код"}
+           })
+       await users_data_collection.delete_one({"email": user_id})
+       await tokens_collection.delete_one({"email": user_id})
+       return templates.TemplateResponse("admin-dashboard.html", {
+           "request": request,
+           "csrf_token": csrf_token,
+           "data_delete_message": {"status": "success", "detail": "Данные пользователя удалены"}
+       })
+    return templates.TemplateResponse("admin-dashboard.html", {
+       "request": request,
+       "csrf_token": csrf_token,
+       "data_delete_message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"}
+   })
+
+
+
+@admin_router.post("/assign-user-collections")
+async def assign_user_collections(
+    request: Request,
+    user_id: str = Form(...),
+    csrf_token: str = Form(...)):
+
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
+       return templates.TemplateResponse("admin-dashboard.html", {
+         "request": request,
+         "csrf_token": csrf_token,
+         "message": {"status": "fail", "detail": "CSRF токен недействителен"}
+       })
+    current_user = await users_collection.find_one({"email": user_id})
+    if current_user:
+      pass
 
 
 @admin_router.post("/add-admin")

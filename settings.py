@@ -5,6 +5,7 @@ from pathlib import Path
 dotenv.load_dotenv('.env')
 
 ADMIN = os.getenv('ADMIN')
+ADMIN_PIN = os.getenv('ADMIN_PIN')
 APY_KEY = os.environ['APY_KEY']
 APP_SECRET_KEY = os.environ['APP_SECRET_KEY']
 CSRF_SECRET_KEY = os.environ['CSRF_SECRET_KEY']

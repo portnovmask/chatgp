@@ -24,7 +24,7 @@
 
 <div class="block">
     <h2>Поиск пользователя</h2>
-    <form method="post" action="/admin/admin-dashboard">
+    <form method="post" action="/admin/get-user-info">
         <label>Email пользователя:
             <input type="email" name="user_id" required>
         </label>
@@ -45,16 +45,16 @@
             <input type="email" name="user_id" required>
         </label>
         <label>Статус:
-            <input type="text" name="data.status">
+            <input type="text" name="status">
         </label>
         <label>Токены:
-            <input type="number" name="data.tokens">
+            <input type="number" name="tokens">
         </label>
         <label>Контакт:
-            <input type="text" name="data.contact">
+            <input type="text" name="contact">
         </label>
         <label>Попытки:
-            <input type="number" name="data.attempts">
+            <input type="number" name="attempts">
         </label>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit">Обновить</button>
@@ -68,16 +68,16 @@
             <input type="email" name="user_id" required>
         </label>
         <label>Уровень:
-            <input type="text" name="data.level">
+            <input type="text" name="level">
         </label>
         <label>Tx ID:
-            <input type="text" name="data.tx_id">
+            <input type="text" name="tx_id">
         </label>
         <label>Сумма:
-            <input type="number" name="data.amount">
+            <input type="number" name="amount">
         </label>
         <label>Отправитель:
-            <input type="text" name="data.sender">
+            <input type="text" name="sender">
         </label>
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit">Обновить подписку</button>
@@ -93,6 +93,53 @@
         <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
         <button type="submit">Удалить</button>
     </form>
+</div>
+
+<div class="block">
+    <h2>Удалить пользователя</h2>
+    <form method="post" action="/admin/drop-user">
+        <label>Email пользователя:
+            <input type="email" name="user_id" required>
+        </label>
+        <label>Повторить email:
+            <input type="email" name="user_id_repeat" required>
+        </label>
+        <label>Пин код для удаления:
+            <input type="password" name="psw" required>
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Удалить пользователя</button>
+    </form>
+
+            {% if user_delete_message %}
+          <div class="{{ user_delete_message.status }}">
+            {{ user_delete_message.detail }}
+          </div>
+            {% endif %}
+</div>
+
+
+<div class="block">
+    <h2>Удалить данные пользователя</h2>
+    <form method="post" action="/admin/drop-user-collections">
+        <label>Email пользователя:
+            <input type="email" name="user_id" required>
+        </label>
+        <label>Повторить email:
+            <input type="email" name="data_user_id_repeat" required>
+        </label>
+        <label>Пин код для удаления:
+            <input type="password" name="data_psw" required>
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Удалить данные пользователя</button>
+    </form>
+
+            {% if data_delete_message %}
+          <div class="{{ data_delete_message.status }}">
+            {{ data_delete_message.detail }}
+          </div>
+            {% endif %}
 </div>
 
 </body>

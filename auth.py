@@ -84,6 +84,7 @@ def verify_csrf_token(token: str, email, secret_key: str, ttl_seconds: int = 432
     try:
         parts = token.split(":")
         if len(parts) != 3:
+            logger.info(f"def verify_csrf_token -  {email} -  Отсутствует часть токена: {token}")
             return False
 
         encrypted_email, timestamp_str, signature = parts
@@ -91,19 +92,23 @@ def verify_csrf_token(token: str, email, secret_key: str, ttl_seconds: int = 432
             secret_key.encode(), f"{encrypted_email}:{timestamp_str}".encode(), hashlib.sha256
         ).hexdigest()
         if not hmac.compare_digest(expected_sig, signature):
+            logger.info(f"def verify_csrf_token -  {email} -  Подпись токена не подтверждена: {token}")
             return False
 
         decrypted_email = fernet.decrypt(encrypted_email.encode()).decode()
 
         if decrypted_email != email:
+            logger.info(f"def verify_csrf_token  - Почта: {email} - не включена в токен: {token}")
             return False
 
         now_ts = int(datetime.now(timezone.utc).timestamp())
         if (now_ts - int(timestamp_str)) > ttl_seconds:
+            logger.info(f"def verify_csrf_token  - Почта: {email} - просроченный токен: {token}")
             return False
 
         return decrypted_email  # можно вернуть, если хочешь использовать email дальше
     except Exception as e:
+        logger.info(f"def verify_csrf_token  - Почта: {email} - ошибка: {e}, токен: {token}")
         return False
 
 
@@ -163,9 +168,10 @@ async def get_user(request: Request):
             "subscription": user.get("subscription", {})
         }
 
-    except JWTError:
-        #raise HTTPException(status_code=401, detail="Invalid access token")
-        return {}
+    except JWTError as e:
+        logger.info(f"def get_user - Ошибка JWT: {e}")
+        raise HTTPException(status_code=401, detail="Invalid access token")
+
 
 
 from typing import Optional
