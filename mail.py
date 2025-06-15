@@ -78,7 +78,7 @@ async def send_email(to_email: str, subject: str, html_content: str):
 
     await aiosmtplib.send(
         message,
-        hostname="localhost",
+        hostname="mailhog",
         port=1025,  # порт MailHog
     )
 

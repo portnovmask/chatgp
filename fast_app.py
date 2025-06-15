@@ -313,6 +313,7 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
         # GPT запрос
         completion = await client.chat.completions.create(
             model=request_params.get("model", "gpt-4o-mini"),
+            max_completion_tokens=request_params.get("max_completion_tokens", 2048),
             messages=[
                 {"role": "system", "content": request_params.get("content", system_content)},
                 {"role": "assistant", "content": context},

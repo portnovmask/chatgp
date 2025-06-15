@@ -170,7 +170,7 @@ async def get_user(request: Request):
 
     except JWTError as e:
         logger.info(f"def get_user - Ошибка JWT: {e}")
-        raise HTTPException(status_code=401, detail="Invalid access token")
+        raise HTTPException(status_code=403, detail="Invalid access token")
 
 
 
@@ -297,7 +297,7 @@ async def register(request: Request,
         logger.info(f"/register  - def register - ошибка csrf_token не совпадает или просрочен\n")
         return RedirectResponse(url="/", status_code=303)
     token = generate_confirmation_token(email)
-    confirm_url = f"{request.base_url}confirm-email?token={token}"
+    confirm_url = f"{request.base_url}/api/confirm-email?token={token}"
     email_template = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=str(request.base_url),
@@ -328,7 +328,7 @@ async def register(request: Request,
             )
             html = repeat_email.render()
             background_tasks.add_task(send_email, email, "Подтверждение регистрации", html)
-
+            logger.info(f"/register  -  повторное письмо о подтверждении email отправлено пользователю {email}\n")
             response = RedirectResponse(url="/api/confirm-notice", status_code=303)
             return response
 
@@ -382,6 +382,7 @@ async def register(request: Request,
 
         html = email_template.render()
         background_tasks.add_task(send_email, email, "Подтверждение почты", html)
+        logger.info(f"/register  -  Письмо о подтверждении email отправлено пользователю {email}\n")
         return response
     response = RedirectResponse(url="/api/confirm-notice", status_code=303)
     # response.set_cookie("access_token", access_token, httponly=True)

@@ -8,6 +8,9 @@ services:
       - "8000:8000"
     depends_on:
       - mongo
+    environment:
+      MAIL_HOST: ${MAIL_HOST:-mailhog}
+      MAIL_PORT: ${MAIL_PORT:-1025}
 
   nginx:
     image: nginx:stable
@@ -29,6 +32,14 @@ services:
       - .env
     volumes:
       - mongo_data:/data/db
+
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "8025:8025"  # Web UI
+      - "1025:1025"  # SMTP
+    profiles: [ "dev" ]  # <-- ключ к условному включению
 
 
 volumes:

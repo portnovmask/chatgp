@@ -396,6 +396,16 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
             }
 
         })
+    return templates.TemplateResponse("feedback.html", {
+        "request": request,
+        "message": "Оплата не подтверждена, обычно это занимает не более 15 минут, но иногда может потребоваться до 2 часов. Проверьте email.",
+        "status": "warning",
+        "action": {
+            "label": "Проверить статус",
+            "url": "/dash",
+            "method": "get"
+        }
+    })
 
 
 # 🔹 Автоматическое продление подписки

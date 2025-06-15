@@ -190,20 +190,23 @@ class User:
         self.modes = {
             "trial": {
                 "model": "gpt-4o-mini",
+                "max_completion_tokens": 2048,
                 "system": "Ты ассистент, но стараешься отвечать кратко и только по делу. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
-                "token_limit": 20000000,
+                "token_limit": 2000000,
                 "temperature": 0.3,
                 "search": 20
             },
             "basic": {
                 "model": "gpt-4o-mini",
+                "max_completion_tokens": 4096,
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
-                "token_limit": 60000000,
+                "token_limit": 6000000,
                 "temperature": 0.2,
                 "search": 120
             },
             "advanced": {
                 "model": "gpt-4o-mini",
+                "max_completion_tokens": 8000,
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 10000000,
                 "temperature": 0.2,
@@ -211,13 +214,15 @@ class User:
             },
             "business": {
                 "model": "gpt-4o-mini",
+                "max_completion_tokens": 8000,
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
-                "token_limit": 50000000,
+                "token_limit": 30000000,
                 "temperature": 0.2,
                 "search": 2000
             },
             "pro": {
-                "model": "gpt-4o-mini",
+                "model": "gpt-o3-mini",
+                "max_completion_tokens": 8000,
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 20000000,
                 "temperature": 0.1,
@@ -225,9 +230,10 @@ class User:
                 "search_model": "gpt-4o-search-preview",
             },
             "premium": {
-                "model": "gpt-4o-mini",
+                "model": "gpt-4.1",
+                "max_completion_tokens": 10000,
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
-                "token_limit": 10000000000,
+                "token_limit": 20000000,
                 "temperature": 0.3,
                 "search": 2000,
                 "search_model": "gpt-4o-search-preview",
@@ -500,13 +506,19 @@ class User:
         status=self.user.get("status")
         params=self.modes.get(status)
         model=params.get("model", "gpt-4o-mini")
+        max_completion_tokens = params.get("max_completion_tokens", 2048)
         system=params.get("content", "Ты ассистент")
         token_limits=params.get("tokens", 1000000)
         temp=params.get("temperature", 0.2)
         search=params.get("search", 0)
         search_model=params.get("search_model", "gpt-4o-mini-search-preview")
 
-        request_params = {"model":model, "system":system, "token_limits":token_limits, "temperature":temp, "search":search, "search_model":search_model}
+        request_params = {"model":model,
+                          "max_completion_tokens":max_completion_tokens,
+                          "system":system, "token_limits":token_limits,
+                          "temperature":temp,
+                          "search":search,
+                          "search_model":search_model}
 
 
         return request_params
