@@ -9,6 +9,7 @@ from cryptography.fernet import Fernet
 from models.users import users_collection
 from models.tokens import tokens_collection
 from models.user_data import users_data_collection
+from models.chats import chats_collection
 from settings import *
 from mail import EmailTemplate, send_email, generate_confirmation_token
 
@@ -32,18 +33,22 @@ DEFAULT_CHAT_BODY = [
     {"prompt": "Добро пожаловать", "body": "У вас пока нет чатов, но вы можете создать новый автоматически."}
 ]
 
+# Создаём chat_id и chat_time на основе текущего времени
+DEFAULT_CHAT_ID = "default_id_" + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
 
 # Дефолтный чат
 DEFAULT_CHAT = {
-    "chat_id": "default_id",
+    "chat_id": DEFAULT_CHAT_ID,
     "chat_time": datetime.now(timezone.utc).isoformat(),
     "chat_summary": "Здесь будут ваши чаты",
-    "chat_body": DEFAULT_CHAT_BODY  # Добавляем список сообщений в chat_body
 }
 
 
+
+
+
 # Дефолтный режим
-MODE = {"current_mode": "basic", "image_upload": None, "file_upload": None, "current_chat": None}
+MODE = {"current_mode": "basic", "image_upload": None, "file_upload": None, "current_chat": "new"}
 
 fernet = Fernet(FERNET_KEY)
 
@@ -110,20 +115,6 @@ def verify_csrf_token(token: str, email, secret_key: str, ttl_seconds: int = 432
     except Exception as e:
         logger.info(f"def verify_csrf_token  - Почта: {email} - ошибка: {e}, токен: {token}")
         return False
-
-
-from bson import ObjectId
-
-def serialize(value):
-    if isinstance(value, ObjectId):
-        return str(value)
-    if isinstance(value, datetime):
-        return value.isoformat()
-    if isinstance(value, dict):
-        return {k: serialize(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [serialize(v) for v in value]
-    return value
 
 
 async def get_user(request: Request):
@@ -430,8 +421,8 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     logger.info(f"/login  - def login - Для пользователя: {email} - созданы новые токены\n")
     user_id = str(user["_id"])
     status = user["status"]
-    existing_data = await users_data_collection.find_one({"user_id": user_id})
-    if not existing_data:
+    existing_user = await users_data_collection.find_one({"user_id": user_id})
+    if not existing_user:
         user_data = {
             "user_id": user_id,
             "email": email,
@@ -440,6 +431,18 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             "chats": [DEFAULT_CHAT]
         }
         await users_data_collection.insert_one(user_data)
+
+    existing_chat = await chats_collection.find_one({"chat_id": DEFAULT_CHAT_ID})
+    if not existing_chat:
+        default_chat = {
+            "chat_id": DEFAULT_CHAT_ID,
+            "chat_time": datetime.now(timezone.utc).isoformat(),
+            "chat_summary": "Здесь будут ваши чаты",
+            "chat_body": DEFAULT_CHAT_BODY,
+            "user_email": email
+        }
+        await chats_collection.insert_one(default_chat)
+
         logger.info(f"/login - создан user_data для {email}")
     else:
         logger.info(f"/login - user_data уже существует для {email}")
@@ -572,6 +575,7 @@ async def vendor_user_register(email, vendor, vendor_id):
     }
     result = await users_collection.insert_one(new_user)
     existing_user_data = await users_data_collection.find_one({"email": email})
+    existing_chat = await chats_collection.find_one({"chat_id": DEFAULT_CHAT_ID})
     if not existing_user_data:
         logger.info(
             f"/auth/google/callback  - Новый пользователь: {email} - выполнил вход через Гугл, создаём чат по умолчанию\n")
@@ -586,6 +590,15 @@ async def vendor_user_register(email, vendor, vendor_id):
             "chats": [DEFAULT_CHAT]  # Добавляем дефолтный чат в массив chats
         }
         await users_data_collection.insert_one(user_data)
+    if not existing_chat:
+        default_chat = {
+            "chat_id": DEFAULT_CHAT_ID,
+            "chat_time": datetime.now(timezone.utc).isoformat(),
+            "chat_summary": "Здесь будут ваши чаты",
+            "chat_body": DEFAULT_CHAT_BODY,
+            "user_email": email
+        }
+        await chats_collection.insert_one(default_chat)
 
     # Выдаём токены
     access_token, access_expires, access_jti = create_access_token(str(email))

@@ -228,10 +228,10 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
     email_template = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=BASE_URL,
-        header_text="Вы купили подписку!",
-        description="Это письмо содержит важную информацию.",
+        header_text="Вы выбрали подписку!!!",
+        description=f"Уровеень подписки: {LEVELS[PRICES.index(price)]}.",
         recipient_name=email,
-        body_text="Спасибо за выбор подписки на ChatGP. "
+        body_text=f"Спасибо за выбор подписки {LEVELS[PRICES.index(price)]} на ChatGP по цене {price}!"
                   "Если вы еще не оплатили по ссылке или qr коду на сайте вы можете провести оплату по ссылке ниже с ценой подписки."
                   "Для оплаты по ссылке убедитесь, что у вас есть аккаунт в",
         action_label=price,
@@ -239,7 +239,7 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
         footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
     )
     html = email_template.render()
-    background_tasks.add_task(send_email, email, "Подтверждение регистрации", html)
+    background_tasks.add_task(send_email, email, "Выбор подписки", html)
 
     return templates.TemplateResponse("payment.html", {
         "request": request,

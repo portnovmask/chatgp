@@ -2,10 +2,17 @@ from pymongo import UpdateOne
 import logging
 from models.user_data import users_data_collection
 from models.users import users_collection
+from models.chats import chats_collection
 from datetime import datetime, timezone
+from bson import BSON
+from bson.errors import InvalidBSON
+
 
 
 logger = logging.getLogger("app_logger")
+
+MAX_CHATS_PER_USER = 250
+MAX_CHAT_SIZE_MB = 12
 
 async def update_user_mode(user, mode: str):
 
@@ -62,8 +69,11 @@ async def delete_chat(user, chat_id):
     user_data = await users_data_collection.find_one(
         {"email": email, "chats.chat_id": chat_id}
     )
+    chat = await chats_collection.find_one(
+        {"user_email": email, "chat_id": chat_id}
+    )
 
-    if not user_data:
+    if not user_data or not chat:
         logger.info(f"delete_chat - пользователь {email} - попытка удаления несуществующего чата: {chat_id}\n")
         return False  # Чат не найден, ничего не удаляем
 
@@ -76,6 +86,10 @@ async def delete_chat(user, chat_id):
             }
         }
     )
+    await chats_collection.delete_one({
+        "user_email": email,
+        "chat_id": chat_id
+    })
 
     # Обновляем поле current_chat во всех режимах
     await users_data_collection.update_one(
@@ -92,14 +106,30 @@ async def delete_chat(user, chat_id):
 
 
 async def set_chat(user, chat_id: str):
-    if user and chat_id != "new":
-        await users_data_collection.update_one(
-            {"email": user.get("email"), "mode.current_chat": {"$exists": True}},
-            {"$set": {"mode.$[].current_chat": chat_id}}  # ✅ Обновляем current_chat во всех объектах массива mode
-        )
-    else:
-        logger.info("set_chat - было выбрано создание нового чата, его айди установится после стрима\n")
+    if not user:
+        logger.warning("set_chat — не передан пользователь")
         return
+
+    if chat_id == "new":
+        logger.info("set_chat — выбран режим нового чата")
+        return
+
+    # Проверяем, существует ли чат в коллекции
+    chat_exists = await chats_collection.find_one({
+        "chat_id": chat_id,
+        "user_email": user.get("email")
+    })
+
+    if not chat_exists:
+        logger.warning(f"set_chat — чат с id={chat_id} не найден у пользователя {user.get('email')}")
+        return
+
+    # Обновляем current_chat
+    await users_data_collection.update_one(
+        {"email": user.get("email"), "mode.current_chat": {"$exists": True}},
+        {"$set": {"mode.$[].current_chat": chat_id}}
+    )
+
 
 
 async def reset_chat(user):
@@ -155,18 +185,22 @@ async def get_last_chat_id(user, recent_chat = False):
 
 
 async def get_chat_body_by_id(user, chat_id):
-    data = await users_data_collection.find_one(
-        {"email": user.get("email")},
-        {"chats.chat_body": 1, "chats.chat_id": 1, "_id": 0}  # ✅ Теперь запрашиваем chat_id тоже!
+    data = await chats_collection.find_one(
+        {
+            "user_email": user.get("email"),
+            "chat_id": chat_id
+        },
+        {
+            "chat_body": 1,
+            "_id": 0
+        }
     )
 
-    if not data or "chats" not in data:
-        return None  #  Возвращаем None, если чатов нет
+    if not data:
+        return None
 
-    #  Безопасно проверяем наличие chat_id перед сравнением
-    chat_body = next((chat.get("chat_body") for chat in data["chats"] if chat.get("chat_id") == chat_id), None)
+    return data.get("chat_body", [])
 
-    return chat_body
 
 async def get_current_attempts(user):
     attempts = await users_collection.find_one(
@@ -190,7 +224,7 @@ class User:
         self.modes = {
             "trial": {
                 "model": "gpt-4o-mini",
-                "max_completion_tokens": 2048,
+                "max_completion_tokens": 3000,
                 "system": "Ты ассистент, но стараешься отвечать кратко и только по делу. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 2000000,
                 "temperature": 0.3,
@@ -322,17 +356,26 @@ class User:
     async def get_last_chat_messages(self, chat_id: str, count: int = 10):
         """Возвращает последние count сообщений из chat_body указанного чата."""
 
-        data = await users_data_collection.find_one(
-            {"email": self.user.get("email"), "chats.chat_id": chat_id},  # Ищем пользователя с нужным chat_id
-            {"chats.$": 1, "_id": 0}  # Берем только соответствующий чат
+        data = await chats_collection.find_one(
+            {
+                "user_email": self.user.get("email"),
+                "chat_id": chat_id
+            },
+            {
+                "chat_body": 1,  # явно укажем нужное поле
+                "_id": 0
+            }
         )
 
-        if not data or "chats" not in data or not data["chats"]:
+        if not data or "chat_body" not in data:
             return ""
 
-        chat_body = data["chats"][0].get("chat_body", [])[-count:]  # Берем последние count сообщений
+        chat_body = data["chat_body"][-count:]  # Берем последние count сообщений
 
-        return "\n".join([f"Пользователь: {msg['prompt']} \nОтвет LLM модели: {msg['body']}" for msg in chat_body])
+        return "\n".join(
+            f"Пользователь: {msg.get('prompt', '')}\nОтвет LLM модели: {msg.get('body', '')}"
+            for msg in chat_body
+        )
 
     async def get_user_mode_from_db(self):
         me_data = await users_data_collection.find_one(
@@ -354,6 +397,7 @@ class User:
         )
 
         if not me_data or not me_data.get("mode"):
+            await self.refresh()
             return None  # Если mode отсутствует
 
         return me_data["mode"][0].get("image_upload")  #  Берём image_upload из первого элемента массива
@@ -367,49 +411,94 @@ class User:
         )
 
         if not me_data or not me_data.get("mode"):
+            await self.refresh()
             return None  # Если mode отсутствует
 
         return me_data["mode"][0].get("file_upload")  #  Берём file_upload из первого элемента массива
 
-
-
-
-
     async def add_to_chat_db(self, prompt: str, body: str, chat_id: str = "new", stream_id: str = None,
                              summary: str = "Без названия"):
-        chat_update = {"prompt": prompt, "body": body}
-        current_time = datetime.now(timezone.utc).isoformat()  # Актуальное время
-        logger.info(f"def add_to_chat_db - Полный ответ в функции add_to_chat_db: {body[0:15]}...\n")
-        logger.info(f"def add_to_chat_db - chat_id в функции add_to_chat_db: {chat_id}\n")
-        logger.info(f"def add_to_chat_db - stream_id в функции add_to_chat_db: {stream_id}\n")
-        try:
-            result = await users_data_collection.update_one(
-                {"email": self.user.get("email"), "chats.chat_id": chat_id},  # Проверяем, есть ли этот чат
-                {
-                    "$push": {"chats.$.chat_body": chat_update},  # Добавляем сообщение в chat_body
-                    "$set": {"chats.$.chat_time": current_time}  # Обновляем chat_time
-                }
-            )
 
-            if result.matched_count == 0 and stream_id:  # Если чат не найден, создаем новый
+        chat_update = {"prompt": prompt, "body": body}
+        current_time = datetime.now(timezone.utc).isoformat()
+        email = self.user.get("email")
+
+        try:
+            # Проверяем размер документа
+            chat_doc = await chats_collection.find_one({"user_email": email, "chat_id": chat_id})
+            chat_too_large = False
+
+            if chat_doc:
+                try:
+                    size_bytes = len(BSON.encode(chat_doc))
+                    if size_bytes >= MAX_CHAT_SIZE_MB * 1024 * 1024:
+                        chat_too_large = True
+                        logger.warning(f"Документ {chat_id} превышает {MAX_CHAT_SIZE_MB} МБ и будет архивирован.")
+                except InvalidBSON:
+                    logger.warning("Невозможно оценить размер документа.")
+
+            # Если чат большой или не найден — создаём новый
+            if not chat_doc or chat_too_large:
+                # Используем summary старого чата, если создаём новый из-за переполнения
+                if chat_doc and chat_too_large:
+                    summary = chat_doc.get("chat_summary", "Без названия")
+                # Проверяем количество чатов
+                user_chats = await users_data_collection.find_one({"email": email}, {"chats": 1})
+                chats_list = user_chats.get("chats", []) if user_chats else []
+
+                if len(chats_list) >= MAX_CHATS_PER_USER:
+                    # Удаляем самый старый чат
+                    oldest = min(chats_list, key=lambda c: c.get("chat_time", ""))
+                    await users_data_collection.update_one(
+                        {"email": email},
+                        {"$pull": {"chats": {"chat_id": oldest["chat_id"]}}}
+                    )
+                    await chats_collection.delete_one({"user_email": email, "chat_id": oldest["chat_id"]})
+                    logger.info(f"Удалён старый чат: {oldest['chat_id']}")
+
+                # Создаём новый чат
+                new_chat_id = stream_id or f"chat_{datetime.now(timezone.utc).timestamp()}"
                 chat_entry = {
-                    "chat_id": stream_id,
-                    "chat_time": current_time,  # Устанавливаем текущее время
+                    "chat_id": new_chat_id,
+                    "user_email": email,
+                    "chat_time": current_time,
                     "chat_summary": summary,
-                    "chat_body": [chat_update]  # Новый список сообщений
+                    "chat_body": [chat_update]
                 }
+
                 await users_data_collection.update_one(
-                    {"email": self.user.get("email")},
+                    {"email": email},
                     {
-                        "$set": {"mode.$[].current_chat": stream_id},  # Обновляем current_chat
-                        "$push": {"chats": chat_entry}  # Добавляем новый чат в массив chats
+                        "$set": {"mode.$[].current_chat": new_chat_id},
+                        "$push": {
+                            "chats": {
+                                "chat_id": new_chat_id,
+                                "chat_time": current_time,
+                                "chat_summary": summary
+                            }
+                        }
+                    }
+                )
+                await chats_collection.insert_one(chat_entry)
+                logger.info(f"Создан новый чат: {new_chat_id}")
+            else:
+                # Добавляем в существующий чат
+                await users_data_collection.update_one(
+                    {"email": email, "chats.chat_id": chat_id},
+                    {"$set": {"chats.$.chat_time": current_time}}
+                )
+                await chats_collection.update_one(
+                    {"user_email": email, "chat_id": chat_id},
+                    {
+                        "$push": {"chat_body": chat_update},
+                        "$set": {"chat_time": current_time}
                     }
                 )
 
-                logger.info(f"def add_to_chat_db - создан новый чат add_to_chat_db {stream_id}\n")
             await self.refresh()
+
         except Exception as e:
-            logger.info(f"def add_to_chat_db - ошибка добавления данных в чат: {e}")
+            logger.error(f"Ошибка в add_to_chat_db: {e}")
             return
 
 
@@ -420,7 +509,7 @@ class User:
         now = datetime.now(timezone.utc)
         logger.info(f"def update_token_count_db token_count: {token_count}")
         if not self.user:
-            return
+            return False
         updates = []
         stat = self.user.get("status")
         token_limit = self.modes.get(stat, {}).get("token_limit", 0)
@@ -506,7 +595,7 @@ class User:
         status=self.user.get("status")
         params=self.modes.get(status)
         model=params.get("model", "gpt-4o-mini")
-        max_completion_tokens = params.get("max_completion_tokens", 2048)
+        max_completion_tokens = params.get("max_completion_tokens", 3000)
         system=params.get("content", "Ты ассистент")
         token_limits=params.get("tokens", 1000000)
         temp=params.get("temperature", 0.2)

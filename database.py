@@ -15,6 +15,9 @@ tokens = db.get_collection("tokens")
 blog_posts = db.get_collection("blog_posts")
 users = db.get_collection("users")
 user_data = db.get_collection("user_data")
+chats = db.get_collection("chats")
+
+
 
 # Создание индексов
 async def create_indexes():
@@ -22,6 +25,7 @@ async def create_indexes():
     await users.create_index("email", unique=True)
     await users.create_index("subscription.pending_activation_date")
     await user_data.create_index("email", unique=True)
+    await chats.create_index([("user_email", 1), ("created_at", -1)])
 
 # Инициализация базы данных
 async def init_db():
