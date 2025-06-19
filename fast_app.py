@@ -3,7 +3,7 @@ import logging
 import os
 from database import init_db
 from logging.handlers import RotatingFileHandler
-from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Request, Response, Query, Depends, HTTPException, UploadFile, File, BackgroundTasks
 from contextlib import asynccontextmanager
 from fastapi.responses import StreamingResponse, HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,7 +17,7 @@ from auth import router as auth_router
 from blog_post import router as posts_router
 from mail import router as mail_router
 from admin import admin_router as admin_router
-from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions
+from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions, notify_expiring_subscriptions
 from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_or_guest, verify_csrf_token
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR
@@ -51,7 +51,7 @@ if not logger.hasHandlers():
 
 MAX_FILE_AGE = timedelta(minutes=15)  # 15 минут
 SUBSCRIPTION_RENEW_INTERVAL = 3600  # 1 час
-
+NOTIFY_INTERVAL = 3600
 
 
 # === Современный lifespan-хендлер ===
@@ -63,6 +63,7 @@ async def lifespan(_app: FastAPI):
     tasks = [
         asyncio.create_task(cleanup_expired_files()),
         asyncio.create_task(auto_renew_subscriptions()),
+        asyncio.create_task(auto_notify_expiring_subscriptions()),
     ]
     yield
     for task in tasks:
@@ -814,7 +815,17 @@ async def auto_renew_subscriptions():
             print(f"[SUBSCRIPTIONS] Ошибка обновления: {e}")
         await asyncio.sleep(SUBSCRIPTION_RENEW_INTERVAL)
 
-
+async def auto_notify_expiring_subscriptions():
+    while True:
+        try:
+            background_tasks = BackgroundTasks()
+            await notify_expiring_subscriptions(background_tasks)
+            # вручную запускаем отложенные задачи
+            for task in background_tasks.tasks:
+                await task()
+        except Exception as e:
+            print(f"[SUBSCRIPTIONS] Ошибка уведомления: {e}")
+        await asyncio.sleep(NOTIFY_INTERVAL)
 
 if __name__ == "__main__":
     import uvicorn

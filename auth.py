@@ -318,7 +318,7 @@ async def register(request: Request,
                 footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
             )
             html = repeat_email.render()
-            background_tasks.add_task(send_email, email, "Подтверждение регистрации", html)
+            background_tasks.add_task(send_email, existing_user, "Повторно. Подтверждение почты", html)
             logger.info(f"/register  -  повторное письмо о подтверждении email отправлено пользователю {email}\n")
             response = RedirectResponse(url="/api/confirm-notice", status_code=303)
             return response
@@ -372,7 +372,7 @@ async def register(request: Request,
         response = JSONResponse(content={"next_url": "/api/confirm-notice"})
 
         html = email_template.render()
-        background_tasks.add_task(send_email, email, "Подтверждение почты", html)
+        background_tasks.add_task(send_email, new_user, "Подтверждение почты", html)
         logger.info(f"/register  -  Письмо о подтверждении email отправлено пользователю {email}\n")
         return response
     response = RedirectResponse(url="/api/confirm-notice", status_code=303)
@@ -382,7 +382,7 @@ async def register(request: Request,
     # response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
 
     html = email_template.render()
-    background_tasks.add_task(send_email, email, "Подтверждение почты", html)
+    background_tasks.add_task(send_email, new_user, "Подтверждение почты", html)
     return response
 
 

@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.templating import Jinja2Templates
 import uuid
 import httpx
+from pymongo import UpdateOne
 import re
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
@@ -239,7 +240,7 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
         footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
     )
     html = email_template.render()
-    background_tasks.add_task(send_email, email, "Выбор подписки", html)
+    background_tasks.add_task(send_email, user, "Выбор подписки", html)
 
     return templates.TemplateResponse("payment.html", {
         "request": request,
@@ -277,7 +278,7 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
 
 
 @router.post("/ton/verify-payment/")
-async def verify_ton_payment(request: Request, level: str, user: dict = Depends(get_user)):
+async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks, level: str, user: dict = Depends(get_user)):
     if not user:
         return RedirectResponse(url="/")
     if level not in LEVELS:
@@ -355,6 +356,24 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
             }
         })
         logger.info(f"verify_ton_payment - Подписка активирована, email: {user.get("email")}, level: {level}")
+
+        email_template = EmailTemplate(
+            logo_url=LOGO_URL,
+            header_link=BASE_URL,
+            header_text="Вы активировали подписку!!!",
+            description=f"Уровень подписки: {level}.",
+            recipient_name=email,
+            body_text=f"Спасибо за оплату подписки уровня {level} на ChatGP по цене {price}!"
+                      "Срок подписки - 30 дней."
+                      "Желаем вам продуктивной работы и приятного времяпрепровождения с ChatGP."
+                      "Если вы оплатили подписку по ошибке, вы можете написать в поддержку для отмены и возврата средств.",
+            action_label="Личный кабинет",
+            action_url=f"{BASE_URL}/dash",
+            footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
+        )
+        html = email_template.render()
+        background_tasks.add_task(send_email, user, "Выбор подписки", html)
+
         return templates.TemplateResponse("feedback.html", {
             "request": request,
             "message": f"Подписка '{PRETTY_NAMES[level]}' активирована!",
@@ -385,6 +404,24 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
         })
         logger.info(
             f"verify_ton_payment - Подписка будет активирована по истечение текущей подписки: {format_datetime_pretty(current_expiry)}, email: {user.get("email")}, level: {level}")
+
+        email_template = EmailTemplate(
+            logo_url=LOGO_URL,
+            header_link=BASE_URL,
+            header_text="Подписка будет позже!!!",
+            description=f"Уровень подписки: {level}.",
+            recipient_name=email,
+            body_text=f"Спасибо за оплату новой подписки уровня {level} на ChatGP по цене {price}!"
+                      f"Ваша текущая подписка истекает: {format_datetime_pretty(current_expiry)}."
+                      f"Новая подписка вступит в силу сразу по истечение текущей."
+                      "Желаем вам продуктивной работы и приятного времяпрепровождения с ChatGP."
+                      "Если вы оплатили подписку по ошибке, вы можете написать в поддержку для отмены и возврата средств.",
+            action_label="Личный кабинет",
+            action_url=f"{BASE_URL}/dash",
+            footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
+        )
+        html = email_template.render()
+        background_tasks.add_task(send_email, user, "Выбор подписки", html)
         return templates.TemplateResponse("feedback.html", {
             "request": request,
             "message": f"Оплата принята! Новый уровень подписки '{PRETTY_NAMES[level]}' будет активирован после окончания текущего периода: {format_datetime_pretty(current_expiry)}.",
@@ -396,6 +433,8 @@ async def verify_ton_payment(request: Request, level: str, user: dict = Depends(
             }
 
         })
+    logger.info(
+        f"verify_ton_payment - Оплата подписки не подтверждена, email: {user.get("email")}, level: {level}")
     return templates.TemplateResponse("feedback.html", {
         "request": request,
         "message": "Оплата не подтверждена, обычно это занимает не более 15 минут, но иногда может потребоваться до 2 часов. Проверьте email.",
@@ -465,186 +504,66 @@ async def renew_subscriptions():
 
 
 
-# # Отправка почты
-#
-# # Шаблон блоков универсального html письма
-# class EmailTemplate:
-#     def __init__(self, **kwargs):
-#         self.data = {
-#             "logo_url": kwargs.get("logo_url"),
-#             "header_link": kwargs.get("header_link"),
-#             "header_text": kwargs.get("header_text"),
-#             "description": kwargs.get("description"),
-#             "recipient_name": kwargs.get("recipient_name"),
-#             "body_text": kwargs.get("body_text"),
-#             "action_label": kwargs.get("action_label"),
-#             "action_url": kwargs.get("action_url"),
-#             "footer_text": kwargs.get("footer_text"),
-#             "date": kwargs.get("date") or datetime.now(timezone.utc).strftime("%B %d, %Y")
-#         }
-#
-#     def render(self) -> str:
-#         template = templates.get_template("email_template.html")
-#         return template.render(**self.data)
-#
-#
-#
-# # SMTP клиент
-# async def send_email(to_email: str, subject: str, html_content: str):
-#     message = EmailMessage()
-#     message["From"] = "noreply@example.com"
-#     message["To"] = to_email
-#     message["Subject"] = subject
-#     message.set_content("HTML only email", subtype="plain")
-#     message.add_alternative(html_content, subtype="html")
-#
-#     # await aiosmtplib.send(
-#     #     message,
-#     #     hostname="smtp.example.com",
-#     #     port=587,
-#     #     start_tls=True,
-#     #     username="your_username",
-#     #     password="your_password",
-#     # )
-#
-#     await aiosmtplib.send(
-#         message,
-#         hostname="localhost",
-#         port=1025,  # порт MailHog
-#     )
-#
-#
-# # Универсальный маршрут для отправки писем
-# @router.post("/send-email/")
-# async def send_email_route(background_tasks: BackgroundTasks):
-#     email = EmailTemplate(
-#         logo_url="https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png",
-#         header_link="https://example.com",
-#         header_text="Добро пожаловать!",
-#         description="Это письмо содержит важную информацию.",
-#         recipient_name="Иван Иванов",
-#         body_text="Спасибо за регистрацию на нашем сервисе. Пожалуйста, подтвердите вашу почту.",
-#         action_label="Подтвердить Email",
-#         action_url="https://example.com/confirm?token=abc123",
-#         footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
-#     )
-#
-#     html = email.render()
-#     background_tasks.add_task(send_email, "ivan@example.com", "Добро пожаловать!", html)
-#     return {"message": "Письмо отправлено"}
-#
-#
-#
+async def notify_expiring_subscriptions(background_tasks: BackgroundTasks = None):
+    now = datetime.now(timezone.utc)
+    targets = []
 
-# Контактная форма
+    for days_before in (3, 1):
+        target_date = now + timedelta(days=days_before)
+        users = await users_collection.find({
+            "subscription.expires_at": {
+                "$gte": target_date.replace(hour=0, minute=0, second=0),
+                "$lte": target_date.replace(hour=23, minute=59, second=59)
+            },
+            "$or": [
+                {"subscription.notified_days_before": {"$ne": days_before}},
+                {"subscription.notified_days_before": {"$exists": False}}
+            ]
+        }).to_list(None)
 
-EMAIL_REGEX = re.compile(r"^[^@]+@[^@]+\.[^@]+$")
+        for user in users:
+            email = user["email"]
+            level = user["subscription"]["level"]
+            expires_at = user["subscription"]["expires_at"]
+            username = user.get("name") or email.split("@")[0]
 
+            subject = f"Ваша подписка истекает через {days_before} день(дня)"
+            desc = f"Уровень подписки: {level}. Истекает: {format_datetime_pretty(expires_at)}"
 
-# Дефолтный маршрут контактной формы
-# @router.get("/contact", response_class=HTMLResponse)
-# async def contact_form(request: Request):
-#     return templates.TemplateResponse("contact.html", {
-#         "request": request,
-#         "form_time": datetime.now(timezone.utc).isoformat()
-#     })
-#
-#
-# # Маршрут после отправки контактной формы с проверкой каптчи, пустого поля, времени заполнения, длины строки
-# @router.post("/contact/submit", response_class=HTMLResponse)
-# async def submit_contact_form(
-#         request: Request,
-#         name: str = Form(...),
-#         email: str = Form(...),
-#         message: str = Form(...),
-#         form_time: str = Form(...),
-#         honeypot: str = Form(""),
-#         recaptcha_token: str = Form(...),
-#         background_tasks: BackgroundTasks = None
-# ):
-#     error = None
-#     success_message = None
-#
-#     # 🐜 Anti-bot (honeypot, timing)
-#     if honeypot:
-#         error = "Обнаружен бот."
-#     else:
-#         try:
-#             form_dt = datetime.fromisoformat(form_time)
-#             if (datetime.now(timezone.utc) - form_dt).total_seconds() < 5:
-#                 error = "Форма отправлена слишком быстро."
-#         except Exception:
-#             error = "Ошибка времени отправки формы."
-#
-#     # 📧 Email format
-#     if not error and not EMAIL_REGEX.match(email):
-#         error = "Некорректный email."
-#
-#     # ✏️ Message length
-#     if not error and len(message.strip()) < 50:
-#         error = "Сообщение должно содержать не менее 50 символов."
-#
-#     # 🔐 reCAPTCHA
-#     if not error:
-#         async with httpx.AsyncClient() as client:
-#             r = await client.post(
-#                 "https://www.google.com/recaptcha/api/siteverify",
-#                 data={"secret": RECAPTCHA_SECRET, "response": recaptcha_token}
-#             )
-#             result = r.json()
-#             if not result.get("success") or result.get("score", 0) < 0.5:
-#                 error = "Проверка reCAPTCHA не пройдена."
-#
-#     if not error:
-#         email_template = EmailTemplate(
-#             logo_url="https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png",
-#             header_link="https://example.com",
-#             header_text=f"Новое сообщение от {name}",
-#             description=message,
-#             recipient_name="Администратор",
-#             body_text=f"Письмо от {name} ({email}):\n\n{message}",
-#             action_label="Ответить",
-#             action_url=f"mailto:{email}",
-#             footer_text="Контактная форма сайта"
-#         )
-#         html = email_template.render()
-#         background_tasks.add_task(send_email, "admin@example.com", f"Новое сообщение от {name}", html)
-#         success_message = "Сообщение отправлено. Спасибо!"
-#         # очищаем поля формы
-#         name = ""
-#         email = ""
-#         message = ""
-#
-#     return templates.TemplateResponse("contact.html", {
-#         "request": request,
-#         "form_time": datetime.now(timezone.utc).isoformat(),
-#         "message": success_message,
-#         "error": error,
-#         "name": name,
-#         "email": email,
-#         "message_text": message
-#     })
-#
-#
-#
-# # Подтверждение email
-#
-# @router.get("/confirm-notice", response_class=HTMLResponse)
-# async def confirm_notice(request: Request):
-#     return templates.TemplateResponse("confirm_notice.html", {"request": request})
-#
-# @router.get("/confirm-email")
-# async def confirm_email(token: str):
-#     email = confirm_token(token)
-#     if not email:
-#         return HTMLResponse("<h2>Срок действия ссылки истёк или она недействительна.</h2>", status_code=400)
-#
-#     result = await users_collection.update_one(
-#         {"email": email, "contact": "not_confirmed"},
-#         {"$set": {"contact": email}}
-#     )
-#
-#     if result.modified_count == 1:
-#         return HTMLResponse("<h2>Email подтверждён! Теперь вы можете войти в систему.</h2>")
-#     else:
-#         return HTMLResponse("<h2>Email уже был подтверждён или не найден.</h2>")
+            body_text = (
+                f"Ваша подписка уровня {level} истекает {format_datetime_pretty(expires_at)}.\n"
+                f"Продлите её, чтобы не потерять доступ к функциям ChatGP.\n"
+                "Если вы не планируете продлевать, доступ будет ограничен автоматически."
+            )
+
+            email_template = EmailTemplate(
+                logo_url=LOGO_URL,
+                header_link=BASE_URL,
+                header_text="Подписка скоро истекает",
+                description=desc,
+                recipient_name=username,
+                body_text=body_text,
+                action_label="Продлить подписку",
+                action_url=f"{BASE_URL}/subscribe",
+                footer_text="Если вы считаете, что письмо пришло по ошибке — просто проигнорируйте его."
+            )
+            html = email_template.render()
+
+            # Отправка письма в фоне
+            background_tasks.add_task(send_email, user, subject, html)
+
+            targets.append(UpdateOne(
+                {"email": email},
+                {
+                    "$addToSet": {"subscription.notified_days_before": days_before},
+                    "$set": {"subscription.last_notified": now}
+                }
+            ))
+
+    if targets:
+        await users_collection.bulk_write(targets)
+        logger.info(f"notify_expiring_subscriptions - отправлено уведомлений: {len(targets)}")
+    else:
+        logger.info("notify_expiring_subscriptions - уведомлений не требовалось")
+
+    return {"message": "Уведомления о подписках обработаны"}

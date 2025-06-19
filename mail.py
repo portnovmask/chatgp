@@ -7,7 +7,7 @@ from fastapi import APIRouter, Request, BackgroundTasks, Form
 from fastapi.templating import Jinja2Templates
 from itsdangerous import URLSafeTimedSerializer
 from models.users import users_collection
-from settings import EMAIL_CONFIRM_KEY, CONFIRM_SALT, RECAPTCHA_SECRET
+from settings import EMAIL_CONFIRM_KEY, CONFIRM_SALT, RECAPTCHA_SECRET, LOGO_URL, BASE_URL
 import logging
 from fastapi.responses import HTMLResponse, RedirectResponse
 
@@ -59,13 +59,18 @@ def confirm_token(token: str, expiration=45000):
 
 
 # SMTP клиент
-async def send_email(to_email: str, subject: str, html_content: str):
+async def send_email(user: dict, subject: str, html_content: str):
+    if not user.get("contact") or user.get("contact") == "not_confirmed":
+        to_email = user.get("email")
+    else:
+        to_email = user.get("contact")
     message = EmailMessage()
     message["From"] = "noreply@example.com"
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content("HTML only email", subtype="plain")
     message.add_alternative(html_content, subtype="html")
+
 
     # await aiosmtplib.send(
     #     message,
@@ -85,10 +90,10 @@ async def send_email(to_email: str, subject: str, html_content: str):
 
 # Универсальный маршрут для отправки писем
 @router.post("/send-email/")
-async def send_email_route(background_tasks: BackgroundTasks):
+async def send_email_route(background_tasks: BackgroundTasks, email_to: str = Form(...)| None):
     email = EmailTemplate(
-        logo_url="https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png",
-        header_link="https://example.com",
+        logo_url=LOGO_URL,
+        header_link=BASE_URL,
         header_text="Добро пожаловать!",
         description="Это письмо содержит важную информацию.",
         recipient_name="Иван Иванов",
@@ -97,9 +102,9 @@ async def send_email_route(background_tasks: BackgroundTasks):
         action_url="https://example.com/confirm?token=abc123",
         footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
     )
-
+    user = {"email": email_to or "ivan@example.com"}
     html = email.render()
-    background_tasks.add_task(send_email, "ivan@example.com", "Добро пожаловать!", html)
+    background_tasks.add_task(send_email, user, "Добро пожаловать!", html)
     return {"message": "Письмо отправлено"}
 
 # Контактная форма
@@ -163,18 +168,19 @@ async def submit_contact_form(
 
     if not error:
         email_template = EmailTemplate(
-            logo_url="https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png",
-            header_link="https://example.com",
+            logo_url=LOGO_URL,
+            header_link=BASE_URL,
             header_text=f"Новое сообщение от {name}",
-            description=message,
+            description="Сообщение из контактной формы",
             recipient_name="Администратор",
             body_text=f"Письмо от {name} ({email}):\n\n{message}",
             action_label="Ответить",
             action_url=f"mailto:{email}",
             footer_text="Контактная форма сайта"
         )
+        user = {"email": "support@chatgp.ru", "contact": "support@chatgp.ru"}
         html = email_template.render()
-        background_tasks.add_task(send_email, "admin@example.com", f"Новое сообщение от {name}", html)
+        background_tasks.add_task(send_email, user, f"Новое сообщение от {name}", html)
         success_message = "Сообщение отправлено. Спасибо!"
         # очищаем поля формы
         name = ""
