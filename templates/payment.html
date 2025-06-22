@@ -8,38 +8,76 @@
         <aside class="sidebar">
             <a href="/" class="logo"></a>
             <h2>Оплата подписки - {{ pretty_name }}</h2>
-            <p><small>Подписка оформляется на 7 дней. Взаиморасчеты
-                выполняются в криптовалюте Тон.
-                За сутки до истечения подписки вам будет оправлен
-                 email. Также, информация
+            <p><small>Подписка оформляется на 30 дней. Взаиморасчеты
+                выполняются в криптовалюте Тон или в рублях на Boosty.
+                За 3ое суток и за сутки до истечения подписки вам будут оправлены
+                 email уведомления. Так же, информация
                 об истечении подписки будет отображена на странице с вашими чатами.
                 Понижение уровня подписки вступает в силу
                 по истечение периода оплаченной повышенной ступени. Если вы
-                не можете использовать криптовалюту Тон по каким-то причинам
-                - пишите в поддержку.
+                не можете использовать криптовалюту Тон или Бусти по каким-либо причинам, пишите в поддержку.
                 По всем вопросам и проблемам с подпиской и списанием
                 средств тоже обращайтесь в поддержку.</small></p>
 
         </aside>
+
+        {% set boosty_links = {
+    "basic": "https://boosty.to/ketome.ru/purchase/3402747?ssource=DIRECT&share=subscription_link",
+    "advanced": "https://boosty.to/ketome.ru/purchase/3402750?ssource=DIRECT&share=subscription_link",
+    "business": "https://boosty.to/ketome.ru/purchase/3402751?ssource=DIRECT&share=subscription_link",
+    "pro": "https://boosty.to/ketome.ru/purchase/3402753?ssource=DIRECT&share=subscription_link",
+     "premium": "https://boosty.to/ketome.ru/purchase/3402756?ssource=DIRECT&share=subscription_link"
+        } %}
+
+        {% set boosty_qr = {
+    "basic": "/static/img/pics/basic.png",
+    "advanced": "/static/img/pics/advanced.png",
+    "business": "/static/img/pics/business.png",
+    "pro": "/static/img/pics/pro.png",
+     "premium": "/static/img/pics/premium.png"
+        } %}
     <div class="right-side">
         <div class="card" style="max-width: 500px; height: 500px;">
         <div>
-    <h3>Оплата подписки "{{ pretty_name }}"</h3>
+            <img src="/static/img/icons/toncoin-ton-logo.svg" alt="Settings" style="width: 35px; height: 35px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">
+    <h3 style="text-align: center;">Оплатить c TON</h3>
             <p class="card-small" style="text-align: center; color: darkcyan;">Не закрывайте эту страницу!</p>
     <p class="card-small" style="text-align: center">Отсканируйте QR-код</p>
-    <img style="width: 250px; height: 250px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center" src="{{ qr_base64 }}" alt="QR-код">
+    <img style="width: 180px; height: 180px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;" src="{{ qr_base64 }}" alt="QR-код">
     <p class="card-small" style="text-align: center">Или перейдите по ссылке:</p>
      <a class="card-small" style="text-align: center" href="{{ payment_url }}" target="_blank">Оплатить по ссылке</a>
     <p class="card-small" style="text-align: center">Вернитесь на эту страницу и нажмите:</p>
     <form action="/api/ton/verify-payment/?level={{ level }}" method="post">
-        <button class="form_button" style="font-weight: bolder" type="submit">Я оплатил</button>
+        <button class="form_button" style="font-weight: bolder;" type="submit">Я оплатил</button>
     </form>
+        </div>
+    </div>
+        <div class="card" style="max-width: 500px; height: 500px;">
+        <div>
+
+            <img src="/static/img/icons/boosty_logo.svg" alt="Settings" style="width: 80px; height: auto;  border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">
+    <h3 style="text-align: center;">Оплатить c Boosty</h3>
+
+            <p class="card-small" style="text-align: center; color: darkcyan;">Подтверждается вручную!</p>
+    <p class="card-small" style="text-align: center">Отсканируйте QR-код</p>
+    <img style="width: 180px; height: 180px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;" src="{{ boosty_qr[level] }}" alt="QR-код">
+    <p class="card-small" style="text-align: center">Или перейдите по ссылке:</p>
+     <a class="card-small" style="text-align: center" href="{{ boosty_links[level] }}" target="_blank">Оплатить по ссылке</a>
+    <p class="card-small" style="text-align: center">Используйте Бусти идентифиикатор:</p>
+            {% if boosty %}
+    <span class="card-small copy-container" style="max-width:100%;" data-full="{{ boosty }}">
+  <span class="copy-text" title="{{ boosty }}">
+    {{ boosty }}
+  </span>
+  <button class="copy-button" onclick="copyText(this)" title="Скопировать">
+    <img src="/static/img/icons/copy.svg" alt="Copy" style="width: 18px; height: 18px;">
+  </button>
+    </span>
+            {% endif %}
         </div>
     </div>
     </div>
     </div>
-    <script src="/static/js/token.js"></script>
-    <script src="/static/js/modal.js" defer></script>
 
     <script> async function showModal(message, status = "info", action = null) {
   const modal = document.getElementById("modal-feedback");

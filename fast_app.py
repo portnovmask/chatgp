@@ -28,6 +28,8 @@ from modes import (User, get_user_summaries, get_chat_body_by_id, get_last_chat_
 import asyncio
 import markdown
 from blog_post import get_post_by_slug, get_all_post_titles, get_latest_post
+from fernet_utils import decrypt_email
+
 access_logger = logging.getLogger("uvicorn.access")
 
 file_handler = logging.FileHandler("access.log")
@@ -569,6 +571,7 @@ async def dash(request: Request, user: dict = Depends(get_user)):
     if not user:
         return RedirectResponse('/', status_code=302)
     else:
+        boosty = user.get("boosty_code")
         plans = {
             "trial": "Базовый",
             "basic": "Оптимум",
@@ -580,7 +583,7 @@ async def dash(request: Request, user: dict = Depends(get_user)):
         logger.info(f"/dashboard  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
 
         return templates.TemplateResponse("dash.html",
-                                          {"request": request, "user": user, "plans": plans})
+                                          {"request": request, "user": user, "plans": plans, "boosty": boosty})
 
 
 @app.get("/post", response_class=HTMLResponse)

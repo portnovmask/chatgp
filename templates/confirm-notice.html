@@ -1,12 +1,58 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Подтверждение email</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ title }}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: linear-gradient(135deg, #ecebeb, #afabab);
+            color: #171717;
+            text-align: center;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 5rem;
+            margin-bottom: 10px;
+        }
+        p {
+            font-size: 1.2rem;
+            margin-bottom: 20px;
+        }
+        a {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #777575;
+            color: #090909;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 8px;
+            transition: 0.3s;
+        }
+        a:hover {
+            background: #ddd;
+        }
+    </style>
 </head>
 <body>
-<h2>Почта не подтверждена</h2>
-<p>На вашу почту отправлено письмо с ссылкой для подтверждения. Пожалуйста, перейдите по ней, чтобы завершить регистрацию.</p>
-
+    <div class="container">
+        <h1>{{ header }}</h1>
+        <p>{{ subheader }}</p>
+        <p>{{ message }}</p>
+        <a href="/">{{ action }}</a>
+    </div>
 </body>
 </html>

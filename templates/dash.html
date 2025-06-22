@@ -116,21 +116,30 @@
 
     <!-- Четвёртая карточка, если хочешь -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/brightness-auto.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <p class="card-price">Бусти</p>
+            <img src="/static/img/icons/boosty_logo.svg" alt="Settings" style="width: 80px; height: auto;">
+
         <div class="card-content">
-                    <span class="card-small">Бусти личный идентификатор: boosty12345</span>
-                <span class="card-small"><a href="https://boosty.to/ketome.ru/donate">Ссылка для донатов>>></a></span>
-            <span class="card-small">Донаты - добровольный жест.
-                Донорам предоставляется доступ к подпискам, в качестве ответного добровольного жеста.</span>
-            <span class="card-small">Внимание! Не передавайте никому ваш идентификатор.</span>
-
+                    <span class="card-small">Бусти личный идентификатор:</span> {% if boosty %}
+            <span class="card-small copy-container" style="width: 180px;" data-full="{{ boosty }}">
+  <span class="copy-text" title="{{ boosty }}">
+    {{ boosty }}
+  </span>
+  <button class="copy-button" onclick="copyText(this)" title="Скопировать">
+    <img src="/static/img/icons/copy.svg" alt="Copy" style="width: 18px; height: 18px;">
+  </button>
+</span>
+                                                                            {% else %}<span class="card-small">
+                                                                                Необходимо подтвердить email</span>
+                                                                            {% endif %}
+                <span class="boosty-row"><a href="https://boosty.to/ketome.ru/donate" target="_blank">
+                    <img src="/static/img/pics/ketome.ru-donate.png" style="border-radius: unset; width: 120px; height: auto;" alt="boosty">
+                </a>
+        </span>
         </div>
         </div>
-
     <!-- Пятая карточка, если хочешь -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/list-search.svg" alt="Settings" style="width: 25px; height: 25px;">
+            <img src="/static/img/icons/skateboarding.svg" alt="Settings" style="width: 25px; height: 25px;">
             <p class="card-price">Текущий план</p>
         <div class="card-content">
                     <span class="card-small">Количество токенов в день</span>
@@ -238,6 +247,22 @@
 
   openModal(modal); // из твоего modal.js
 }
+
+        function copyText(button) {
+    const container = button.closest('.copy-container');
+    const text = container.dataset.full;
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        button.innerHTML = "<img src='/static/img/icons/copy-check.svg' alt='Check' style='width: 18px; height: 18px;'>";
+        setTimeout(() => {
+          button.innerHTML = "<img src='/static/img/icons/copy.svg' alt='Copy' style='width: 18px; height: 18px;'>";
+        }, 1500);
+      })
+      .catch(err => {
+        console.error("Ошибка копирования:", err);
+      });
+  }
         </script>
 {% include "modal_base.html" %}
     {% endif %}

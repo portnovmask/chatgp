@@ -10,6 +10,7 @@ from models.users import users_collection
 from settings import EMAIL_CONFIRM_KEY, CONFIRM_SALT, RECAPTCHA_SECRET, LOGO_URL, BASE_URL
 import logging
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fernet_utils import encrypt_email
 
 router = APIRouter(prefix="/api")
 
@@ -90,7 +91,7 @@ async def send_email(user: dict, subject: str, html_content: str):
 
 # Универсальный маршрут для отправки писем
 @router.post("/send-email/")
-async def send_email_route(background_tasks: BackgroundTasks, email_to: str = Form(...)| None):
+async def send_email_route(background_tasks: BackgroundTasks, email_to: str = Form(...)):
     email = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=BASE_URL,
@@ -203,21 +204,67 @@ async def submit_contact_form(
 
 @router.get("/confirm-notice", response_class=HTMLResponse)
 async def confirm_notice(request: Request):
-    return templates.TemplateResponse("confirm-notice.html", {"request": request})
+
+    title = "Подтвердите почту"
+    header = "Подтвердите электронную почту"
+    subheader = "На указанный вами email отправлена ссылка для подтверждения."
+    message = "Для пользования сервисом необходимо подтвердить email."
+    action = "Я указал неверный email"
+
+    return templates.TemplateResponse("confirm-notice.html", {"request": request,
+                                                              "title": title,
+                                                              "header": header,
+                                                              "subheader": subheader,
+                                                              "message": message, "action": action}
+                                      )
 
 @router.get("/confirm-email")
-async def confirm_email(token: str):
+async def confirm_email(request: Request, token: str):
     email = confirm_token(token)
     if not email:
-        return HTMLResponse("<h2>Срок действия ссылки истёк или она недействительна.</h2>", status_code=400)
+        title = "Подтверждение почты - ошибка"
+        header = "Ошибка подтверждения электронной почты"
+        subheader = "Срок действия ссылки истёк или она недействительна."
+        message = "Вернитесь на главную страницу, выполните вход еще раз, вам будет отправлен повторный email с ссылкой."
+        action = "Вернуться на главную"
 
+        return templates.TemplateResponse("confirm-notice.html", {"request": request,
+                                                                  "title": title,
+                                                                  "header": header,
+                                                                  "subheader": subheader,
+                                                                  "message": message, "action": action}, status_code=400
+                                          )
+    boosty = encrypt_email(email)
     result = await users_collection.update_one(
         {"email": email, "contact": "not_confirmed"},
-        {"$set": {"contact": email}}
+        {"$set": {"contact": email,
+         "boosty_code": boosty}
+        }
     )
 
     if result.modified_count == 1:
-        return HTMLResponse("<h2>Email подтверждён! Теперь вы можете войти в систему.</h2>")
-    else:
-        return HTMLResponse("<h2>Email уже был подтверждён или не найден.</h2>")
+        title = "Подтверждение почты"
+        header = "Ваш email подтверждён!"
+        subheader = "Поздравляем! Вы успешно подтвердили электронную почту!"
+        message = "Всё готово, теперь вы можете начать пользоваться сервисом полноценно."
+        action = "Вернуться на главную"
 
+        return templates.TemplateResponse("confirm-notice.html", {"request": request,
+                                                                  "title": title,
+                                                                  "header": header,
+                                                                  "subheader": subheader,
+                                                                  "message": message, "action": action}
+                                          )
+    else:
+        title = "Ошибка подтверждения почты"
+        header = "Ваш email уже был подтверждён или не найден"
+        subheader = "Это происходит, еслиЖ"
+        message = "Вы уже подтверждали вашу электронную почту или указали неверный email."
+        action = "Попробовать еще раз"
+
+        return templates.TemplateResponse("confirm-notice.html", {"request": request,
+                                                                  "title": title,
+                                                                  "header": header,
+                                                                  "subheader": subheader,
+                                                                  "message": message, "action": action}, status_code=400
+                                          )

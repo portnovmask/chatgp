@@ -198,7 +198,7 @@ async def subscribe(level: str, user: dict = Depends(get_user)):
     if level not in LEVELS:
         return {"message": "Подписка на этот уровень невозможна на данный момент!", "status": "error"}
     if level == "trial":
-        return {"message": "Для отмены текущей подписки...!", "status": "info"}
+        return {"message": "Для отмены текущей подписки просто не оплачивайте следующий период или отмените подписку на Бусти!", "status": "info"}
 
     payment_id = str(uuid.uuid4())
 
@@ -220,7 +220,19 @@ from qr_utils import generate_qr_base64
 async def payment_page(request: Request, background_tasks: BackgroundTasks, payment_id: str, level: str, user: dict = Depends(get_user)):
     if not user:
         return RedirectResponse(url="/")
+    if not user.get("contact"):
+        return templates.TemplateResponse("feedback.html", {
+            "request": request,
+            "message": "Для покупки уровней вам необходимо указать контактный email!",
+            "status": "warning",
+            "action": {
+                "label": "Добавить email",
+                "url": "/dash",
+                "method": "get"
+            }
+        })
     email = user.get("email")
+    boosty = user.get("boosty_code", False)
     usdt_price = await get_ton_usdt_price()
     price = (PRICES[LEVELS.index(level)]/usdt_price)*1000000000
     payment = generate_payment_link(email, level, price, payment_id)
@@ -230,12 +242,12 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
         logo_url=LOGO_URL,
         header_link=BASE_URL,
         header_text="Вы выбрали подписку!!!",
-        description=f"Уровеень подписки: {LEVELS[PRICES.index(price)]}.",
+        description=f"Уровеень подписки: {level}.",
         recipient_name=email,
-        body_text=f"Спасибо за выбор подписки {LEVELS[PRICES.index(price)]} на ChatGP по цене {price}!"
+        body_text=f"Спасибо за выбор подписки {level} на ChatGP по цене {round(price / 1_000_000_000, 2)} Ton!"
                   "Если вы еще не оплатили по ссылке или qr коду на сайте вы можете провести оплату по ссылке ниже с ценой подписки."
-                  "Для оплаты по ссылке убедитесь, что у вас есть аккаунт в",
-        action_label=price,
+                  "Для оплаты по ссылке убедитесь, что у вас есть аккаунт в TonKeeper или другом криптовалютном кошельке.",
+        action_label="ссылка на оплату",
         action_url=payment,
         footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
     )
@@ -248,7 +260,8 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
         "qr_base64": qr,
         "level": level,
         "payment_id": payment_id,
-        "pretty_name": PRETTY_NAMES[level]
+        "pretty_name": PRETTY_NAMES[level],
+        "boosty": boosty,
     })
 
 
@@ -283,7 +296,7 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
         return RedirectResponse(url="/")
     if level not in LEVELS:
         logger.info(f"verify_ton_payment - Некорректный уровень подписки, email: {user.get("email")}, level: {level}")
-        raise HTTPException(status_code=400, detail="Некорректный уровень подписки")
+        raise HTTPException(status_code=405, detail="Некорректный уровень подписки")
 
     email = user["email"]
     current_status = user.get("status", "trial")
@@ -291,7 +304,16 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
     current_index = LEVELS.index(current_status)
     new_index = LEVELS.index(level)
     if new_index == current_index:
-        return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
+        return templates.TemplateResponse("feedback.html", {
+            "request": request,
+            "message": "Вы уже на этом уровне подписки",
+            "status": "warning",
+            "action": {
+                "label": "Выбрать другой уровень",
+                "url": "/price",
+                "method": "get"
+            }
+        })
 
     price = PRICES[new_index]
     transactions = await get_ton_transaction(price)
@@ -299,8 +321,16 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
     if not transactions:
         logger.info(
             f"verify_ton_payment - Платеж не найден или не подтверждён, email: {user.get("email")}, level: {level}")
-        return {"message": "Платёж не найден или пока не подтвержден!", "status": "warning"}
-
+        return templates.TemplateResponse("feedback.html", {
+            "request": request,
+            "message": "Платёж не найден или не подтверждён. Проверьте позже в личном кабинете",
+            "status": "warning",
+            "action": {
+                "label": "Проверить",
+                "url": "/dash",
+                "method": "get"
+            }
+        })
 
     data = transactions.get("transactions", [])
 
@@ -363,7 +393,7 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
             header_text="Вы активировали подписку!!!",
             description=f"Уровень подписки: {level}.",
             recipient_name=email,
-            body_text=f"Спасибо за оплату подписки уровня {level} на ChatGP по цене {price}!"
+            body_text=f"Спасибо за оплату подписки уровня {level} на ChatGP по цене {round(price / 1_000_000_000, 2)} Ton!"
                       "Срок подписки - 30 дней."
                       "Желаем вам продуктивной работы и приятного времяпрепровождения с ChatGP."
                       "Если вы оплатили подписку по ошибке, вы можете написать в поддержку для отмены и возврата средств.",
@@ -411,7 +441,7 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
             header_text="Подписка будет позже!!!",
             description=f"Уровень подписки: {level}.",
             recipient_name=email,
-            body_text=f"Спасибо за оплату новой подписки уровня {level} на ChatGP по цене {price}!"
+            body_text=f"Спасибо за оплату новой подписки уровня {level} на ChatGP по цене {round(price / 1_000_000_000, 2)} Ton!"
                       f"Ваша текущая подписка истекает: {format_datetime_pretty(current_expiry)}."
                       f"Новая подписка вступит в силу сразу по истечение текущей."
                       "Желаем вам продуктивной работы и приятного времяпрепровождения с ChatGP."

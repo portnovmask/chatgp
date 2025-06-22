@@ -350,7 +350,7 @@ async def drop_user_collections(
                "data_delete_message": {"status": "fail", "detail": "Неверный пин-код"}
            })
        await users_data_collection.delete_one({"email": user_id})
-       await tokens_collection.delete_one({"email": user_id})
+
        return templates.TemplateResponse("admin-dashboard.html", {
            "request": request,
            "csrf_token": csrf_token,

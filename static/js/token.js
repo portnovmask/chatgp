@@ -45,7 +45,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
         if (type === "logout") {
             console.log("🚪 Выход в другой вкладке");
-            window.location.replace("/authorize");
+            window.location.replace("/api/logout");
         }
     });
     // ✅ Проверяем: если у пользователя нет access_token, не обновляем
@@ -63,7 +63,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         sendAuthEvent("token_refreshed");
     } else {
         sendAuthEvent("logout");
-        return window.location.replace("/authorize");
+        return window.location.replace("/api/logout");
     }
 
     // Запрашиваем данные о пользователе после обновления токена
@@ -83,7 +83,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             sendAuthEvent("token_refreshed");
         } else {
             sendAuthEvent("logout");
-            window.location.replace("/authorize");
+            window.location.replace("/api/logout");
         }
     }, 10 * 60 * 1000); // каждые 10 минут
 });
@@ -113,7 +113,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                 });
             } else {
                 console.warn("Refresh token expired. Redirecting...");
-                window.location.replace("/authorize");
+                window.location.replace("/api/logout");
                 return;
             }
         }

@@ -139,7 +139,7 @@ async def get_user(request: Request):
 
         user = await users_collection.find_one({"email": email})
         if not user:
-            raise HTTPException(status_code=401, detail="User not found")
+            raise HTTPException(status_code=403, detail="User not found")
 
         logger.info(f"def get_user - Пользователь {user['email']} авторизован: {token}")
 
@@ -155,7 +155,8 @@ async def get_user(request: Request):
             "oauth_id": str(user.get("oauth_id", "email")),
             "original_status": str(user.get("original_status", user["status"])),
             "trial_expires_at": user.get("trial_expires_at"),
-            "trial_expires_blocked": user.get("trial_expires_blocked"),  # если используешь
+            "trial_expires_blocked": user.get("trial_expires_blocked"),
+            "boosty_code": user.get("boosty_code"), # если используешь
             "subscription": user.get("subscription", {})
         }
 
@@ -495,6 +496,7 @@ async def logout(request: Request):
     except JWTError:
         logger.warning(f"/logout - недействительный или просроченный refresh_token")
 
+
     # Удаляем куки на клиенте
     response.delete_cookie("access_token")
     response.delete_cookie("refresh_token")
@@ -525,7 +527,7 @@ async def logout_all(request: Request):
         return response
 
     except JWTError:
-        raise HTTPException(status_code=401, detail="Неверный или просроченный токен")
+        raise HTTPException(status_code=403, detail="Неверный или просроченный токен")
 
 
 
