@@ -462,7 +462,7 @@ class User:
                     "chat_id": new_chat_id,
                     "user_email": email,
                     "chat_time": current_time,
-                    "chat_summary": summary,
+                    "chat_summary": f"+{summary}",
                     "chat_body": [chat_update]
                 }
 

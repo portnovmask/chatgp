@@ -89,22 +89,27 @@
         <!-- Третья карточка, если хочешь -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/shopping-cart.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <p class="card-price">Транзакции</p>
+            <p class="card-price">Учёт</p>
         <div class="card-content">
                     <span class="card-small">Использовано токенов: {{ user.tokens }}</span>
                    <span class="card-small">Токены поиска: {{ user.attempts }}</span>
                     {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}
-                    <span class="card-small">ID Последней транзакции: {{ user.subscription.transaction_id }}</span>
+                    <span class="card-small copy-text" >ID платежа: {{ user.subscription.transaction_id }}</span>
                     <details class="dropdown">
-                    <summary class="dropdown-button">ТОН транзакции</summary>
+                    <summary class="dropdown-button">История платежей</summary>
                     <div class="dropdown-content">
                         <div class="dropdown-content">
                       {% for payment in user.subscription.payment_history %}
                         <div class="card-small">
-                          {{ payment.date | datetimeformat}} — {{ payment.amount }} TON от {{ payment.source }} (tx_id: {{ payment.tx_id }})
+                          {{ payment.date | datetimeformat}} — {{ payment.amount }}
+                            {% if payment.tx_id %}
+                            TON от {{ payment.source }} (tx_id: {{ payment.tx_id}})
+                            {% else %}
+                            RUB от {{ payment.source }} (boosty_id: {{ payment.boosty_id}})
+                            {% endif %}
                         </div>
                       {% else %}
-                        <div class="card-small">ТОН платежей пока нет</div>
+                        <div class="card-small">Платежей пока нет</div>
                       {% endfor %}
                     </div>
                     </div>

@@ -19,7 +19,7 @@
              style="padding-left: 20px;">Напишите нам</header></a>
 <form class="form_auth_block_content" action="/api/contact/submit" method="post">
   {% if message %}
-    <label style="color: green"><small>{{ message }}</small></label>
+    <label style="color: white;"><small>{{ message }}</small></label>
   {% elif error %}
     <label style="color: red"><small>{{ error }}</small></label>
   {% else %}

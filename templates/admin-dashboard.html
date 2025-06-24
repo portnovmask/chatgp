@@ -62,6 +62,32 @@
 </div>
 
 <div class="block">
+    <h2>Добавить Бусти подписку</h2>
+    <form method="post" action="/admin/update-boosty-subscription">
+        <label>Email:
+            <input type="email" name="user_id" required>
+        </label>
+        <label>Уровень:
+            <input type="text" name="boosty_level">
+        </label>
+        <label>Boosty ID:
+            <input type="text" name="boosty_id">
+        </label>
+        <label>Сумма:
+            <input type="number" name="boosty_amount">
+        </label>
+        <label>Отправитель:
+            <input type="text" name="boosty_sender">
+        </label>
+        <label>Истекает через дней:
+            <input type="text" name="expire_days">
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Добавить подписку</button>
+    </form>
+</div>
+
+<div class="block">
     <h2>Обновить подписку пользователя</h2>
     <form method="post" action="/admin/update-user-subscription">
         <label>Email:

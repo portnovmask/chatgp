@@ -107,7 +107,7 @@ body {
             text-decoration: none;
         }
         .card {
-            max-width: 250px;
+            max-width: 100%;
             height: 300px;
             display: flex;
             flex-direction: column;
@@ -250,6 +250,7 @@ body {
     font-size: 0.75em;
     color: #333;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-width: 200px;
     max-height: 420px;         /* ✅ Ограничиваем высоту */
     overflow-y: auto;          /* ✅ Добавляем вертикальную прокрутку */
     box-sizing: border-box;
@@ -337,14 +338,14 @@ svg {
   padding: 4px 8px;
   background-color: #f9f9f9;
   position: relative;
-  max-width: 80%;
+  max-width: clamp( 150px, 200px, 250px);
 }
 
 .copy-text {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+  max-width: clamp( 150px, 200px, 250px);
 }
 
 .copy-button {
@@ -406,6 +407,10 @@ svg {
             }
             .card-medium {
                 font-size: 1em;
+            }
+
+            .dropdown-content {
+            max-width: 250px;
             }
         }
 

@@ -6,6 +6,8 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from passlib.context import CryptContext
 from cryptography.fernet import Fernet
+
+from fernet_utils import encrypt_email
 from models.users import users_collection
 from models.tokens import tokens_collection
 from models.user_data import users_data_collection
@@ -293,8 +295,8 @@ async def register(request: Request,
     email_template = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=str(request.base_url),
-        header_text="Добро пожаловать!",
-        description="Это письмо содержит важную информацию.",
+        header_text="Подтвердите email",
+        description="вы указали адрес электронной почты при регистрации на ChatGP.Ru:",
         recipient_name=email,
         body_text="Спасибо за регистрацию на нашем сервисе. Пожалуйста, подтвердите вашу почту.",
         action_label="Подтвердить Email",
@@ -326,8 +328,8 @@ async def register(request: Request,
 
         logger.info(f"/register  - def register - попытка добавить существующего пользователя\n")
         if is_fetch:
-            return JSONResponse(status_code=400, content={"detail": "Пользователь уже существует"})
-        raise HTTPException(status_code=400, detail="Пользователь уже существует")
+            return JSONResponse(status_code=401, content={"detail": "Пользователь уже существует"})
+        raise HTTPException(status_code=401, detail="Пользователь уже существует")
         #return JSONResponse({"message": "Пользователь уже существует", "status": "danger"})
     hashed_password = pwd_context.hash(password)
     new_user = {"email": email,
@@ -377,10 +379,6 @@ async def register(request: Request,
         logger.info(f"/register  -  Письмо о подтверждении email отправлено пользователю {email}\n")
         return response
     response = RedirectResponse(url="/api/confirm-notice", status_code=303)
-    # response.set_cookie("access_token", access_token, httponly=True)
-    # response.set_cookie("refresh_token", refresh_token, httponly=True)
-    # response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
-    # response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
 
     html = email_template.render()
     background_tasks.add_task(send_email, new_user, "Подтверждение почты", html)
@@ -391,17 +389,28 @@ async def register(request: Request,
 async def login(request: Request, email: str = Form(...), password: str = Form(...), csrf_token: str = Form(...)):
     """Авторизация с проверкой пароля"""
     csrf_token_cookie = request.cookies.get("csrf_token")
+    is_fetch = request.headers.get("accept") == "application/json"
     if not csrf_token_cookie or not csrf_token or csrf_token_cookie != csrf_token or not verify_csrf_token(csrf_token,
                                                                                                            "guest",
                                                                                                            CSRF_SECRET_KEY):
         logger.info(f"/login  - def login - ошибка csrf_token не совпадает или просрочен\n")
         return RedirectResponse(url="/", status_code=303)
+
     user = await users_collection.find_one({"email": email})
-    if not user or not pwd_context.verify(password, user["password"]):
-        logger.info(f"/login  - def login - Для ввода: {email} - пароль или email не верны\n")
+    if not user:
+        if is_fetch:
+            return JSONResponse(status_code=401, content={"detail": "Неверный email или пароль"})
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
+
+    if not user.get("password") or not pwd_context.verify(password, user["password"]):
+        if is_fetch:
+            return JSONResponse(status_code=401, content={"detail": "Неверный email или пароль"})
+        raise HTTPException(status_code=401, detail="Неверный email или пароль")
+
     if user.get("contact") and user.get("contact") == "not_confirmed":
         logger.info(f"/login  - def login - Пользователь: {email} - не подтвердил email\n")
+        if is_fetch:
+            return JSONResponse(status_code=401, content={"detail": "Подтвердите электронную почту"})
         raise HTTPException(status_code=401, detail="Подтвердите электронную почту")
     access_token, access_expires, access_jti = create_access_token(str(user["email"]))
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
@@ -457,19 +466,36 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     return response
 
 @router.post("/add_email")
-async def add_email(request: Request, email: str = Form(...), user: dict = Depends(get_user)):
+async def add_email(request: Request,
+                    background_tasks: BackgroundTasks,
+                    email: str = Form(...),
+                    user: dict = Depends(get_user)):
     """Добавление контактного email"""
-    if user:
-        user_email = user["email"]
-        await users_collection.update_one(
-            {"email": user_email},
-            {"$set": {"contact": email}},
+    if user and user.get("contact") != email:
+
+        token = generate_confirmation_token(email)
+        confirm_url = f"{request.base_url}/api/confirm-email?token={token}"
+        email_template = EmailTemplate(
+            logo_url=LOGO_URL,
+            header_link=str(request.base_url),
+            header_text="ChatGP.Ru - Добавление контактного email к аккаунту",
+            description="Вы добавили ваш адрес электронной почты:",
+            recipient_name=email,
+            body_text="Вы указали текущий почтовый ящик в качестве контактного. Пожалуйста, подтвердите действие по ссылке ниже.",
+            action_label="Подтвердить Email",
+            action_url=confirm_url,
+            footer_text="Если вы не добавляли почту — просто проигнорируйте это письмо."
         )
-        logger.info(f"/add_email  - def add email - пользователь: {user_email}добавил email для связи: {email}\n")
-        return {"message": "email для связи успешно добавлен", "status": "success"}
+
+        logger.info(f"/add_email  - def add email - пользователь: {user.get("email")}добавил email для связи: {email}\n")
+        response = RedirectResponse(url="/api/confirm-notice", status_code=303)
+
+        html = email_template.render()
+        background_tasks.add_task(send_email, email, "Подтверждение почты", html)
+        return response
     else:
-        logger.info(f"/add_email  - def add email - пользователь не авторизован, не удалось отправить email для связи: {email}\n")
-        return {"message": "пользователь не авторизован", "status": "error"}
+        logger.info(f"/add_email  - def add email - пользователь не авторизован или пытается добавить email повторно, не удалось отправить email для связи: {email}\n")
+        return {"message": "Ошибка добавления email, возможно вы пытаетесь добавить email повторно или не авторизованы.", "status": "error"}
 @router.get("/logout")
 async def logout(request: Request):
     """Выход и удаление токенов из БД"""
@@ -561,8 +587,10 @@ async def vendor_user_login(user, vendor):
 
 async def vendor_user_register(email, vendor, vendor_id):
     # Регистрируем нового пользователя
+    boosty_code = None
     if vendor == "Google" or vendor == "yandex":
         contact = email
+        boosty_code = encrypt_email(contact)
     else:
         contact = None
     new_user = {
@@ -573,7 +601,8 @@ async def vendor_user_register(email, vendor, vendor_id):
         "auth_provider": vendor,
         "oauth_id": vendor_id,
         "status": "trial",
-        "tokens": 0
+        "tokens": 0,
+        "boosty_code": boosty_code,
     }
     result = await users_collection.insert_one(new_user)
     existing_user_data = await users_data_collection.find_one({"email": email})
@@ -636,7 +665,7 @@ def google_login():
 import requests
 
 @router.get("/auth/google/callback")
-async def google_callback(request: Request, code: str):
+async def google_callback(request: Request, background_tasks: BackgroundTasks, code: str):
     """Получаем токен и данные пользователя из Google"""
     token_data = {
         "code": code,
@@ -689,14 +718,26 @@ async def google_callback(request: Request, code: str):
 
     # Регистрируем нового пользователя
     access_token, refresh_token, csrf_token = await vendor_user_register(email, "google", google_id)
-
+    email_template = EmailTemplate(
+        logo_url=LOGO_URL,
+        header_link=str(request.base_url),
+        header_text="Регистрация на ChatGP.Ru",
+        description="Вы зарегистрировались на ChatGP.Ru через Google аккаунт ассоциированный с email:",
+        recipient_name=email,
+        body_text="Спасибо за регистрацию на нашем сервисе.",
+        action_label="Начать чат",
+        action_url=BASE_URL,
+        footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+    )
+    html = email_template.render()
+    background_tasks.add_task(send_email, email, "ChatGP - Регистрация с Гугл", html)
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(
-        f"/auth/google/callback  - Новый пользователь: {email} - выполнил вход через Гугл, созданы новые токены в куках и в бд\n")
+        f"/auth/google/callback  - Новый пользователь: {email} - выполнил регистрацию через Гугл, созданы новые токены в куках и в бд\n")
     return response
 
 
@@ -709,7 +750,7 @@ def yandex_login():
     )
 
 @router.get("/auth/yandex/callback")
-async def yandex_callback(request: Request, code: str):
+async def yandex_callback(request: Request, background_tasks: BackgroundTasks, code: str):
     """Обрабатываем ответ Яндекса"""
     token_data = {
         "grant_type": "authorization_code",
@@ -758,14 +799,26 @@ async def yandex_callback(request: Request, code: str):
 
     # Регистрируем нового пользователя
     access_token, refresh_token, csrf_token = await vendor_user_register(email, "yandex", yandex_id)
-
+    email_template = EmailTemplate(
+        logo_url=LOGO_URL,
+        header_link=str(request.base_url),
+        header_text="Регистрация на ChatGP.Ru",
+        description="Вы зарегистрировались на ChatGP.Ru через Yandex аккаунт ассоциированный с email:",
+        recipient_name=email,
+        body_text="Спасибо за регистрацию на нашем сервисе.",
+        action_label="Начать чат",
+        action_url=BASE_URL,
+        footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+    )
+    html = email_template.render()
+    background_tasks.add_task(send_email, email, "ChatGP - Регистрация c Яндекс", html)
     response = RedirectResponse(url="/")
     response.set_cookie("access_token", access_token, httponly=True)
     response.set_cookie("refresh_token", refresh_token, httponly=True)
     response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax")
     response.set_cookie("has_auth", "true", httponly=False, samesite="lax", secure=True)
     logger.info(
-        f"/auth/yandex/callback  - Пользователь: {email} - успешно авторизован через Яндекс, созданы токены в бд и куках.\n")
+        f"/auth/yandex/callback  - Пользователь: {email} - успешно зарегистрирован через Яндекс, созданы токены в бд и куках.\n")
     return response
 
 

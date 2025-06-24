@@ -488,8 +488,8 @@ async def renew_subscriptions():
         email = user["email"]
         new_level = user["subscription"]["pending_level"]
 
-        tx_id = "mock_tx_id"
-        new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
+        tx_id = user["subscription"]["payment_history"][-1]["tx_id"]
+        new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
         new_index = LEVELS.index(new_level)
         new_price = PRICES[new_index]
         transactions = await get_ton_transaction(new_price)

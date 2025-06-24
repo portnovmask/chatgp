@@ -4,6 +4,8 @@ from fastapi.templating import Jinja2Templates
 from pymongo import UpdateOne
 import logging
 from pydantic import BaseModel
+
+from models.chats import chats_collection
 from models.user_data import users_data_collection
 from models.users import users_collection
 from models.tokens import tokens_collection
@@ -11,6 +13,7 @@ from models.blog import blog_posts_collection
 from datetime import datetime, timezone, timedelta
 from auth import get_user, verify_csrf_token as verify_csrf
 from settings import *
+from fernet_utils import encrypt_email, decrypt_email
 import json
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -20,6 +23,20 @@ templates = Jinja2Templates(directory="templates")
 
 # Настроить поведение сериализации JSON в фильтре tojson
 templates.env.policies['json.dumps_kwargs'] = {"default": str}
+
+DEFAULT_CHAT_BODY = [
+    {"prompt": "Добро пожаловать", "body": "ваши предыдущие чаты были удалены по вашему запросу или за несоблюдение правил сервиса."}
+]
+
+# Создаём chat_id и chat_time на основе текущего времени
+DEFAULT_CHAT_ID = "default_id_" + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+
+# Дефолтный чат
+DEFAULT_CHAT = {
+    "chat_id": DEFAULT_CHAT_ID,
+    "chat_time": datetime.now(timezone.utc).isoformat(),
+    "chat_summary": "Это пример чата",
+}
 
 class UserDataRequest(BaseModel):
     user_id: str
@@ -145,7 +162,6 @@ async def update_user_data(
     edit_user = await users_collection.find_one({"email": user_id})
     updates = []
 
-
     if edit_user:
         new_status = status if status else edit_user["status"]
         new_tokens = tokens if tokens else edit_user["tokens"]
@@ -171,6 +187,14 @@ async def update_user_data(
             "csrf_token": csrf_token,
             "message": {"status": "success", "detail": "Информация обновлена"}
         })
+    if contact:
+        boosty = encrypt_email(contact)
+        await users_collection.update_one(
+            {"email": user_id},
+            {"$set": {"boosty_code": boosty}
+             }
+        )
+
     return templates.TemplateResponse("admin-dashboard.html", {
         "request": request,
         "csrf_token": csrf_token,
@@ -239,6 +263,78 @@ async def add_user_payment(
     })
 
 
+@admin_router.post("/update-boosty-subscription")
+async def add_boosty_payment(
+    request: Request,
+    user_id: str = Form(...),
+    boosty_level: str = Form(...),
+    boosty_id: str = Form(...),
+    boosty_amount: int = Form(...),
+    boosty_sender: str = Form(...),
+    expire_days: int = Form(...),
+    csrf_token: str = Form(...)):
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
+       return templates.TemplateResponse("admin-dashboard.html", {
+          "request": request,
+          "csrf_token": csrf_token,
+          "message": {"status": "fail", "detail": "CSRF токен недействителен"}
+       })
+
+    boosty_user = await users_collection.find_one({"email": user_id})
+
+    if (not boosty_id or boosty_id != boosty_user["boosty_code"]) and decrypt_email(boosty_id) != user_id:
+
+       return templates.TemplateResponse("admin-dashboard.html", {
+          "request": request,
+          "csrf_token": csrf_token,
+          "message": {"status": "fail", "detail": "Индивидуальный бусти код не совпадает или подделан"}
+       })
+
+
+    if boosty_user:
+        new_level = boosty_level if boosty_level else "trial"
+        new_boosty_id = boosty_id if boosty_id else None
+        new_amount = boosty_amount if boosty_amount else 0
+        new_sender = boosty_sender if boosty_sender else "boosty"
+        time_now = datetime.now(timezone.utc)
+        new_expiry = datetime.now(timezone.utc) + timedelta(days=expire_days)
+        await users_collection.update_one({"email": user_id}, {
+            "$set": {
+                "status": new_level,
+                "original_status": new_level,
+                "tokens": 0,
+                "attempts": 0,
+                "updated_at": datetime.now(timezone.utc),
+                "subscription.level": new_level,
+                "subscription.expires_at": new_expiry,
+                "subscription.next_billing_date": new_expiry,
+                "subscription.is_active": True,
+                "subscription.transaction_id": new_boosty_id
+            },
+            "$push": {
+                "subscription.payment_history": {
+                    "boosty_id": new_boosty_id,
+                    "amount": new_amount,
+                    "source": new_sender,
+                    "date": time_now
+                }
+            }
+        })
+        user_info = await get_user_updates(user_id)
+        return templates.TemplateResponse("admin-dashboard.html", {
+            "request": request,
+            "user_info": user_info,
+            "csrf_token": csrf_token,
+            "message": {"status": "success", "detail": "Бусти информация обновлена"}
+        })
+    return templates.TemplateResponse("admin-dashboard.html", {
+        "request": request,
+        "csrf_token": csrf_token,
+        "message": {"status": "fail", "detail": "Бусти обновление не удалось"}
+    })
+
 
 @admin_router.post("/drop-post")
 async def drop_post(
@@ -288,6 +384,7 @@ async def drop_user(
        return templates.TemplateResponse("admin-dashboard.html", {
          "request": request,
          "csrf_token": csrf_token,
+        "message": {"status": "fail", "detail": "CSRF токен недействителен"},
          "user_delete_message": {"status": "fail", "detail": "CSRF токен недействителен"}
         })
     delete_user = await users_collection.find_one({"email": user_id})
@@ -297,12 +394,14 @@ async def drop_user(
            return templates.TemplateResponse("admin-dashboard.html", {
                "request": request,
                "csrf_token": csrf_token,
+               "message": {"status": "fail", "detail": "Повторный ввод email не совпадает, проверьте ввод"},
                "user_delete_message": {"status": "fail", "detail": "Повторный ввод email не совпадает, проверьте ввод"}
            })
        if not psw or psw != ADMIN_PIN:
            return templates.TemplateResponse("admin-dashboard.html", {
                "request": request,
                "csrf_token": csrf_token,
+               "message": {"status": "fail", "detail": "Неверный пин-код"},
                "user_delete_message": {"status": "fail", "detail": "Неверный пин-код"}
            })
        await users_collection.delete_one({"email": user_id})
@@ -310,11 +409,13 @@ async def drop_user(
        return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "csrf_token": csrf_token,
+       "message": {"status": "success", "detail": "Пользователь удалён"},
        "user_delete_message": {"status": "success", "detail": "Пользователь удалён"}
    })
     return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "csrf_token": csrf_token,
+        "message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"},
        "user_delete_message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"}
    })
 
@@ -332,6 +433,7 @@ async def drop_user_collections(
        return templates.TemplateResponse("admin-dashboard.html", {
          "request": request,
          "csrf_token": csrf_token,
+           "message": {"status": "fail", "detail": "CSRF токен недействителен"},
          "data_delete_message": {"status": "fail", "detail": "CSRF токен недействителен"}
        })
     current_user_data = await users_data_collection.find_one({"email": user_id})
@@ -341,25 +443,44 @@ async def drop_user_collections(
            return templates.TemplateResponse("admin-dashboard.html", {
                "request": request,
                "csrf_token": csrf_token,
+               "message": {"status": "fail", "detail": "Повторный ввод email не совпадает, проверьте ввод"},
                "data_delete_message": {"status": "fail", "detail": "Повторный ввод email не совпадает, проверьте ввод"}
            })
        if not data_psw or data_psw != ADMIN_PIN:
            return templates.TemplateResponse("admin-dashboard.html", {
                "request": request,
                "csrf_token": csrf_token,
+               "message": {"status": "fail", "detail": "Неверный пин-код"},
                "data_delete_message": {"status": "fail", "detail": "Неверный пин-код"}
            })
-       await users_data_collection.delete_one({"email": user_id})
+       await users_data_collection.update_one(
+           {"email": user_id},
+           {"$set": {"chats": [DEFAULT_CHAT]}}
+       )
+       default_chat = {
+           "chat_id": DEFAULT_CHAT_ID,
+           "chat_time": datetime.now(timezone.utc).isoformat(),
+           "chat_summary": "Это пример чата",
+           "chat_body": DEFAULT_CHAT_BODY,
+           "user_email": user_id
+       }
+       # Сначала удалим все чаты пользователя
+       await chats_collection.delete_many({"user_email": user_id})
+
+       # Затем добавим один дефолтный чат
+       await chats_collection.insert_one(default_chat)
 
        return templates.TemplateResponse("admin-dashboard.html", {
            "request": request,
            "csrf_token": csrf_token,
+           "message": {"status": "success", "detail": "Данные пользователя удалены"},
            "data_delete_message": {"status": "success", "detail": "Данные пользователя удалены"}
        })
     return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "csrf_token": csrf_token,
-       "data_delete_message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"}
+       "message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"},
+        "data_delete_message": {"status": "fail", "detail": "Пользователь не найден или не все поля заполнены верно"}
    })
 
 

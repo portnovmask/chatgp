@@ -195,11 +195,15 @@
         const response = await fetch("/api/login", {
             method: "POST",
             body: formData,
-            credentials: "include"
+            credentials: "include",
+            headers: {
+        "Accept": "application/json"  //  Ключевой момент!
+    }
         });
 
         if (!response.ok) {
             const data = await response.json();
+            console.log(data);
             passwordInput.setAttribute("aria-invalid", "true");
             errorDiv.textContent = data.detail;  // Выводим ошибку из FastAPI
             errorDiv.style.display = "block";
@@ -208,7 +212,7 @@
             login_form.submit(); // Отправляем форму, если все ок
         }
     } catch (error) {
-        console.error("Ошибка запроса:", error);
+        console.error("Ошибка запроса:", JSON.stringify(error));
         await showModal("Ошибка входа, проверьте данные и попробуйте еще раз!", "danger");
     }
 });

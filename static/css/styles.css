@@ -110,7 +110,7 @@ a.visited {
     background-position: center center;
     transition: transform 0.3s ease-in-out;
     margin: 0;
-    padding: 0 5px;
+    padding: 0 1rem 0 1rem;
     z-index: 10;
 }
 .logo {
@@ -162,6 +162,7 @@ a.visited {
     height: 100%;
     padding-top: 1rem;
     padding-bottom: 1rem;
+    padding-left: 0.5rem;
 
 }
 
@@ -171,7 +172,7 @@ a.visited {
     justify-content: space-between;
     padding: 4px 0;
      border-radius: 10px;
-     width: 220px;
+     width: 210px;
   }
 
   .delete-chat {
@@ -210,7 +211,7 @@ a.visited {
     white-space: nowrap;       /* Текст в одну строку */
     overflow: hidden;          /* Обрезаем выходящий текст */
     text-overflow: ellipsis;   /* Добавляем "..." в конце */
-    max-width: 200px;
+    max-width: 180px;
     z-index: 12;
 }
 
@@ -544,7 +545,7 @@ a.visited {
 .content-wrapper {
     width: 100%;
     display: grid;
-    grid-template-columns: 24px 1fr;   /* ❶ узкий sidebar + всё остальное  */
+    grid-template-columns: 1fr;   /* ❶ узкий sidebar + всё остальное  */
     grid-template-areas: "sidebar content";
     overflow-y: auto;
 }
@@ -554,7 +555,7 @@ a.visited {
     grid-area: content;
     display: grid;
     gap: 12px;
-    padding: 24px 48px;
+    padding: 2px;
     width: 100%;
 
     /* По умолчанию одна колонка (мобильная) */
@@ -565,6 +566,10 @@ a.visited {
 @media (min-width: 768px) {
     .guest-content {
         grid-template-columns: repeat(2, 1fr);
+        padding:  14px 24px;
+    }
+    .content-wrapper {
+        grid-template-columns: 12px 1fr;
     }
 }
 
@@ -572,6 +577,10 @@ a.visited {
 @media (min-width: 1200px) {
     .guest-content {
         grid-template-columns: repeat(3, 1fr);
+        padding:  24px 48px;
+    }
+    .content-wrapper {
+        grid-template-columns: 24px 1fr;
     }
 }
 
@@ -1016,6 +1025,7 @@ margin: 15px; /* Отступы между элементами */
             font-size: 14px; /* 🔹 Чуть уменьшен размер для лучшей читабельности */
 
         }
+
     }
     /* 4️⃣ Планшеты (от 768px и меньше) */
     @media (max-width: 768px) {

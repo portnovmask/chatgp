@@ -112,22 +112,22 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
         raise exc
 
     if exc.status_code == 400:
-        return templates.TemplateResponse("errors/400.html", {"request": request}, status_code=404)
+        return templates.TemplateResponse("errors/400.html", {"request": request}, status_code=400)
 
     if exc.status_code == 403:
-        return templates.TemplateResponse("errors/403.html", {"request": request}, status_code=404)
+        return templates.TemplateResponse("errors/403.html", {"request": request}, status_code=403)
 
     if exc.status_code == 404:
         return templates.TemplateResponse("errors/404.html", {"request": request}, status_code=404)
 
     if exc.status_code == 405:
-        return templates.TemplateResponse("errors/405.html", {"request": request}, status_code=404)
+        return templates.TemplateResponse("errors/405.html", {"request": request}, status_code=405)
 
     if exc.status_code == 500:
         return templates.TemplateResponse("errors/500.html", {"request": request}, status_code=500)
 
     if exc.status_code == 501:
-        return templates.TemplateResponse("errors/501.html", {"request": request}, status_code=404)
+        return templates.TemplateResponse("errors/501.html", {"request": request}, status_code=501)
 
     # Все остальные ошибки — общая HTML-страница
     return templates.TemplateResponse(
@@ -580,7 +580,7 @@ async def dash(request: Request, user: dict = Depends(get_user)):
             "pro": "Мыслитель",
             "premium": "Премиум"
         }
-        logger.info(f"/dashboard  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
+        logger.info(f"/dash  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
 
         return templates.TemplateResponse("dash.html",
                                           {"request": request, "user": user, "plans": plans, "boosty": boosty})

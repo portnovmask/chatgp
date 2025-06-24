@@ -236,7 +236,7 @@ async def confirm_email(request: Request, token: str):
                                           )
     boosty = encrypt_email(email)
     result = await users_collection.update_one(
-        {"email": email, "contact": "not_confirmed"},
+        {"email": email, "contact": {"$in": [None, "not_confirmed"]}},
         {"$set": {"contact": email,
          "boosty_code": boosty}
         }
