@@ -85,8 +85,40 @@ a.visited {
     display: flex;
     align-items: center;
     justify-content: start;
+    background-color: transparent;
 
 }
+.user-info {
+    margin-left: auto;
+    margin-top: 10px;
+    margin-right: 10px;
+    width: 2.5rem;
+    height: 1.7rem;
+    background-color: thistle;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold; /* опционально */
+    color: white;       /* или тёмный цвет, если фон светлый */
+    font-size: 1rem;
+}
+.user-info-small {
+    margin-left: auto;
+    margin-top: 5px;
+    margin-right: 10px;
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: thistle;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold; /* опционально */
+    color: white;       /* или тёмный цвет, если фон светлый */
+    font-size: 1rem;  /* подбирается по вкусу */
+}
+
 /* === ГЛАВНЫЙ КОНТЕЙНЕР === */
 .layout {
     display: flex; /* Делаем flex-контейнер */
@@ -972,6 +1004,12 @@ margin: 15px; /* Отступы между элементами */
             margin-right: var(--container-marg);
             margin-left: var(--container-marg);
         }
+        .user-info {
+            display: flex;
+        }
+        .user-info-small {
+            display: none;
+        }
     }
 
     /* 2️⃣ Средние экраны (от 1280px и меньше) */
@@ -983,6 +1021,12 @@ margin: 15px; /* Отступы между элементами */
             padding-left: 2rem;
             margin-right: var(--container-marg);
             margin-left: var(--container-marg);
+        }
+        .user-info {
+            display: flex;
+        }
+        .user-info-small {
+            display: none;
         }
     }
 
@@ -1019,6 +1063,13 @@ margin: 15px; /* Отступы между элементами */
             margin-right: var(--container-marg);
             margin-left: var(--container-marg);
         }
+        .user-info {
+            display: none;
+        }
+        .user-info-small {
+            display: flex;
+
+        }
 
         .code-body {
 
@@ -1036,6 +1087,12 @@ margin: 15px; /* Отступы между элементами */
             padding-left: 1rem;
             margin-right: 5px;
             margin-left: 5px;
+        }
+        .user-info {
+            display: none;
+        }
+        .user-info-small {
+            display: flex;
         }
 
         .code-body {
@@ -1067,6 +1124,12 @@ margin: 15px; /* Отступы между элементами */
         }
         .copy-button {
             top: 5px;
+        }
+        .user-info {
+            display: none;
+        }
+        .user-info-small {
+            display: flex;
         }
 
         .code-body {

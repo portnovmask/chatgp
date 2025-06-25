@@ -102,6 +102,7 @@ templates = Jinja2Templates(directory="templates")
 
 
 
+
 client = openai.AsyncOpenAI(api_key=APY_KEY)
 
 
@@ -133,6 +134,15 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
     return templates.TemplateResponse(
         "errors/generic.html", {"request": request, "code": exc.status_code}, status_code=exc.status_code
     )
+
+
+def get_initial(email: str) -> str:
+    import re
+    sanitized_email = re.sub(r'[^a-zA-Z0-9]', '', email)
+    return sanitized_email[0].upper() if sanitized_email else '?'
+
+
+templates.env.filters["initial"] = get_initial
 
 async def generate_summary(data, words: int = 2):
     logger.info(f"Данные пришли в функцию generate_summary: {data}")

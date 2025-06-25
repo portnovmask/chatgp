@@ -41,10 +41,15 @@
 
 
     <button id="open-menu-btn" onclick="toggleMenu()"><img src="/static/img/icons/menu-2.svg" width="30" alt="open"></button>
+        {% if user %}
+        <div class="user-info-small">{{ user.email | initial }}
+        </div>
+        {% endif %}
     </header>
 
     <!-- Основной контейнер-->
     <div class="layout">
+
         <!-- Боковое меню -->
         <aside id="sidebar">
 
@@ -145,6 +150,10 @@
 
         </noscript>
         </main>
+    {% if user %}
+    <div class="user-info">{{ user.email | initial }}
+    </div>
+    {% endif %}
     </div>
 
     <script>
