@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Request, Response, Depends, HTTPException, Form
-from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
+from fastapi import APIRouter, Request, Response, Depends, HTTPException, Form, BackgroundTasks
+from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pymongo import UpdateOne
 import logging
@@ -14,7 +14,8 @@ from datetime import datetime, timezone, timedelta
 from auth import get_user, verify_csrf_token as verify_csrf
 from settings import *
 from fernet_utils import encrypt_email, decrypt_email
-import json
+from mail import send_email_internal
+
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
 
 logger = logging.getLogger("app_logger")
@@ -81,6 +82,8 @@ async  def get_user_updates(email):
 
     if not user_data:
         return {}
+    logger.info(
+        f"admin  - данные пользователя: {email} - обновлены\n")
     return {"user": user, "user_data": user_data}
 
 
@@ -114,7 +117,8 @@ async def admin_dashboard(request: Request, user: dict = Depends(get_user)):
             context["message"] = {"status": "success", "detail": f"Найден пользователь {email}"}
          else:
             context["message"] = {"status": "fail", "detail": f"Пользователь {email} не найден"}
-
+   logger.info(
+       f"admin  - вход в админ панель\n")
    return templates.TemplateResponse("admin-dashboard.html", context)
 
 
@@ -132,6 +136,8 @@ async def get_user_info(
           "message": {"status": "fail", "detail": "CSRF токен недействителен"}
        })
     user_info = await get_user_updates(email)
+    logger.info(
+        f"admin  - Запрос данных пользователя: {email}\n")
     return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "user_info": user_info,
@@ -181,6 +187,8 @@ async def update_user_data(
     if updates:
         await users_collection.bulk_write(updates)
         user_info = await get_user_updates(user_id)
+        logger.info(
+            f"admin  - def update_user_data - информация о пользователе: {user_id} - обновлена\n")
         return templates.TemplateResponse("admin-dashboard.html", {
             "request": request,
             "user_info": user_info,
@@ -194,7 +202,8 @@ async def update_user_data(
             {"$set": {"boosty_code": boosty}
              }
         )
-
+    logger.info(
+        f"admin  - def update_user_data - ошибка обновления информации о пользователе: {user_id}\n")
     return templates.TemplateResponse("admin-dashboard.html", {
         "request": request,
         "csrf_token": csrf_token,
@@ -204,6 +213,7 @@ async def update_user_data(
 @admin_router.post("/update-user-subscription")
 async def add_user_payment(
     request: Request,
+        background_tasks: BackgroundTasks,
     user_id: str = Form(...),
     level: str = Form(...),
     tx_id: str = Form(...),
@@ -250,12 +260,24 @@ async def add_user_payment(
             }
         })
         user_info = await get_user_updates(user_id)
+        await send_email_internal(background_tasks, user_id,
+                                  "Подписка ChatGP",
+                                  " Поздравляем! Вы теперь подписаны на ChatGP!",
+                                  f"Уважаемый{user_id}",
+                                  f"Это письмо подтверждает, что вы подписаны на план {new_level} на сайте ChatGP.Ru.\n Вы можете повысить или изменить текущий план в вашем дашборде на ChatGP.Ru.",
+                                  "Перейти в дашборд",
+                                  f"{BASE_URL}/dash",
+                                  "Если это письмо пришло вам по ошибке, проигнорируйте его")
+        logger.info(
+            f"admin  - def  add_user_payment - подписка пользователя: {user_id} - обновлена\n")
         return templates.TemplateResponse("admin-dashboard.html", {
             "request": request,
             "user_info": user_info,
             "csrf_token": csrf_token,
-            "message": {"status": "success", "detail": "Информация обновлена"}
+            "message": {"status": "success", "detail": "Подписка оформлена/обновлена"}
         })
+    logger.info(
+        f"admin  - def  add_user_payment - ошибка обновления подписки пользователя: {user_id}\n")
     return templates.TemplateResponse("admin-dashboard.html", {
         "request": request,
         "csrf_token": csrf_token,
@@ -265,7 +287,7 @@ async def add_user_payment(
 
 @admin_router.post("/update-boosty-subscription")
 async def add_boosty_payment(
-    request: Request,
+    request: Request, background_tasks: BackgroundTasks,
     user_id: str = Form(...),
     boosty_level: str = Form(...),
     boosty_id: str = Form(...),
@@ -273,6 +295,7 @@ async def add_boosty_payment(
     boosty_sender: str = Form(...),
     expire_days: int = Form(...),
     csrf_token: str = Form(...)):
+
     cookie_csrf_token = request.cookies.get("csrf_token")
 
     if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
@@ -323,16 +346,78 @@ async def add_boosty_payment(
             }
         })
         user_info = await get_user_updates(user_id)
+        await send_email_internal(background_tasks, user_id,
+                                  "Подписка ChatGP",
+                                  "Поздравляем! Вы подписаны на ChatGP через Boosty!",
+                                  f"Уважаемый{user_id}",
+                                  f"Это письмо подтверждает, что вы подписались на план {new_level} на сайте ChatGP.Ru.\n Вы можете повысить или изменить текущий план в вашем дашборде на ChatGP.Ru. Так же вы можете отменить вашу подписку на boosty.to",
+                                  "Перейти в дашборд",
+        f"{BASE_URL}/dash",
+              "Если это письмо пришло вам по ошибке, проигнорируйте его"                    )
+        logger.info(
+            f"admin  - def  add_boosty_payment - подписка бусти пользователя: {user_id} - обновлена\n")
         return templates.TemplateResponse("admin-dashboard.html", {
             "request": request,
             "user_info": user_info,
             "csrf_token": csrf_token,
             "message": {"status": "success", "detail": "Бусти информация обновлена"}
         })
+    logger.info(
+        f"admin  - def  add_boosty_payment - ошибка бусти подписки пользователя: {user_id}\n")
     return templates.TemplateResponse("admin-dashboard.html", {
         "request": request,
         "csrf_token": csrf_token,
         "message": {"status": "fail", "detail": "Бусти обновление не удалось"}
+    })
+
+
+
+@admin_router.post("/send-angry-email")
+async def send_angry_email(
+    request: Request,
+        background_tasks: BackgroundTasks,
+    user_id: str = Form(...),
+    subject: str = Form(...),
+    descr: str = Form(...),
+    name_to: str = Form(...),
+    body: str = Form(...),
+    csrf_token: str = Form(...)):
+
+    cookie_csrf_token = request.cookies.get("csrf_token")
+
+
+    if not cookie_csrf_token or cookie_csrf_token != csrf_token or not verify_csrf(csrf_token, ADMIN, CSRF_SECRET_KEY):
+       return templates.TemplateResponse("admin-dashboard.html", {
+          "request": request,
+          "csrf_token": csrf_token,
+          "message": {"status": "fail", "detail": "CSRF токен недействителен"}
+       })
+    mail_to_user = await users_collection.find_one({"email": user_id})
+
+    if mail_to_user:
+        user_info = await get_user_updates(user_id)
+        await send_email_internal(background_tasks, user_id,
+                                  subject,
+                                  descr,
+                                  name_to,
+                                  body,
+                                  "Ответить на сайте",
+                                  f"{BASE_URL}/conact",
+                                  "Если это письмо пришло вам по ошибке, проигнорируйте его")
+        logger.info(
+            f"admin  - def  send_angry_email - Письмо от администратора пользователю: {user_id} - отправлено\n")
+        return templates.TemplateResponse("admin-dashboard.html", {
+            "request": request,
+            "user_info": user_info,
+            "csrf_token": csrf_token,
+            "message": {"status": "success", "detail":  f"Письмо для: {user_id} - отправлено"}
+        })
+    logger.info(
+        f"admin  - def  send_angry_email - ошибка отправки письма пользователю: {user_id}\n")
+    return templates.TemplateResponse("admin-dashboard.html", {
+        "request": request,
+        "csrf_token": csrf_token,
+        "message": {"status": "fail", "detail": "Отправка письма не удалась"}
     })
 
 
@@ -406,12 +491,16 @@ async def drop_user(
            })
        await users_collection.delete_one({"email": user_id})
        await tokens_collection.delete_one({"email": user_id})
+       logger.info(
+           f"admin  - def  drop_user - пользователь: {user_id} - удалён\n")
        return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "csrf_token": csrf_token,
        "message": {"status": "success", "detail": "Пользователь удалён"},
        "user_delete_message": {"status": "success", "detail": "Пользователь удалён"}
    })
+    logger.info(
+        f"admin  - def  drop_user - Ошибка! - пользователь: {user_id} - не найден и удаление не удалось\n")
     return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "csrf_token": csrf_token,
@@ -469,13 +558,16 @@ async def drop_user_collections(
 
        # Затем добавим один дефолтный чат
        await chats_collection.insert_one(default_chat)
-
+       logger.info(
+           f"admin  - def  drop_user_collection - чаты пользователя: {user_id} - удалёны\n")
        return templates.TemplateResponse("admin-dashboard.html", {
            "request": request,
            "csrf_token": csrf_token,
            "message": {"status": "success", "detail": "Данные пользователя удалены"},
            "data_delete_message": {"status": "success", "detail": "Данные пользователя удалены"}
        })
+    logger.info(
+        f"admin  - def  drop_user_collection - Ошибка удаления чатов пользователя: {user_id} - пользователь не найден\n")
     return templates.TemplateResponse("admin-dashboard.html", {
        "request": request,
        "csrf_token": csrf_token,

@@ -370,7 +370,18 @@ svg {
     padding: 1rem;
     /*width: 80%;*/
 }
-
+.user-literal {
+    background-color: #cce8b6;
+    border-radius: 50%;
+    display: flex;
+    width: 2.5rem;
+    height: 2.5rem;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold; /* опционально */
+    color: #2a3602;       /* или тёмный цвет, если фон светлый */
+    font-size: 0.8rem;
+}
 
         @media (max-width: 1024px) {
             .container {

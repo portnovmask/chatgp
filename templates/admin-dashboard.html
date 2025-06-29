@@ -88,6 +88,29 @@
 </div>
 
 <div class="block">
+    <h2>Отправить пользователю письмо</h2>
+    <form method="post" action="/admin/send-angry-email">
+        <label>Email:
+            <input type="email" name="user_id" required>
+        </label>
+        <label>Тема письма:
+            <input type="text" name="subject">
+        </label>
+        <label>Описание письма:
+            <input type="text" name="descr">
+        </label>
+        <label>Имя получателя:
+            <input type="text" name="name_to">
+        </label>
+        <label>Текст письма:
+            <textarea  name="body"></textarea>
+        </label>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+        <button type="submit">Отправить письмо</button>
+    </form>
+</div>
+
+<div class="block">
     <h2>Обновить подписку пользователя</h2>
     <form method="post" action="/admin/update-user-subscription">
         <label>Email:

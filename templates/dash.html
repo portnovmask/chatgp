@@ -4,6 +4,19 @@
 
 {% block content %}
 
+{% set descriptions = {
+    "trial": "2 млн. токенов в день, 20 веб-поисков в месяц, модель 4o-mini, чтение фото.",
+    "basic": "6 млн. токенов в день,
+     120 веб-поисков в месяц,
+     модель 4o-mini,
+     чтение фото.",
+    "advanced": "10 млн. токенов в день, 400 веб-поисков в месяц, модель 4o, чтение фото.",
+    "business": "50 млн. токенов в день, 2000 веб-поисков в месяц, модель 4o, чтение фото..",
+    "pro": "20 млн. токенов в день, 1200 веб-поисков в месяц, модель o3, чтение фото.",
+    "premium": "Без ограничений токенов, 2000 веб-поисков в месяц, модель 4.1, чтение фото."
+} %}
+
+
     <div class="container">
 
     <!-- Левая колонка с логотипом и ссылками -->
@@ -12,15 +25,15 @@
         <h1>Личный кабинет</h1>
     {% if user %}
         {% if user.contact %}
-            <p class="card-small">Ваш email: {{ user.contact }}</p>
+            <p class="user-literal">{{ user.email | initial }}</p>
             {% if user.auth_provider != "local" %}
              <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
                 {% else %}
-                <p class="card-small">Ваш никнейм совпадает с email</p>
+                <p class="card-small">Контактный email: {{ user.contact }}</p>
             {% endif %}
         {% else %}
             <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
-            <p class="card-small">Добавить электронную почту, чтобы оставаться на связи</p>
+            <p class="card-small">Добавьте электронную почту, чтобы оставаться на связи</p>
 
             <form  class="form_auth_block" id="add-email" method="post" action="/api/add_email">
                 <label class="form_auth_block_label" for="email">Email для связи:</label>
@@ -47,8 +60,7 @@
 
         <!-- Левая из двух правых колонок -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/user.svg" alt="User" style="width: 25px; height: 25px;" >
-            <p class="card-price">Пользователь</p>
+            <span class="user-literal">{{ user.email | initial }}</span>
         <div class="card-content">
             <span class="card-medium">Никнейм: {{ user.email }}</span>
              <span class="card-medium">Дата регистрации: {{ user.registered_at | datetimeformat  }}</span>
@@ -145,14 +157,16 @@
     <!-- Пятая карточка, если хочешь -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/skateboarding.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <p class="card-price">Текущий план</p>
-        <div class="card-content">
-                    <span class="card-small">Количество токенов в день</span>
-                   <span class="card-small">Количество поисков в неделю</span>
-                    <span class="card-small">Модель</span>
-                    <span class="card-small">Для чего подходит план</span>
-                    <span class="card-small"><a href="/">Примеры промптов</a></span>
+            <p class="card-price">О плане</p>
+        <p class="card-content">
+{#                    <span class="card-small">Количество токенов в день</span>#}
+{#                   <span class="card-small">Количество поисков в неделю</span>#}
+{#                    <span class="card-small">Модель</span>#}
+{#                    <span class="card-small">Для чего подходит план</span>#}
+{#                    <span class="card-small"><a href="/">Примеры промптов</a></span>#}
 
+            <p class="card-price">{{ plans[user.original_status] }}</p>
+            <div class="card-small">{{ descriptions[user.original_status]}}</div>
         </div>
         </div>
 
@@ -185,7 +199,7 @@
 {#        </div>#}
 
     </div>
-</div>
+
         <script>
         const addForm = document.getElementById('add-email');
 

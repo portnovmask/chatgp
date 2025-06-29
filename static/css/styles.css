@@ -89,19 +89,23 @@ a.visited {
 
 }
 .user-info {
-    margin-left: auto;
-    margin-top: 10px;
-    margin-right: 10px;
-    width: 2.5rem;
-    height: 1.7rem;
+    position: absolute;
+    /*margin-left: auto;*/
+    top: 10px;
+    right: 10px;
+    width: 1.5rem;
+    height: 1.5rem;
     background-color: thistle;
-    border-radius: 50%;
+    border-radius: 100%;
     display: none;
     align-items: center;
     justify-content: center;
     font-weight: bold; /* опционально */
     color: white;       /* или тёмный цвет, если фон светлый */
-    font-size: 1rem;
+    font-size: 0.8rem;
+    text-align: center;
+    overflow: hidden;
+    z-index: 100;
 }
 .user-info-small {
     margin-left: auto;
@@ -121,6 +125,7 @@ a.visited {
 
 /* === ГЛАВНЫЙ КОНТЕЙНЕР === */
 .layout {
+    position: relative;
     display: flex; /* Делаем flex-контейнер */
     height: 100vh; /* Заполняем высоту экрана */
     overflow: hidden;

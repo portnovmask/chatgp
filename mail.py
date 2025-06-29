@@ -87,26 +87,52 @@ async def send_email(user: dict, subject: str, html_content: str):
         hostname="mailhog",
         port=1025,  # порт MailHog
     )
-
+    logger.info(
+        f"mail  - def send_mail - отправлен email на адрес: {to_email} - на тему {subject}\n")
 
 # Универсальный маршрут для отправки писем
-@router.post("/send-email/")
-async def send_email_route(background_tasks: BackgroundTasks, email_to: str = Form(...)):
+async def send_email_internal(background_tasks: BackgroundTasks,
+                              email_to: str,
+                              subject: str,
+                              descr: str,
+                              name_to: str,
+                              body: str,
+                              action: str,
+                              url: str,
+                              footer: str):
     email = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=BASE_URL,
-        header_text="Добро пожаловать!",
-        description="Это письмо содержит важную информацию.",
-        recipient_name="Иван Иванов",
-        body_text="Спасибо за регистрацию на нашем сервисе. Пожалуйста, подтвердите вашу почту.",
-        action_label="Подтвердить Email",
-        action_url="https://example.com/confirm?token=abc123",
-        footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+        header_text=subject,
+        description=descr,
+        recipient_name=name_to,
+        body_text=body,
+        action_label=action,
+        action_url=url,
+        footer_text=footer
     )
-    user = {"email": email_to or "ivan@example.com"}
+    user = {"email": email_to or "support@chatgp.ru"}
     html = email.render()
-    background_tasks.add_task(send_email, user, "Добро пожаловать!", html)
+    background_tasks.add_task(send_email, user, subject, html)
+    logger.info(f"mail - отправлен email на адрес: {user} - на тему {subject}")
     return {"message": "Письмо отправлено"}
+
+
+
+@router.post("/send-email/")
+async def send_email_route(background_tasks: BackgroundTasks,
+                           email_to: str = Form(...),
+                           subject: str = Form(...),
+                           descr: str = Form(...),
+                           name_to: str = Form(...),
+                           body: str = Form(...),
+                           action: str = Form(...),
+                           url: str = Form(...),
+                           footer: str = Form(...)):
+    return await send_email_internal(
+        background_tasks, email_to, subject, descr, name_to, body, action, url, footer
+    )
+
 
 # Контактная форма
 
@@ -227,6 +253,8 @@ async def confirm_email(request: Request, token: str):
         subheader = "Срок действия ссылки истёк или она недействительна."
         message = "Вернитесь на главную страницу, выполните вход еще раз, вам будет отправлен повторный email с ссылкой."
         action = "Вернуться на главную"
+        logger.info(
+            f"mail  - confirm_email - Ошибка! Пользователю не удалось подтвердить email, email не найден или токен повреждён!\n")
 
         return templates.TemplateResponse("confirm-notice.html", {"request": request,
                                                                   "title": title,
@@ -248,7 +276,8 @@ async def confirm_email(request: Request, token: str):
         subheader = "Поздравляем! Вы успешно подтвердили электронную почту!"
         message = "Всё готово, теперь вы можете начать пользоваться сервисом полноценно."
         action = "Вернуться на главную"
-
+        logger.info(
+            f"mail  - confirm_email - Пользователь {email} подтвердил email\n")
         return templates.TemplateResponse("confirm-notice.html", {"request": request,
                                                                   "title": title,
                                                                   "header": header,
@@ -261,7 +290,8 @@ async def confirm_email(request: Request, token: str):
         subheader = "Это происходит, еслиЖ"
         message = "Вы уже подтверждали вашу электронную почту или указали неверный email."
         action = "Попробовать еще раз"
-
+        logger.info(
+            f"mail  - confirm_email - Ошибка подтверждения email пользователя {email} - повторное подтверждение\n")
         return templates.TemplateResponse("confirm-notice.html", {"request": request,
                                                                   "title": title,
                                                                   "header": header,
