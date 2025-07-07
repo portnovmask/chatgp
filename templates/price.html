@@ -21,7 +21,7 @@
                  <a href="/about">О сервисе&nbsp;</a>
                 <a href="/post">Блог&nbsp;</a>
                 <a href="/privacy">Приватность&nbsp;</a>
-                <a href="/contact">Контакты&nbsp;</a>
+                <a href="/api/contact">Контакты&nbsp;</a>
                 <a href="/help">Помощь</a>
             </div>
             <h3>Поддержать донатом</h3>
@@ -40,12 +40,12 @@
 } %}
 
 {% set descriptions = {
-    "trial": "Бесплатно навсегда! 2 млн. токенов в день, 20 веб-поисков в месяц, модель 4o-mini, чтение фото.",
-    "basic": "Взвешенный подход. 6 млн. токенов в день, 120 веб-поисков в месяц, модель 4o-mini, чтение фото.",
-    "advanced": "Для активных. 10 млн. токенов в день, 400 веб-поисков в месяц, модель 4o, чтение фото.",
-    "business": "Для групп из 3 - 5 пользователей. 50 млн. токенов в день, 2000 веб-поисков в месяц, модель 4o, чтение фото..",
-    "pro": "Для программирования и анализа. 20 млн. токенов в день, 1200 веб-поисков в месяц, модель o3, чтение фото.",
-    "premium": "Максимум возможностей! Без ограничений токенов, 2000 веб-поисков в месяц, модель 4.1, чтение фото."
+    "trial": "модель 4o-mini, 3 млн. токенов в день, чтение фото 512х512.",
+    "basic": "мощная модель 4o (до 1 млн. токенов), 4 млн. токенов в день, 50 веб-поисков в месяц,  чтение фото",
+    "advanced": "мощная модель 4o (до 2 млн. токенов), 5 млн. токенов в день, 150 веб-поисков в месяц, чтение фото",
+    "business": "мощная модель 4o (до 4 млн. токенов), 7 млн. токенов в день, 400 веб-поисков в месяц, чтение фото",
+    "pro": "логическая модель o3 (до 2 млн. токенов), 5 млн. токенов в день, 200 супер веб-поисков в месяц, чтение фото",
+    "premium": "продвинутая модель 4.1 (до 4 млн. токенов), 7 млн. токенов в день, 500 супер веб-поисков в месяц, чтение фото"
 } %}
 
 
@@ -68,8 +68,9 @@
 
 
 {% if user %}
-{% for plan, title in plans.items() %}
 
+{% for plan, title in plans.items() %}
+{% set desc_items = descriptions[plan].split(',') %}
     <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.original_status if user else '' }}');">
         <div class="card {% if user.original_status == plan %}active{% endif %}">
             <img src="/static/img/logo/28.svg" alt="plan logo">
@@ -79,12 +80,19 @@
             {% else %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
-            <div class="card-medium">{{ descriptions[plan] }}</div>
+
+                <ul class="custom-list">
+                  {% for item in desc_items %}
+                    <li><img src="/static/img/icons/mood-spark.svg" class="bullet-icon" style="width: 16px; height: 16px;" alt="✔"> {{ item.strip() }}</li>
+                  {% endfor %}
+                </ul>
+{#            <div class="card-medium">{{ descriptions[plan] }}</div>#}
         </div>
     </a>
 {% endfor %}
 {% else %}
     {% for plan, title in plans.items() %}
+        {% set desc_items = descriptions[plan].split(',') %}
     <a href="#" onclick="showModal('Для продолжения выполните вход', 'warning', {
             label: 'Вход',
             url: '/authorize',
@@ -98,7 +106,12 @@
             {% else %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
-            <div class="card-medium">{{ descriptions[plan] }}</div>
+        <ul class="custom-list">
+                  {% for item in desc_items %}
+                    <li><img src="/static/img/icons/mood-spark.svg" class="bullet-icon" style="width: 16px; height: 16px;" alt="✔"> {{ item.strip() }}</li>
+                  {% endfor %}
+                </ul>
+{#            <div class="card-medium">{{ descriptions[plan] }}</div>#}
         </div>
     </a>
     {% endfor %}

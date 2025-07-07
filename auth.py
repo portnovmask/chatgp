@@ -54,6 +54,10 @@ MODE = {"current_mode": "basic", "image_upload": None, "file_upload": None, "cur
 
 fernet = Fernet(FERNET_KEY)
 
+
+
+
+
 def create_access_token(email: str):
     expire = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     now = datetime.now(timezone.utc)

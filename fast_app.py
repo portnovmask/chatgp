@@ -12,6 +12,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from typing import Optional
+from jose import JWTError
 from datetime import datetime, timezone, timedelta
 from auth import router as auth_router
 from blog_post import router as posts_router
@@ -116,7 +117,11 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
         return templates.TemplateResponse("errors/400.html", {"request": request}, status_code=400)
 
     if exc.status_code == 403:
-        return templates.TemplateResponse("errors/403.html", {"request": request}, status_code=403)
+        response = templates.TemplateResponse("errors/403.html", {"request": request}, status_code=403)
+        response.delete_cookie("access_token")
+        response.delete_cookie("refresh_token")
+        response.delete_cookie("has_auth")
+        return response
 
     if exc.status_code == 404:
         return templates.TemplateResponse("errors/404.html", {"request": request}, status_code=404)
@@ -134,6 +139,46 @@ async def custom_http_exception_handler(request: Request, exc: StarletteHTTPExce
     return templates.TemplateResponse(
         "errors/generic.html", {"request": request, "code": exc.status_code}, status_code=exc.status_code
     )
+
+
+
+@app.exception_handler(JWTError)
+async def jwt_error_handler(request: Request, exc: JWTError):
+    logger.warning(f" JWT ошибка: {exc}")
+    response = RedirectResponse("/api/logout/", status_code=302)
+    return response
+
+
+
+
+@app.middleware("http")
+async def catch_401_middleware(request: Request, call_next):
+    try:
+        response = await call_next(request)
+
+        # Только для HTML-запросов (браузер)
+        accepts = request.headers.get("accept", "")
+        is_html = "text/html" in accepts
+
+        if response.status_code == 401 and is_html:
+            # Только если это HTML-запрос — редиректим
+            redirect = RedirectResponse("/api/logout/", status_code=302)
+
+            return redirect
+
+        return response
+
+    except StarletteHTTPException as exc:
+        # Аналогично: если ошибка 401 и HTML — редиректим
+        accepts = request.headers.get("accept", "")
+        is_html = "text/html" in accepts
+
+        if exc.status_code == 401 and is_html:
+            redirect = RedirectResponse("/api/logout/", status_code=302)
+
+            return redirect
+
+        raise exc
 
 
 def get_initial(email: str) -> str:

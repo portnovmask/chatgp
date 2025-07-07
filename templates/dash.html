@@ -5,17 +5,13 @@
 {% block content %}
 
 {% set descriptions = {
-    "trial": "2 млн. токенов в день, 20 веб-поисков в месяц, модель 4o-mini, чтение фото.",
-    "basic": "6 млн. токенов в день,
-     120 веб-поисков в месяц,
-     модель 4o-mini,
-     чтение фото.",
-    "advanced": "10 млн. токенов в день, 400 веб-поисков в месяц, модель 4o, чтение фото.",
-    "business": "50 млн. токенов в день, 2000 веб-поисков в месяц, модель 4o, чтение фото..",
-    "pro": "20 млн. токенов в день, 1200 веб-поисков в месяц, модель o3, чтение фото.",
-    "premium": "Без ограничений токенов, 2000 веб-поисков в месяц, модель 4.1, чтение фото."
+    "trial": "модель 4o-mini, 3 млн. токенов в день, чтение фото 512х512.",
+    "basic": "мощная модель 4o (до 1 млн. токенов), 4 млн. токенов в день, 50 веб-поисков в месяц,  чтение фото",
+    "advanced": "мощная модель 4o (до 2 млн. токенов), 5 млн. токенов в день, 150 веб-поисков в месяц, чтение фото",
+    "business": "мощная модель 4o (до 4 млн. токенов), 7 млн. токенов в день, 400 веб-поисков в месяц, чтение фото",
+    "pro": "логическая модель o3 (до 2 млн. токенов), 5 млн. токенов в день, 200 супер веб-поисков в месяц, чтение фото",
+    "premium": "продвинутая модель 4.1 (до 4 млн. токенов), 7 млн. токенов в день, 500 супер веб-поисков в месяц, чтение фото"
 } %}
-
 
     <div class="container">
 
@@ -27,12 +23,12 @@
         {% if user.contact %}
             <p class="user-literal">{{ user.email | initial }}</p>
             {% if user.auth_provider != "local" %}
-             <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
+             <p class="card-medium">Вы авторизованы через: {{ user.auth_provider }}</p>
                 {% else %}
-                <p class="card-small">Контактный email: {{ user.contact }}</p>
+                <p class="card-medium">Контактный email: {{ user.contact }}</p>
             {% endif %}
         {% else %}
-            <p class="card-small">Вы авторизованы через: {{ user.auth_provider }}</p>
+            <p class="card-medium">Вы авторизованы через: {{ user.auth_provider }}</p>
             <p class="card-small">Добавьте электронную почту, чтобы оставаться на связи</p>
 
             <form  class="form_auth_block" id="add-email" method="post" action="/api/add_email">
@@ -61,6 +57,7 @@
         <!-- Левая из двух правых колонок -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <span class="user-literal">{{ user.email | initial }}</span>
+        <h4 class="card-price">Пользователь</h4>
         <div class="card-content">
             <span class="card-medium">Никнейм: {{ user.email }}</span>
              <span class="card-medium">Дата регистрации: {{ user.registered_at | datetimeformat  }}</span>
@@ -77,8 +74,8 @@
 
         <!-- Правая из двух правых колонок -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/settings.svg" alt="Stats" style="width: 25px; height: 25px;">
-            <p class="card-price">Подписки</p>
+            <img src="/static/img/icons/stars.svg" alt="Stats" style="width: 25px; height: 25px;">
+            <h4 class="card-price">Подписки</h4>
             <div class="card-content">
             {% if user.subscription|length > 0 %}
                     {% if user.subscription.pending_level %}
@@ -100,8 +97,8 @@
 
         <!-- Третья карточка, если хочешь -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/shopping-cart.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <p class="card-price">Учёт</p>
+            <img src="/static/img/icons/list-search.svg" alt="Settings" style="width: 25px; height: 25px;">
+            <h4 class="card-price">Учёт</h4>
         <div class="card-content">
                     <span class="card-small">Использовано токенов: {{ user.tokens }}</span>
                    <span class="card-small">Токены поиска: {{ user.attempts }}</span>
@@ -134,7 +131,6 @@
     <!-- Четвёртая карточка, если хочешь -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/boosty_logo.svg" alt="Settings" style="width: 80px; height: auto;">
-
         <div class="card-content">
                     <span class="card-small">Бусти личный идентификатор:</span> {% if boosty %}
             <span class="card-small copy-container" style="width: 180px;" data-full="{{ boosty }}">
@@ -154,19 +150,24 @@
         </span>
         </div>
         </div>
-    <!-- Пятая карточка, если хочешь -->
+    <!-- Пятая карточка -->
         <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
             <img src="/static/img/icons/skateboarding.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <p class="card-price">О плане</p>
-        <p class="card-content">
+            <h4 class="card-price">Что входит?</h4>
+        <div class="card-content">
 {#                    <span class="card-small">Количество токенов в день</span>#}
 {#                   <span class="card-small">Количество поисков в неделю</span>#}
 {#                    <span class="card-small">Модель</span>#}
 {#                    <span class="card-small">Для чего подходит план</span>#}
 {#                    <span class="card-small"><a href="/">Примеры промптов</a></span>#}
 
-            <p class="card-price">{{ plans[user.original_status] }}</p>
-            <div class="card-small">{{ descriptions[user.original_status]}}</div>
+            <span class="card-price">Уровень:&nbsp;{{ plans[user.original_status] }}</span>
+            {% set desc_items = descriptions[user.original_status].split(',') %}
+                <ul class="custom-list">
+                  {% for item in desc_items %}
+                    <li><img src="/static/img/icons/mood-spark.svg" class="bullet-icon" style="width: 16px; height: 16px;" alt="✔"> {{ item.strip() }}</li>
+                  {% endfor %}
+                </ul>
         </div>
         </div>
 
@@ -199,6 +200,7 @@
 {#        </div>#}
 
     </div>
+        </div>
 
         <script>
         const addForm = document.getElementById('add-email');
@@ -273,9 +275,9 @@
 
     navigator.clipboard.writeText(text)
       .then(() => {
-        button.innerHTML = "<img src='/static/img/icons/copy-check.svg' alt='Check' style='width: 18px; height: 18px;'>";
+        button.innerHTML = "<img src='/static/img/icons/copy-check.svg' alt='скопировано' style='width: 18px; height: 18px;'>";
         setTimeout(() => {
-          button.innerHTML = "<img src='/static/img/icons/copy.svg' alt='Copy' style='width: 18px; height: 18px;'>";
+          button.innerHTML = "<img src='/static/img/icons/copy.svg' alt='копировать' style='width: 18px; height: 18px;'>";
         }, 1500);
       })
       .catch(err => {
