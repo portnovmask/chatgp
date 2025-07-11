@@ -6,12 +6,6 @@ __pycache__/
 ads.txt
 robots.txt
 test.py
-static/img
-static/vid
-static/post
-static/site.webmanifest
-static/css/normalize.css
-
 # Docker volumes, caches
 volumes/
 *.pid
