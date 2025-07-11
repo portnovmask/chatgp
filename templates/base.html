@@ -34,6 +34,8 @@
                         "pro": "Мыслитель",
                         "premium": "Премиум"
                     } %}
+
+
 <body>
 
     <!-- Шапка с кнопкой открытия меню -->
@@ -87,14 +89,13 @@
                      {% else %}
                      <p><small>Поддержите отзывом и донатом</small></p>
                      <iframe src="https://yandex.ru/sprav/widget/rating-badge/233067138754?type=rating" width="150" height="50" frameborder="0"></iframe>
-                     <p><a href="https://boosty.to/ketome.ru/donate" target="_blank" class="no-effects"><img src="/static/img/icons/boosty_logo.svg" width="80px"></a>
+                     <div><a href="https://boosty.to/ketome.ru/donate" target="_blank" class="no-effects"><img src="/static/img/icons/boosty_logo.svg" width="80px"></a>
                          <span><img src="/static/img/pics/ketome.ru-donate.png"></span>
-                         <span style="font-size: 10px;">Серафименко Сергей ... 700р.</span><br>
-                        <span style="font-size: 10px;">Плетнёва Анна ........ 500р.</span><br>
-                        <span style="font-size: 10px;">Сысоев Дмитрий ...... 250р.</span><br>
-                        <span style="font-size: 10px;">Ступин Кирилл ....... 5000р.</span><br>
-                     </p>
-                     <p>&nbsp;</p>
+{#                         <span style="font-size: 10px;">Серафименко Сергей ... 700р.</span><br>#}
+{#                        <span style="font-size: 10px;">Плетнёва Анна ........ 250р.</span><br>#}
+{#                        <span style="font-size: 10px;">Ступин Кирилл ....... 5000р.</span><br>#}
+                     </div>
+                     <div id="donor-list"></div>
                 {% endif %}
 {#            <div class="item-content tooltip"><a href="#" ><img src="/static/img/icons/shopping-cart.svg" width="40" alt="upgrade"><small>Чат премиум</small></a><span class="tooltiptext">Подключить премиум</span></div>#}
         </div>
@@ -126,7 +127,7 @@
                   <div class="item-content"><a href="/help">Помощь</a></div>
                     <div class="item-content"><a href="/post">Блог</a></div>
                   <div class="item-content"><a href="/api/contact">Контакты</a></div>
-                  <div class="item-content tooltip"><a href="https://t.me" target="_blank"><img src="/static/img/icons/telegram_icon.svg" alt="Telegram" style="width: 25px; height: 25px;" ></a><span class="tooltiptext">Телеграм канал</span></div>
+                  <div class="item-content tooltip"><a href="https://t.me" class="no-effects" target="_blank"><img src="/static/img/icons/telegram_icon.svg" alt="Telegram" style="width: 25px; height: 25px;" ></a><span class="tooltiptext">Телеграм канал</span></div>
 
                      <div class="item tooltip"><button id="chose-mode-btn" class="side-bar-hint-button"  onclick="window.location.href='/price'">
                          <img src="/static/img/icons/stars.svg" width="20"  alt="mode">
@@ -169,6 +170,7 @@
     <script src="/static/js/minimal-theme-switcher.js" defer></script>
     <!-- Modal-->
     <script src="/static/js/modal.js" defer></script>
+    <script src="/static/js/donors.js" defer></script>
 <div id="scroll-anchor"></div>
 </body>
 </html>
