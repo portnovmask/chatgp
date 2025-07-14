@@ -2,7 +2,7 @@
   box-sizing: border-box;
 }
 .form_auth_block {
-    width: clamp(min(10vw, 20rem), 370px, max(90vw, 55rem));
+    width: clamp(340px, 25rem, 90vw);
     font-family: "Manrope", sans-serif;
     position: absolute;
     top: 50%;

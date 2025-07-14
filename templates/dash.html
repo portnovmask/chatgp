@@ -232,7 +232,11 @@
 
                     const result = await response.json();
                     if (result.status === "success") {
-                        await showModal(result.message, 'success');
+                        if (result.redirect) {
+                            window.location.href = result.redirect;
+                        } else {
+                            await showModal(result.message, 'success');
+                        }
                     } else {
                         await showModal(result.message, 'error');
                     }

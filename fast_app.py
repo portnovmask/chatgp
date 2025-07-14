@@ -845,6 +845,8 @@ async def delete_chat_route(request: Request, user=Depends(get_user)):
         return {"chat_id": chat_id, "deletion_status": "not found"}
 
 
+
+
 # === Фоновая задача: удаление устаревших файлов ===
 async def cleanup_expired_files():
     while True:

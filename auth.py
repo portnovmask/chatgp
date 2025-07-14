@@ -14,6 +14,7 @@ from models.user_data import users_data_collection
 from models.chats import chats_collection
 from settings import *
 from mail import EmailTemplate, send_email, generate_confirmation_token
+from urllib.parse import urlencode
 
 router = APIRouter(prefix="/api")
 logger = logging.getLogger("app_logger")
@@ -54,7 +55,28 @@ MODE = {"current_mode": "basic", "image_upload": None, "file_upload": None, "cur
 
 fernet = Fernet(FERNET_KEY)
 
+def redirect_to_feedback(
+    message: str,
+    status: str = "info",
+    action_label: str | None = None,
+    action_url: str | None = None,
+    action_method: str = "get"
+) -> RedirectResponse:
+    """
+    Универсальный редирект на /feedback с параметрами.
+    """
+    query_params = {
+        "message": message,
+        "status": status,
+    }
 
+    if action_label and action_url:
+        query_params["action_label"] = action_label
+        query_params["action_url"] = action_url
+        query_params["action_method"] = action_method.lower()
+
+    url = "/feedback?" + urlencode(query_params)
+    return RedirectResponse(url=url, status_code=303)
 
 
 
@@ -469,16 +491,18 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     logger.info(f"/login  - def login - Для пользователя: {email} - в куки добавлены новые токены\n")
     return response
 
+
+
 @router.post("/add_email")
 async def add_email(request: Request,
                     background_tasks: BackgroundTasks,
                     email: str = Form(...),
                     user: dict = Depends(get_user)):
     """Добавление контактного email"""
-    if user and user.get("contact") != email:
 
+    if user and user.get("contact") != email:
         token = generate_confirmation_token(email)
-        confirm_url = f"{request.base_url}/api/confirm-email?token={token}"
+        confirm_url = f"{request.base_url}api/confirm-email?token={token}"
         email_template = EmailTemplate(
             logo_url=LOGO_URL,
             header_link=str(request.base_url),
@@ -491,15 +515,23 @@ async def add_email(request: Request,
             footer_text="Если вы не добавляли почту — просто проигнорируйте это письмо."
         )
 
-        logger.info(f"/add_email  - def add email - пользователь: {user.get("email")}добавил email для связи: {email}\n")
-        response = RedirectResponse(url="/api/confirm-notice", status_code=303)
-
+        logger.info(f"/add_email - пользователь: {user.get('email')} добавил email: {email}")
         html = email_template.render()
-        background_tasks.add_task(send_email, email, "Подтверждение почты", html)
-        return response
+        background_tasks.add_task(send_email, user, "Подтверждение почты", html)
+
+        return JSONResponse({
+            "status": "success",
+            "message": "Письмо отправлено на указанный email.",
+            "redirect": "/api/confirm-notice"
+        })
     else:
-        logger.info(f"/add_email  - def add email - пользователь не авторизован или пытается добавить email повторно, не удалось отправить email для связи: {email}\n")
-        return {"message": "Ошибка добавления email, возможно вы пытаетесь добавить email повторно или не авторизованы.", "status": "error"}
+        return JSONResponse({
+            "status": "error",
+            "message": "Ошибка добавления email. Возможно, вы уже указали этот адрес или не авторизованы."
+        })
+
+
+
 @router.get("/logout")
 async def logout(request: Request):
     """Выход и удаление токенов из БД"""
@@ -592,7 +624,7 @@ async def vendor_user_login(user, vendor):
 async def vendor_user_register(email, vendor, vendor_id):
     # Регистрируем нового пользователя
     boosty_code = None
-    if vendor == "Google" or vendor == "yandex":
+    if vendor == "google" or vendor == "yandex":
         contact = email
         boosty_code = encrypt_email(contact)
     else:
@@ -668,6 +700,7 @@ def google_login():
 
 import requests
 
+
 @router.get("/auth/google/callback")
 async def google_callback(request: Request, background_tasks: BackgroundTasks, code: str):
     """Получаем токен и данные пользователя из Google"""
@@ -684,10 +717,17 @@ async def google_callback(request: Request, background_tasks: BackgroundTasks, c
     if "access_token" not in token_json:
         logger.info(
             f"/auth/google/callback  - Ошибка авторизации Google\n")
-        raise HTTPException(status_code=400, detail="Ошибка авторизации Google")
+        # raise HTTPException(status_code=400, detail="Ошибка авторизации Google")
+        return redirect_to_feedback(
+            message="Ошибка авторизации Google",
+            status="danger",
+            action_label="Попробовать снова",
+            action_url="/authorize"
+        )
 
     # Получаем данные пользователя
-    user_info_response = requests.get(GOOGLE_USERINFO_URL, headers={"Authorization": f"Bearer {token_json['access_token']}"})
+    user_info_response = requests.get(GOOGLE_USERINFO_URL,
+                                      headers={"Authorization": f"Bearer {token_json['access_token']}"})
     user_info = user_info_response.json()
 
     email = user_info["email"]
@@ -695,8 +735,13 @@ async def google_callback(request: Request, background_tasks: BackgroundTasks, c
     if not email and google_id:
         logger.info(
             f"/auth/google/callback  - Ошибка авторизации Google нет email или айди\n")
-        raise HTTPException(status_code=400, detail="Ошибка авторизации Google, no email or id")
-
+        # raise HTTPException(status_code=400, detail="Ошибка авторизации Google, no email or id")
+        return redirect_to_feedback(
+            message="Ошибка авторизации Google, нет email или айди",
+            status="danger",
+            action_label="Попробовать снова",
+            action_url="/authorize"
+        )
     logger.info(
         f"/auth/google/callback  - Получены данные пользователя Google: {email}\n")
     # Проверяем пользователя в MongoDB
@@ -706,8 +751,13 @@ async def google_callback(request: Request, background_tasks: BackgroundTasks, c
         if existing_user["auth_provider"] == "local":
             logger.info(
                 f"/auth/google/callback  - Этот email: {email} - уже зарегистрирован через пароль\n")
-            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
-
+            # raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+            return redirect_to_feedback(
+                message="email уже зарегистрирован через пароль",
+                status="danger",
+                action_label="Попробовать другой аккаунт",
+                action_url="/authorize"
+            )
         # Авторизуем пользователя, выдаём токены
         access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "google")
 
@@ -753,6 +803,7 @@ def yandex_login():
         f"{YANDEX_AUTH_URL}?response_type=code&client_id={YANDEX_CLIENT_ID}&redirect_uri={YANDEX_REDIRECT_URI}"
     )
 
+
 @router.get("/auth/yandex/callback")
 async def yandex_callback(request: Request, background_tasks: BackgroundTasks, code: str):
     """Обрабатываем ответ Яндекса"""
@@ -768,10 +819,16 @@ async def yandex_callback(request: Request, background_tasks: BackgroundTasks, c
     if "access_token" not in token_json:
         logger.info(
             f"/auth/yandex/callback  - Ошибка авторизации Yandex\n")
-        raise HTTPException(status_code=400, detail="Ошибка авторизации Яндекса")
-
+        # raise HTTPException(status_code=400, detail="Ошибка авторизации Яндекса")
+        return redirect_to_feedback(
+            message="Ошибка авторизации через Яндекс",
+            status="danger",
+            action_label="Попробовать еще раз",
+            action_url="/authorize"
+        )
     # Получаем данные пользователя
-    user_info_response = requests.get(YANDEX_USERINFO_URL, headers={"Authorization": f"OAuth {token_json['access_token']}"})
+    user_info_response = requests.get(YANDEX_USERINFO_URL,
+                                      headers={"Authorization": f"OAuth {token_json['access_token']}"})
     user_info = user_info_response.json()
 
     email = user_info.get("default_email")
@@ -780,15 +837,27 @@ async def yandex_callback(request: Request, background_tasks: BackgroundTasks, c
     if not email:
         logger.info(
             f"/auth/yandex/callback  - Яндекс не вернул email\n")
-        raise HTTPException(status_code=400, detail="Яндекс не вернул email")
-
+        # raise HTTPException(status_code=400, detail="Яндекс не вернул email")
+        return redirect_to_feedback(
+            message="Ошибка авторизации через Яндекс, такой email не найден",
+            status="danger",
+            action_label="Попробовать еще",
+            action_url="/authorize"
+        )
     existing_user = await users_collection.find_one({"email": email})
 
     if existing_user:
         if existing_user["auth_provider"] == "local":
             logger.info(
                 f"/auth/yandex/callback  - Этот email: {email} - уже зарегистрирован через пароль.\n")
-            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+            # raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+            return redirect_to_feedback(
+                message="Этот email уже зарегистрирован через пароль",
+                status="danger",
+                action_label="Попробовать другой",
+                action_url="/authorize"
+            )
+
         # Авторизуем пользователя, выдаём токены
         access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "yandex")
 
@@ -826,9 +895,9 @@ async def yandex_callback(request: Request, background_tasks: BackgroundTasks, c
     return response
 
 
-
 import hashlib
 import hmac
+
 
 @router.get("/auth/telegram/callback")
 async def telegram_callback(request: Request):
@@ -845,15 +914,27 @@ async def telegram_callback(request: Request):
 
     if check_hash != expected_hash:
         logger.info(f"/auth/telegram/callback  - Недействительная подпись данных для входа через Телеграм\n")
-        raise HTTPException(status_code=400, detail="Недействительная подпись данных")
-
+        # raise HTTPException(status_code=400, detail="Недействительная подпись данных")
+        return redirect_to_feedback(
+            message="Ошибка авторизации через Телеграм",
+            status="danger",
+            action_label="Попробовать еще раз",
+            action_url="/authorize"
+        )
     # Проверяем время запроса (не старше 1 мин)
     auth_time = datetime.fromtimestamp(int(auth_data["auth_date"]), tz=timezone.utc)
     current_time = datetime.now(timezone.utc)
 
     if (current_time - auth_time).total_seconds() > 60:
         logger.info(f"/auth/telegram/callback  - Данные устарели (60 минут) для входа через Телеграм\n")
-        raise HTTPException(status_code=400, detail="Данные устарели")
+        # raise HTTPException(status_code=400, detail="Данные устарели")
+
+        return redirect_to_feedback(
+            message="Ошибка авторизации через Телеграм - данные устарели",
+            status="danger",
+            action_label="Попробовать еще раз",
+            action_url="/authorize"
+        )
 
     telegram_id = auth_data["id"]
     username = auth_data["username"]
@@ -864,9 +945,15 @@ async def telegram_callback(request: Request):
 
     if existing_user:
         if existing_user["auth_provider"] == "local":
-            logger.info(f"/auth/telegram/callback  - Этот email уже зарегистрирован через пароль для входа через Телеграм\n")
-            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
-
+            logger.info(
+                f"/auth/telegram/callback  - Этот email уже зарегистрирован через пароль для входа через Телеграм\n")
+            # raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+            return redirect_to_feedback(
+                message="Ошибка регистрации через Телеграм - Этот email уже используется",
+                status="danger",
+                action_label="Попробовать другой ааккаунт",
+                action_url="/authorize"
+            )
         # Авторизуем пользователя, выдаём токены
         access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "telegram")
         response = RedirectResponse(url="/")
@@ -918,7 +1005,14 @@ async def vk_callback(request: Request, code: str):
     if "access_token" not in token_json:
         logger.info(
             f"/auth/vk/callback  - Ошибка авторизации VK.\n")
-        raise HTTPException(status_code=400, detail="Ошибка авторизации VK")
+        # raise HTTPException(status_code=400, detail="Ошибка авторизации VK")
+
+        return redirect_to_feedback(
+            message="Ошибка авторизации через Вконтакте",
+            status="danger",
+            action_label="Попробовать еще раз",
+            action_url="/authorize"
+        )
 
     access_token = token_json["access_token"]
     user_id = token_json["user_id"]
@@ -934,7 +1028,14 @@ async def vk_callback(request: Request, code: str):
     if "response" not in user_info:
         logger.info(
             f"/auth/vk/callback  - Ошибка получения данных VK.\n")
-        raise HTTPException(status_code=400, detail="Ошибка получения данных VK")
+        # raise HTTPException(status_code=400, detail="Ошибка получения данных VK")
+
+        return redirect_to_feedback(
+            message="Ошибка получения данных - Вконтакте",
+            status="danger",
+            action_label="Попробовать еще раз",
+            action_url="/authorize"
+        )
 
     vk_user = user_info["response"][0]
     full_name = f"{vk_user['first_name']} {vk_user['last_name']}"
@@ -946,7 +1047,15 @@ async def vk_callback(request: Request, code: str):
         if existing_user["auth_provider"] == "local":
             logger.info(
                 f"/auth/vk/callback  - Этот email: {email} -  уже зарегистрирован через пароль.\n")
-            raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+            # raise HTTPException(status_code=400, detail="Этот email уже зарегистрирован через пароль.")
+
+            return redirect_to_feedback(
+                message="Ошибка авторизации через Вконтакте - email уже зарегестрирован",
+                status="danger",
+                action_label="Попробовать другой аккаунт",
+                action_url="/authorize"
+            )
+
         # Авторизуем пользователя, выдаём токены
         access_token, refresh_token, csrf_token = await vendor_user_login(existing_user, "vk")
 
@@ -970,7 +1079,6 @@ async def vk_callback(request: Request, code: str):
     return response
 
 
-
 @router.get("/image-preview/{filename}")
 async def image_preview(filename: str, user=Depends(get_user)):
     if not user:
@@ -980,6 +1088,19 @@ async def image_preview(filename: str, user=Depends(get_user)):
     file_path = (UPLOAD_DIR / filename).resolve()
 
     # Проверка безопасности
+    if not str(file_path).startswith(str(UPLOAD_DIR)):
+        raise HTTPException(status_code=400, detail="Invalid path")
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(path=file_path)
+
+
+@router.get("/public-preview/{filename}")
+async def public_image_preview(filename: str):
+    file_path = (UPLOAD_DIR / filename).resolve()
+
     if not str(file_path).startswith(str(UPLOAD_DIR)):
         raise HTTPException(status_code=400, detail="Invalid path")
 

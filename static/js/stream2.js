@@ -18,7 +18,7 @@ const fallbackPath = "/static/img/icons/user.svg";
 
 const submitIcon = `<img src="/static/img/icons/send-2.svg" width="18" height="18" autofocus alt="send">`;
 
-const stopIcon = `<img src="/static/img/icons/player-stop.svg" width="18" height="18" autofocus alt="stop">`;
+const stopIcon = `<img src="/static/img/icons/player-stop.svg" class="blink" width="18" height="18" autofocus alt="stop">`;
 
 function generateId() {
   return 'id-' + Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -265,6 +265,7 @@ if (submitButton) {
             submitButton.disabled = false;
             submitButton.innerHTML = submitIcon;
             showUploadBtn.style.display = "flex";
+            paramButton.style.display = "flex";
         }
     };
 }
@@ -460,7 +461,7 @@ if (uploadButton) {
                 // showUploadBtn.style.display = "block";
                 // showUploadBtn.disabled = true;
                 textarea.style.display = "block";
-                paramButton.style.display = "flex";
+                paramButton.style.display = "none";
                 submitButton.style.display = "flex";
                 const thumbImg = document.createElement('img');
                 imgLink = result.path;
@@ -491,6 +492,7 @@ if (uploadButton) {
                                         if (deleteIconButton) {
                         deleteIconButton.style.display = "none";
                         showUploadBtn.style.display = "flex";
+                        paramButton.style.display = "flex";
                     }
                     console.log("Картинка удалена или путь указан неверный - Йодо.");
 
@@ -505,6 +507,7 @@ if (uploadButton) {
         } catch (error) {
             console.error("Ошибка при загрузке изображения:", error);
             showUploadBtn.style.display = "flex";
+            paramButton.style.display = "flex";
             imagePath = null;
         }
     });
@@ -531,6 +534,7 @@ if (deleteIconButton) {
             if (icon) icon.remove();
             deleteIconButton.style.display = "none";
             showUploadBtn.style.display = "flex";
+            paramButton.style.display = "flex";
             imagePath = null;
         } else {
             console.error("Ошибка удаления изображения");
