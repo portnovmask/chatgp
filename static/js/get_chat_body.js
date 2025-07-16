@@ -109,7 +109,7 @@ async function fetchChatData(chatId) {
 
     // Вставляем HTML после обработки всех сообщений
     chatArticle.innerHTML = processedMessages.join("");
-    console.log("Чат загружен:", data.chat_body);
+    console.log("Чат загружен:");
     Prism.highlightAll();
          // Прокручиваем страницу после загрузки чата
         setTimeout(() => {

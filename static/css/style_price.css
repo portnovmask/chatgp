@@ -372,15 +372,19 @@ svg {
 }
 .user-literal {
     background-color: #cce8b6;
-    border-radius: 50%;
+    border-radius: 100%;
     display: flex;
     width: 2.5rem;
     height: 2.5rem;
+    aspect-ratio: 1 / 1;
     align-items: center;
     justify-content: center;
     font-weight: bold; /* опционально */
     color: #2a3602;       /* или тёмный цвет, если фон светлый */
-    font-size: 0.8rem;
+    font-size: 1rem;
+    overflow: hidden;
+    flex-shrink: 0;             /* Не даёт flexу сжать блок */
+    place-self: center;
 }
 
 .custom-list {

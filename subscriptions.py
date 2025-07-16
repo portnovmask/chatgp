@@ -71,7 +71,8 @@ async def get_ton_transaction(min_amount_ton: float = 1.0):
         try:
             value_nano = int(in_msg.get("value", "0"))
             value_ton = value_nano / 1_000_000_000
-            if value_ton >= min_amount_ton:
+            min_acceptable_ton = min_amount_ton * 0.70
+            if value_ton >= min_acceptable_ton:
                 return {
                     "hash": tx["hash"],
                     "value_nano": value_nano,
@@ -234,21 +235,24 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
     email = user.get("email")
     boosty = user.get("boosty_code", False)
     usdt_price = await get_ton_usdt_price()
-    price = (PRICES[LEVELS.index(level)]/usdt_price)*1000000000
-    payment = generate_payment_link(email, level, price, payment_id)
+    price_ton = round((PRICES[LEVELS.index(level)] / usdt_price) * 1.05, 4)  # округляем до 4 знаков TON
+    price_nano = int(price_ton * 1_000_000_000)  # переводим в nanoTON
+    payment = generate_payment_link(email, level, price_nano, payment_id)
+    if not payment:
+        logger.info(f"Не удалось сформировать ссылку на оплату, email: {user.get('email')}, level: {level}")
     qr = generate_qr_base64(payment["url"])
 
     email_template = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=BASE_URL,
         header_text="Вы выбрали подписку!!!",
-        description=f"Уровеень подписки: {level}.",
+        description=f"Уровеень подписки: {PRETTY_NAMES[level]}.",
         recipient_name=email,
-        body_text=f"Спасибо за выбор подписки {level} на ChatGP по цене {round(price / 1_000_000_000, 2)} Ton!"
+        body_text=f"Спасибо за выбор подписки {PRETTY_NAMES[level]} на ChatGP по цене {round(price_nano / 1_000_000_000, 2)} Ton!"
                   "Если вы еще не оплатили по ссылке или qr коду на сайте вы можете провести оплату по ссылке ниже с ценой подписки."
                   "Для оплаты по ссылке убедитесь, что у вас есть аккаунт в TonKeeper или другом криптовалютном кошельке.",
         action_label="ссылка на оплату",
-        action_url=payment,
+        action_url=payment["url"],
         footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
     )
     html = email_template.render()
@@ -303,6 +307,7 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
     current_expiry = user.get("subscription", {}).get("expires_at")
     current_index = LEVELS.index(current_status)
     new_index = LEVELS.index(level)
+    usdt_price = await get_ton_usdt_price()
     if new_index == current_index:
         return templates.TemplateResponse("feedback.html", {
             "request": request,
@@ -315,7 +320,7 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
             }
         })
 
-    price = PRICES[new_index]
+    price = PRICES[new_index]/usdt_price
     transactions = await get_ton_transaction(price)
 
     if not transactions:
@@ -332,11 +337,11 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
             }
         })
 
-    data = transactions.get("transactions", [])
+    # data = transactions.get("transactions", [])
 
 
 
-    tx = data[0]
+    tx = transactions
     tx_id = tx.get("hash")
     in_msg = tx.get("in_msg", {})
     sender = in_msg.get("source")
@@ -487,11 +492,11 @@ async def renew_subscriptions():
     for user in users:
         email = user["email"]
         new_level = user["subscription"]["pending_level"]
-
+        usdt_price = await get_ton_usdt_price()
         tx_id = user["subscription"]["payment_history"][-1]["tx_id"]
         new_expiry = datetime.now(timezone.utc) + timedelta(days=30)
         new_index = LEVELS.index(new_level)
-        new_price = PRICES[new_index]
+        new_price = PRICES[new_index]/usdt_price
         transactions = await get_ton_transaction(new_price)
         data = transactions.get("transactions", [])
         if transactions:

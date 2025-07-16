@@ -50,14 +50,14 @@ const donors = [
         "Федоров Игорь ........ 180р.",
         "Литвинова Ника ...... 1200р."
     ];
-
+const container = document.getElementById('donor-list');
     function getRandomDonors(count) {
         const shuffled = donors.slice().sort(() => Math.random() - 0.5);
         return shuffled.slice(0, count);
     }
 
     function renderDonors() {
-        const container = document.getElementById('donor-list');
+        if (!container) return;
         container.innerHTML = '';
         const randomDonors = getRandomDonors(4);
         randomDonors.forEach(donor => {

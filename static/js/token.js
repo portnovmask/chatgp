@@ -41,16 +41,16 @@ document.addEventListener("DOMContentLoaded", async () => {
     // Слушаем события, связанные с авторизацией
     listenAuthEvents(({ type }) => {
         if (type === "token_refreshed") {
-            console.log("🔁 Токен обновлён в другой вкладке");
+            //console.log("🔁 Токен обновлён в другой вкладке");
         }
         if (type === "logout") {
-            console.log("🚪 Выход в другой вкладке");
+            // console.log("🚪 Выход в другой вкладке");
             window.location.replace("/api/logout");
         }
     });
     // ✅ Проверяем: если у пользователя нет access_token, не обновляем
     if (!isAuthenticated()) {
-        console.log("👤 Гость. Пропускаем refresh.");
+        // console.log("👤 Гость. Пропускаем refresh.");
         return;
     }
 
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
 
         if (response.status === 401) {
-            console.log("Access token expired, refreshing...");
+            // console.log("Access token expired, refreshing...");
             const refreshResponse = await fetch("/api/refresh", {
                 method: "POST",
                 credentials: "include"
@@ -112,7 +112,7 @@ document.addEventListener("DOMContentLoaded", async () => {
                     credentials: "include"
                 });
             } else {
-                console.warn("Refresh token expired. Redirecting...");
+                // console.warn("Refresh token expired. Redirecting...");
                 window.location.replace("/api/logout");
                 return;
             }
@@ -120,7 +120,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         return response;
     } catch (err) {
-        console.error("❌ Network error:", err);
+        console.error(" Network error:", err);
         alert("Ошибка соединения. Попробуйте позже.");
         throw err;
     }

@@ -436,11 +436,12 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
     search_model = params.get("search_model")
     level_index = LEVELS.index(status)
 
-    if level_index < 2:
-        return {"message": "Поиск недоступен на вашем уровне подписки!", "status": "error"}
+    # if level_index < 2:
+    #     return {"message": "Поиск недоступен на вашем уровне подписки!", "status": "error"}
 
     if (params.get("search") - attempts) < 1:
-        return {"message": "Вы исчерпали лимиты поиска на сегодня!", "status": "info"}
+        hit = f"Вы исчерпали лимиты поиска! - {str(attempts)} из {str(params.get("search"))}"
+        return {"message": hit, "status": "error"}
 
     # assistant_content = await search_chat.get_last_chat_messages(search_chat_id)
     # logger.info(f"assistant_content search: {assistant_content[0:15]}\n")
@@ -701,21 +702,20 @@ async def view_post(request: Request, slug: str,
 
 @app.get("/api/change_param")  #Ручка для выбора параметров
 async def change_param(request: Request, user: dict = Depends(get_user), param: str = "stream"):
-    response = RedirectResponse(url="/")  # Перенаправляем на корень
+    response = RedirectResponse(url="/", status_code=303)  # Перенаправляем на корень
     #Логика получения параметра и проверки доступа пользователя к нему
     if user:
         status = user.get("status")
         attempts = user.get("attempts")
         level_index = LEVELS.index(status)
-        if level_index < 2 and param != "stream":
-            mode = "stream"
-        elif (ATTEMPT_LIMITS[level_index] - attempts) < 1:
+
+        if param != "stream" and (ATTEMPT_LIMITS[level_index] - attempts) < 1:
             mode = "stream"
         else:
             mode = param
         response.set_cookie(key="param", value=mode, max_age=3600)  # Меняем куки
     else:
-        response = RedirectResponse(url="/")
+        response = RedirectResponse(url="/", status_code=303)
     return response
 
 

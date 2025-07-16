@@ -284,7 +284,7 @@ if (searchButton) {
           searchButton.addEventListener("click", async () => {
               const searchPrompt = document.getElementById("search-input");
               const sPrompt = searchPrompt.value;
-              console.log(sPrompt);
+              // console.log(sPrompt);
               const label = searchButton.querySelector(".search-label");
               const spinner = searchButton.querySelector(".spinner");
               if (isValidInput(sPrompt)) {
@@ -541,99 +541,3 @@ if (deleteIconButton) {
         }
     });
 }
-
-
-
-
-
-// if (submitButton) {
-//     let eventSource = null;
-//
-//     submitButton.onclick = () => {
-//         const promptInput = document.querySelector('#prompt');
-//         const prompt = promptInput.value;
-//         let streamText = ''
-//         const newElement = document.getElementById('events');
-//         promptInput.style.height = "auto";
-//
-//         if (eventSource) {
-//             eventSource.close();
-//             eventSource = null;
-//             submitButton.innerHTML = submitIcon;
-//             newElement.innerText = '';
-//
-//         }
-//
-//         if (isValidInput(prompt)) {
-//             eventSource = new EventSource(`/stream?prompt=${encodeURIComponent(prompt)}`);
-//             submitButton.innerHTML = stopIcon;
-//             //newElement.innerText += prompt;
-//         } else {
-//             return;
-//         }
-//         eventSource.onmessage = async (event) => {  // Добавляем `async`
-//             if (event.data !== undefined) {
-//
-//
-//                 const data = JSON.parse(event.data); // Парсим JSON
-//                 promptInput.value = "";
-//                 const finishReason = data.finish_reason;
-//                 const totalTokens = data.usage;
-//                 let chunk_id = data.id;
-//                 const userQuery = escapeHtml(data.user_query);
-//
-//
-//                 if (finishReason === "End") {
-//                     console.log("Closing EventSource...");
-//                     streamText = await filterText(newElement.innerText)
-//                     newElement.innerText = '';
-//                     let chatBlock = `<div class="response-body">${streamText}</div>
-//                                 </div><br><hr>`
-//                     console.log(totalTokens);
-//                     console.log(data.id);
-//                     eventSource.close();
-//                     eventSource = null;
-//                     submitButton.innerHTML = submitIcon;
-//                     parent.innerHTML += `<div id="${chunk_id}">
-//                <div class="query-body">${userQuery}<button class="edit-button">
-//                <img src="/static/img/icons/edit.svg" width="18" height="18" alt="edit">
-//                 </button>
-//                 </div>
-//                 </div>
-//             `;
-//                     parent.innerHTML += chatBlock;
-//                     Prism.highlightAll();
-//
-//                     // promptInput.style.height = "auto";
-//                     // setTimeout(() => {
-//                     //     document.querySelector(".container-main").style.display = "block";
-//                     // }, 100);
-//
-//                     setTimeout(async () => {
-//                         await fetchUpdatedSummaries();
-//                     }, 5000);
-//                     // window.location.reload();
-//                 } else if (finishReason === "stop") {
-//                     newElement.innerText += ' ';
-//                 } else {
-//
-//                     //await streamToContainer(data.content, newElement);
-//                     newElement.innerText += data.content;
-//
-//
-//                     //Прокручиваем страницу после загрузки чата
-//                     //  setTimeout(() => {
-//                     //     newElement.scrollIntoView({ behavior: "smooth", block: "end" });
-//                     //     }, 100);
-//
-//                     setTimeout(() => {
-//                         const container = document.querySelector(".container-main"); // Родитель с overflow-y: scroll;
-//                         container.scrollTop = container.scrollHeight; //  Прокручиваем к последнему элементу
-//                     }, 100);
-//
-//                 }
-//             }
-//         };
-//
-//     };
-// }

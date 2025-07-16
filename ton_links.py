@@ -1,10 +1,12 @@
 # ton_links.py
 import hmac
 import hashlib
-#import uuid
+import logging
 import urllib.parse
 #from fastapi import Request
 from settings import TON_WALLET, TON_SECRET_KEY # если используешь pydantic.BaseSettings
+
+logger = logging.getLogger("app_logger")
 
 def generate_payment_link(email: str, level: str, amount: float, payment_id: str) -> dict:
     user_amount = amount
@@ -32,7 +34,7 @@ def generate_payment_link(email: str, level: str, amount: float, payment_id: str
     # итоговая ссылка
     full_query = f"{query_string}&sig={signature}"
     full_url = f"{base_url}?{full_query}"
-
+    logger.info(f"Сформирована ссылка на оплату для пользователя {email} на сумму {amount} нанотон, ссылка: {full_url}")
     return {
         "payment_id": payment_id,
         "url": full_url
