@@ -33,18 +33,27 @@
     {% endif %}
 
     {% if post.annotations %}
-        <div class="annotations">
-            Ссылки:
-            {% for item in post.annotations %}
-    {% if item.startswith('http') %}
-      <a href="{{ item }}" target="_blank" rel="noopener noreferrer">{{ item | replace('https://', '') | replace('http://', '') }}</a>
-    {% else %}
-      <span>#{{ item }}</span>
-    {% endif %}
-    {% if not loop.last %}, {% endif %}
-  {% endfor %}
-        </div>
-    {% endif %}
+  <div class="annotations">
+    {% for item in post.annotations %}
+      {% if item is string %}
+        {% if item.startswith('http') %}
+          <a href="{{ item }}" target="_blank" rel="noopener noreferrer">
+            {{ item | replace('https://', '') | replace('http://', '') }}
+          </a>
+        {% else %}
+          <span>#{{ item }}</span>
+        {% endif %}
+      {% elif item is mapping %}
+        <ul>
+          {% for label, url in item.items() %}
+            <li><a href="{{ url }}" target="_blank" rel="noopener noreferrer">{{ label }}</a></li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endfor %}
+  </div>
+{% endif %}
+
 
     <div class="content">
         {{ post.content | safe }}

@@ -19,17 +19,20 @@ from blog_post import router as posts_router
 from mail import router as mail_router
 from admin import admin_router as admin_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions, notify_expiring_subscriptions
-from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_or_guest, verify_csrf_token
+from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_token
 import openai
-from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR
-from file_utils import save_uploaded_image, image_to_base64
+from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR, ADMIN
+from file_utils import save_uploaded_image
 from modes import (User, get_user_summaries, get_chat_body_by_id, get_last_chat_id,
                    set_chat, reset_chat, delete_chat, get_current_attempts,
                    update_user_image_upload, delete_user_image_upload)
 import asyncio
 import markdown
-from blog_post import get_post_by_slug, get_all_post_titles, get_latest_post
-from fernet_utils import decrypt_email
+from blog_post import get_post_by_slug, get_all_post_titles, get_latest_post, create_blog_post, extract_annotations
+from models.blog import BlogPost
+import re
+import html
+import markdown2
 
 access_logger = logging.getLogger("uvicorn.access")
 
@@ -428,50 +431,18 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
     search_chat = User(user)
     search_chat_id = await get_last_chat_id(user) or None
     stream_id = None
-
     status = user.get("status", "trial")
     attempts = user.get("attempts", 0)
     user_tokens = user.get("tokens", 0)
     params = await search_chat.request_params()
     search_model = params.get("search_model")
-    level_index = LEVELS.index(status)
-
-    # if level_index < 2:
-    #     return {"message": "Поиск недоступен на вашем уровне подписки!", "status": "error"}
 
     if (params.get("search") - attempts) < 1:
         hit = f"Вы исчерпали лимиты поиска! - {str(attempts)} из {str(params.get("search"))}"
         return {"message": hit, "status": "error"}
 
-    # assistant_content = await search_chat.get_last_chat_messages(search_chat_id)
-    # logger.info(f"assistant_content search: {assistant_content[0:15]}\n")
 
-    def insert_annotations(text: str, annotations: list[dict]) -> str:
-        if not annotations:
-            return text
-
-        annotations = sorted(annotations, key=lambda a: a["url_citation"]["start_index"], reverse=True)
-
-        for ann in annotations:
-            citation = ann.get("url_citation")
-            if not citation:
-                continue
-
-            start = citation.get("start_index")
-            end = citation.get("end_index")
-            url = citation.get("url")
-            title = citation.get("title")
-
-            if not (0 <= start < end <= len(text)):
-                continue
-
-            cited_text = text[start:end]
-            link = f'<a href="{url}" target="_blank" title="{title}">{cited_text}</a>'
-            text = text[:start] + link + text[end:]
-
-        return text
-
-    async def generate_search(user_prompt, user_attempts, tokens, user_model):
+    async def generate_search(user_prompt, user_attempts, tokens, user_model) -> str:
         token_usage = 1000
         completion = await client.chat.completions.create(
             model=user_model,
@@ -492,17 +463,30 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
         if completion:
             message_obj = completion.choices[0]
+            print(message_obj)
             full_reply_content = message_obj.message.content
-            annotations = message_obj.annotations if hasattr(message_obj, "annotations") else []
 
-            full_reply_with_links = insert_annotations(full_reply_content, annotations)
             search_id = completion.id
 
             await after_stream_processing(search_chat, prompt, full_reply_content, search_chat_id, search_id,
                                           token_usage)
             logger.info(f"Запустили фоновую функцию из поиска с чат айди: {search_chat_id}\n")
 
-            return full_reply_with_links
+            if user_email == ADMIN:
+
+                new_post = BlogPost(
+                    title=prompt,
+                    description=await generate_summary(full_reply_content,20),
+                    content=full_reply_content,
+                    author="ChatGP - администратор",
+                    date=datetime.now(timezone.utc).date().isoformat(),
+                    image_link="",
+                    annotations=extract_annotations(message_obj)
+                )
+
+                await create_blog_post(new_post)
+
+            return full_reply_content
         else:
             return "Ошибка поиска"
 
@@ -512,7 +496,7 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
     return {
         "response": final_response,
         "attempts": new_attempt_count,
-        "id": stream_id
+        "id": stream_id,
     }
 
 
@@ -627,6 +611,8 @@ async def dash(request: Request, user: dict = Depends(get_user)):
     if not user:
         return RedirectResponse('/', status_code=302)
     else:
+        level_index = LEVELS.index(user["status"])
+        attempts = ATTEMPT_LIMITS[level_index]
         boosty = user.get("boosty_code")
         plans = {
             "trial": "Базовый",
@@ -639,7 +625,7 @@ async def dash(request: Request, user: dict = Depends(get_user)):
         logger.info(f"/dash  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
 
         return templates.TemplateResponse("dash.html",
-                                          {"request": request, "user": user, "plans": plans, "boosty": boosty})
+                                          {"request": request, "user": user, "plans": plans, "boosty": boosty, "attempts": attempts})
 
 
 @app.get("/post", response_class=HTMLResponse)
@@ -778,9 +764,6 @@ async def feedback_page(
     })
 
 
-import re
-import html
-import markdown2
 
 CODE_BLOCK_RE = re.compile(r"```(.*?)```", re.DOTALL)
 

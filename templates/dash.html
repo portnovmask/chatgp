@@ -101,7 +101,7 @@
             <h4 class="card-price">Учёт</h4>
         <div class="card-content">
                     <span class="card-small">Использовано токенов: {{ user.tokens }}</span>
-                   <span class="card-small">Токены поиска: {{ user.attempts }}</span>
+                   <span class="card-small">Токены поиска: {{ user.attempts }} из {{attempts}}</span>
                     {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}
                     <span class="card-small copy-text" >ID платежа: {{ user.subscription.transaction_id }}</span>
                     <details class="dropdown">
