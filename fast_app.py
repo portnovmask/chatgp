@@ -343,6 +343,7 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
 
     if extras and extras==prompt_pic:
         #file_path = f"http://127.0.0.1:8000/tmp/uploads/{prompt_pic}" ссылка заработает, когда будет сервер
+        #user_tokens += 100000
         file_path = "https://ketome.ru/wp-content/uploads/2024/05/pohudenie-s-pomoschyu-ketoza-na-keto.jpg" # заглушка для демонстрации работы распознавания изображений
         user_message = {
                         "role": "user",
@@ -443,7 +444,7 @@ async def search(request_data: PromptRequest, user: dict = Depends(get_user)):
 
 
     async def generate_search(user_prompt, user_attempts, tokens, user_model) -> str:
-        token_usage = 1000
+        token_usage = 10000
         completion = await client.chat.completions.create(
             model=user_model,
             messages=[{

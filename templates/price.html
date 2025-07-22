@@ -9,14 +9,14 @@
         <aside class="sidebar">
             <a href="/" class="logo"></a>
             <h2>Выберите подходящий план</h2>
-            <p><small>Подписка оформляется на 30 дней.
+            <span><small>Подписка оформляется на 30 дней.
                 Цены приведены в USDT,
                 но расчеты производятся в Тон.
                 При оплате за пол года или год вперед
                 предоставляются скидки - индивидуально.
                 Доступна подписка через Бусти,
                 скопируйте и используйте код для оплаты. Отменить подписку
-                до истечения 30 дней со дня оплаты невозможно.</small></p>
+                до истечения 30 дней со дня оплаты невозможно.</small></span>
              <div class="links-row">
                  <a href="/about">О сервисе&nbsp;</a>
                 <a href="/post">Блог&nbsp;</a>
@@ -66,6 +66,14 @@
     "premium": (prices['premium'] / ton_to_usdt) | round(2) ~ " TON"
 } %}
 
+{% set logos = {
+    "trial": "/static/img/icons/level-basic.svg",
+    "basic": "/static/img/icons/level-optimum.svg",
+    "advanced": "/static/img/icons/level-advanced.svg",
+    "business": "/static/img/icons/level-business.svg",
+    "pro": "/static/img/icons/level-pro.svg",
+    "premium": "/static/img/icons/level-premium.svg"
+} %}
 
 {% if user %}
 
@@ -73,7 +81,7 @@
 {% set desc_items = descriptions[plan].split(',') %}
     <a href="#" onclick="handleSubscription(event, '{{ plan }}', '{{ user.original_status if user else '' }}');">
         <div class="card {% if user.original_status == plan %}active{% endif %}">
-            <img src="/static/img/logo/28.svg" alt="plan logo">
+            <img src="{{logos[plan]}}" alt="plan logo">
             <h3>{{ title }}</h3>
             {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
@@ -121,7 +129,6 @@
 </div>
  </div>
 
-<script src="/static/js/modal.js" defer></script>
 
 <script>
 

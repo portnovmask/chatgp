@@ -1,4 +1,4 @@
-{% extends "noheader2.html" %}
+{% extends "noheader3.html" %}
 
 {% block title %}Страница пользователя{% endblock %}
 
@@ -13,101 +13,124 @@
     "premium": "продвинутая модель 4.1 (до 4 млн. токенов), 7 млн. токенов в день, 500 супер веб-поисков в месяц, чтение фото"
 } %}
 
-    <div class="container">
+{% set logos = {
+    "trial": "/static/img/icons/level-basic.svg",
+    "basic": "/static/img/icons/level-optimum.svg",
+    "advanced": "/static/img/icons/level-advanced.svg",
+    "business": "/static/img/icons/level-business.svg",
+    "pro": "/static/img/icons/level-pro.svg",
+    "premium": "/static/img/icons/level-premium.svg"
+} %}
 
-    <!-- Левая колонка с логотипом и ссылками -->
-    <div class="sidebar">
-        <div class="logo" onclick="window.location.href='/'" style="cursor: pointer"></div>
-        <h1>Личный кабинет</h1>
+    <div class="grid">
+
     {% if user %}
+
+        <!-- 1 -->
+        <div class="card flow bg-neutral-100 quote text-secondary-400">
+
         {% if user.contact %}
-            <p class="user-literal">{{ user.email | initial }}</p>
+            <div class="flex">
+            <span class="user-literal">{{ user.email | initial }}</span>
+            <span class="card-price">{{ user.email }}</span>
+            </div>
+            <h1>Дашборд</h1>
+
             {% if user.auth_provider != "local" %}
-             <p class="card-medium">Вы авторизованы через: {{ user.auth_provider }}</p>
+                <p class="card-medium flex"><img src="/static/img/icons/user.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Авторизация через:&nbsp;{{ user.auth_provider }}</p>
                 {% else %}
-                <p class="card-medium">Контактный email: {{ user.contact }}</p>
+                    <p class="card-medium flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">{{ user.contact }}</p>
             {% endif %}
         {% else %}
-            <p class="card-medium">Вы авторизованы через: {{ user.auth_provider }}</p>
-            <p class="card-small">Добавьте электронную почту, чтобы оставаться на связи</p>
+            <p class="card-medium">Вы авторизованы через:&nbsp; {{ user.auth_provider }}</p>
+            <p class="card-price">Добавьте электронную почту, чтобы оставаться на связи</p>
 
             <form  class="form_auth_block" id="add-email" method="post" action="/api/add_email">
                 <label class="form_auth_block_label" for="email">Email для связи:</label>
                 <input   type="email" id="email" name="email" placeholder="myemail@example.com"
-        autocomplete="email">
+        autocomplete="email" required>
 
                 <button id="update-contact" class="form_auth_button" type="submit">Добавить</button>
             </form>
-            <p id="email-status" class="card-small" style="margin-top: 8px;"></p>
+            <p id="email-status" class="card-price" style="margin-top: 8px;"></p>
+           {% endif %}
 
-        {% endif %}
-        <div class="links-row">
-            <a href="/post">Блог</a>
-            <a href="/about">О сервисе</a>
-            <a href="/api/contact">Контакты</a>
-            <a href="/price">Цены</a>
-            <a href="/help">Помощь</a>
-            <a href="/api/logout">Выход</a>
-        </div>
-    </div>
-
-    <!-- Основной контент (две другие колонки) -->
-    <div class="grid">
-
-        <!-- Левая из двух правых колонок -->
-        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <span class="user-literal">{{ user.email | initial }}</span>
-        <h4 class="card-price">Пользователь</h4>
-        <div class="card-content">
-            <span class="card-medium">Никнейм: {{ user.email }}</span>
-             <span class="card-medium">Дата регистрации: {{ user.registered_at | datetimeformat  }}</span>
-            <span class="card-medium">Текущий план: <b>{{ plans[user.original_status] }}</b></span>
+             <p class="card-medium">Дата регистрации:&nbsp; {{ user.registered_at | datetimeformat  }}</p>
+            <p class="card-medium">Текущий план:&nbsp; <b>{{ plans[user.original_status] }}</b></p>
             {% if user.original_status != 'trial' and user.status == 'trial' %}
-            <span class="card-small">Временно понижен до: <b>{{ plans[user.status] }}</b></span>
+            <p class="card-small">Временно понижен до:&nbsp; <b>{{ plans[user.status] }}</b></p>
 
             {% if user.trial_expires_at or user.trial_expires_blocked %}
-            <span class="card-small">Лимиты сбросятся: {{ user.trial_expires_at | datetimeformat  }}</span>
+            <p class="card-small">Лимиты сбросятся:&nbsp; {{ user.trial_expires_at | datetimeformat  }}</p>
             {% endif %}
                 {% endif %}
-        </div>
-        </div>
+        <div class="bottom-container">
+        <ul class="custom-list bottom">
+            <li><a href="/">Главная</a></li>
+            <li><a href="/post">Блог</a></li>
+            <li><a href="/api/contact">Контакты</a></li>
+            <li><a href="/price">Цены</a></li>
+            <li><a href="/help">Помощь</a></li>
+            <li>&nbsp;&nbsp;</li>
+            <li><a href="/api/logout">Выход</a></li>
+        </ul>
 
-        <!-- Правая из двух правых колонок -->
-        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/stars.svg" alt="Stats" style="width: 25px; height: 25px;">
-            <h4 class="card-price">Подписки</h4>
-            <div class="card-content">
-            {% if user.subscription|length > 0 %}
-                    {% if user.subscription.pending_level %}
-                  <span>Отложенная подписка: <b>{{ plans[user.subscription.pending_level] }}</b></span>
-                <span class="card-small">Вступит в силу: {{ user.subscription.pending_activation_date | datetimeformat }}</span>
-                        {% endif %}
-                    {% if user.subscription.is_active %}
-                        <span>Активная подписка: <b>{{ plans[user.subscription.level] }}</b></span>
-                    {% else %}
-                        <span class="card-small">Активация</span>
-                    {% endif %}
-                  <span class="card-small">Истекает: {{ user.subscription.expires_at | datetimeformat }}</span>
-                  <span class="card-small">Продлить до: {{ user.subscription.next_billing_date | datetimeformat }}</span>
-
-
-            {% endif %}
             </div>
         </div>
 
-        <!-- Третья карточка, если хочешь -->
-        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/list-search.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <h4 class="card-price">Учёт</h4>
-        <div class="card-content">
-                    <span class="card-small">Использовано токенов: {{ user.tokens }}</span>
-                   <span class="card-small">Токены поиска: {{ user.attempts }} из {{attempts}}</span>
+        <!-- 2 -->
+        <div class="card flow bg-secondary-400 text-neutral-100">
+        <div class="flex">
+            <img src="/static/img/icons/stars.svg" alt="Stats" style="width: 25px; height: 25px;">
+            <h3>Подписки</h3>
+        </div>
+                        <p class="card-medium">Активная подписка:</p>
+                    {% if user.subscription.is_active %}
+                        <p class="card-medium flex"><img src="{{logos[user.original_status]}}" class="bullet-icon" style="width: 65px; height: auto;" alt="✔"><b>{{ plans[user.subscription.level] }}</b></p>
+                    {% else %}
+                        <p class="card-price">Активация</p>
+                    {% endif %}
+                <ul class="custom-list">
+                  <li class="card-price">Истекает:&nbsp; {{ user.subscription.expires_at | datetimeformat }}</li>
+                  <li class="card-price">Продлить до:&nbsp; {{ user.subscription.next_billing_date | datetimeformat }}</li>
+                </ul>
+                <ul class="custom-list">
+                  <li>Отложенная подписка:&nbsp; {% if user.subscription|length > 0 %}
+                    {% if user.subscription.pending_level %}<b>{{ plans[user.subscription.pending_level] }}</b></li>
+                <li class="card-price">Вступит в силу:&nbsp; {{ user.subscription.pending_activation_date | datetimeformat }}</li>
+                        {% else %}
+                        <li class="card-price">отсутствует</li>
+                        </ul>
+                    {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- 3 -->
+        <div class="card flow bg-secondary-500 text-neutral-100">
+            <div class="flex">
+                <img src="/static/img/icons/list-search.svg" alt="Settings" style="width: 25px; height: 25px;">
+            <h3>Учёт</h3>
+            </div>
+        <ul class="custom-list">
+                    <li class="card-price">Использовано токенов:&nbsp; {{ user.tokens }}</li>
+                   <li class="card-price">Токены поиска:&nbsp; {{ user.attempts }} из {{attempts}}</li>
+        </ul>
+        <p class="card-medium flex"><img src="/static/img/icons/shopping-cart.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Последний платёж:</p>
                     {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}
-                    <span class="card-small copy-text" >ID платежа: {{ user.subscription.transaction_id }}</span>
+                        <ul class="custom-list">
+                    <li class="card-small truncate" >ID платежа:&nbsp; {{ user.subscription.transaction_id }}</li>
+                    <li class="card-small truncate" >Дата платежа:&nbsp; {{ user.subscription.payment_history[-1].date | datetimeformat }}</li>
+                        <li class="card-small truncate" >Сумма:&nbsp; {{ user.subscription.payment_history[-1].amount }}
+                        {% if user.subscription.payment_history[-1].tx_id %}
+                            TON от {{ user.subscription.payment_history[-1].source }}
+                            {% else %}
+                            RUB от {{ user.subscription.payment_history[-1].source }}
+                            {% endif %}
+                        </li>
+                        </ul>
                     <details class="dropdown">
                     <summary class="dropdown-button">История платежей</summary>
                     <div class="dropdown-content">
-                        <div class="dropdown-content">
                       {% for payment in user.subscription.payment_history %}
                         <div class="card-small">
                           {{ payment.date | datetimeformat}} — {{ payment.amount }}
@@ -118,89 +141,65 @@
                             {% endif %}
                         </div>
                       {% else %}
-                        <div class="card-small">Платежей пока нет</div>
+                        <div class="card-price">Платежей пока нет</div>
                       {% endfor %}
-                    </div>
                     </div>
                         </details>
 
                         {% endif %}
-        </div>
+
         </div>
 
-    <!-- Четвёртая карточка, если хочешь -->
-        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
-            <img src="/static/img/icons/boosty_logo.svg" alt="Settings" style="width: 80px; height: auto;">
-        <div class="card-content">
-                    <span class="card-small">Бусти личный идентификатор:</span> {% if boosty %}
-            <span class="card-small copy-container" style="width: 180px;" data-full="{{ boosty }}">
+    <!-- 4 -->
+        <div class="card flow bg-primary-400 text-neutral-100">
+        <div class="flex">
+            <img src="/static/img/icons/boosty_logo.svg" alt="boosty" style="width: 55px; height: 25px;">
+            <h3>Бусти</h3>
+        </div>
+                    <p class="card-medium flex"><img src="/static/img/icons/user.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Персональный  код:</p>
+            {% if boosty %}
+
+            <div class="card-small copy-container" style="width: 220px;" data-full="{{ boosty }}">
   <span class="copy-text" title="{{ boosty }}">
     {{ boosty }}
   </span>
+
   <button class="copy-button" onclick="copyText(this)" title="Скопировать">
     <img src="/static/img/icons/copy.svg" alt="Copy" style="width: 18px; height: 18px;">
   </button>
-</span>
-                                                                            {% else %}<span class="card-small">
-                                                                                Необходимо подтвердить email</span>
-                                                                            {% endif %}
-                <span class="boosty-row"><a href="https://boosty.to/ketome.ru/donate" target="_blank">
-                    <img src="/static/img/pics/ketome.ru-donate.png" style="border-radius: unset; width: 120px; height: auto;" alt="boosty">
-                </a>
-        </span>
+</div>
+        {% else %}
+                <p>
+            Необходимо подтвердить email</p>
+        {% endif %}
+        <div class="bottom-container" style="height: 15vh;">
+        <p class="card-small bottom">Скопируйте и сохраните персональный код для подписки через boosty.to!</p>
         </div>
         </div>
-    <!-- Пятая карточка -->
-        <div class="card" style="height: 40vh; justify-content: flex-start; margin-bottom: 20px;">
+    <!-- 5 -->
+        <div class="card bg-neutral-100 text-secondary-400">
+        <div class="flex" style="margin-bottom: 1rem;">
             <img src="/static/img/icons/skateboarding.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <h4 class="card-price">Что входит?</h4>
-        <div class="card-content">
-{#                    <span class="card-small">Количество токенов в день</span>#}
-{#                   <span class="card-small">Количество поисков в неделю</span>#}
-{#                    <span class="card-small">Модель</span>#}
-{#                    <span class="card-small">Для чего подходит план</span>#}
-{#                    <span class="card-small"><a href="/">Примеры промптов</a></span>#}
+            <h3>Что входит?</h3>
+        </div>
 
-            <span class="card-price">Уровень:&nbsp;{{ plans[user.original_status] }}</span>
+            <p class="card-medium flex"><img src="/static/img/icons/star.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Уровень:&nbsp;{{ plans[user.original_status] }}</p>
             {% set desc_items = descriptions[user.original_status].split(',') %}
-                <ul class="custom-list">
-                  {% for item in desc_items %}
-                    <li><img src="/static/img/icons/mood-spark.svg" class="bullet-icon" style="width: 16px; height: 16px;" alt="✔"> {{ item.strip() }}</li>
-                  {% endfor %}
-                </ul>
-        </div>
-        </div>
 
-    <!-- Шестая карточка, если хочешь -->
-{#        <div class="card" style="height: 30vh; justify-content: flex-start; margin-bottom: 20px;">#}
-{#            <img src="/static/img/icons/shopping-cart.svg" alt="Settings" style="width: 25px; height: 25px;">#}
-{#            <p class="card-price">Отчёты</p>#}
-{#        <div class="card-content">#}
-{#                    <span class="card-small">Использовано токенов: {{ user.tokens }}</span>#}
-{#                   <span class="card-small">Токены поиска: {{ user.attempts }}</span>#}
-{#                    {% if user.subscription|length > 0 and user.subscription.payment_history|length > 0 %}#}
-{#                    <span class="card-small">ID Последней транзакции: {{ user.subscription.transaction_id }}</span>#}
-{#                    <details class="dropdown">#}
-{#                    <summary class="dropdown-button">Все транзакции</summary>#}
-{#                    <div class="dropdown-content">#}
-{#                        <div class="dropdown-content">#}
-{#                      {% for payment in user.subscription.payment_history %}#}
-{#                        <div class="card-small">#}
-{#                          {{ payment.date | datetimeformat}} — {{ payment.amount }} TON от {{ payment.source }} (tx_id: {{ payment.tx_id }})#}
-{#                        </div>#}
-{#                      {% else %}#}
-{#                        <div class="card-small">Платежей пока нет</div>#}
-{#                      {% endfor %}#}
-{#                    </div>#}
-{#                    </div>#}
-{#                        </details>#}
-{##}
-{#                        {% endif %}#}
-{#        </div>#}
-{#        </div>#}
+                  {% for item in desc_items %}
+                    <p class="card-price flex"><img src="/static/img/icons/mood-spark.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">&nbsp; {{ item.strip() }}</p>
+                  {% endfor %}
+
+            <div class="boosty-row">
+                <div class="card-medium">Ссылка для донатов:</div>
+                <a href="https://boosty.to/ketome.ru/donate" target="_blank">
+                    <img src="/static/img/pics/ketome.ru-donate.png" style="border-radius: unset; width: 150px; height: auto;" alt="boosty">
+                </a>
+        </div>
+        </div>
 
     </div>
-        </div>
+
 
         <script>
         const addForm = document.getElementById('add-email');

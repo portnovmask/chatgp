@@ -37,7 +37,7 @@
      "premium": "/static/img/pics/premium.png"
         } %}
     <div class="right-side">
-        <div class="card" style="max-width: 500px; height: 500px;">
+        <div class="card" style="width: min(95%, 280px); height: 500px;">
         <div>
             <img src="/static/img/icons/toncoin-ton-logo.svg" alt="Settings" style="width: 35px; height: 35px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">
     <h3 style="text-align: center;">Оплатить c TON</h3>
@@ -52,10 +52,10 @@
     </form>
         </div>
     </div>
-        <div class="card" style="max-width: 500px; height: 500px;">
+        <div class="card" style="width: min(95%, 280px); height: 500px;">
         <div>
 
-            <img src="/static/img/icons/boosty_logo.svg" alt="Settings" style="width: 80px; height: auto;  border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">
+            <img src="/static/img/icons/boosty-b.svg" alt="Settings" style="width: 35px; height: 35px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">
     <h3 style="text-align: center;">Оплатить c Boosty</h3>
 
             <p class="card-small" style="text-align: center; color: darkcyan;">Подтверждается вручную!</p>
@@ -65,7 +65,7 @@
      <a class="card-small" style="text-align: center" href="{{ boosty_links[level] }}" target="_blank">Оплатить по ссылке</a>
     <p class="card-small" style="text-align: center">Используйте Бусти идентифиикатор:</p>
             {% if boosty %}
-    <span class="card-small copy-container" style="max-width:100%;" data-full="{{ boosty }}">
+    <span class="card-small copy-container"  data-full="{{ boosty }}">
   <span class="copy-text" title="{{ boosty }}">
     {{ boosty }}
   </span>

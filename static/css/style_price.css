@@ -21,7 +21,7 @@ body {
             grid-gap: 50px;
             /*width: 90vw;*/
             padding: 0 0.5rem;
-            max-width: 1200px;
+            max-width: 95%;
         }
         .sidebar {
             /*background-color: #ecebeb;*/
@@ -36,12 +36,12 @@ body {
         }
         .logo {
             width: 230px;
-            height: 160px;
+            height: 230px;
             /*background: #b3dcdc;*/
-            background-image: url('/static/img/logo/chatgpru-white-smart-logo.svg');
+            background-image: url('/static/img/logo/chatgpru-cyan-smart-logo.svg');
             background-size: contain;
             background-repeat: no-repeat;
-            margin-bottom: 40px;
+            margin-bottom: 1rem;
         }
         .links a {
             text-align: left;
@@ -123,9 +123,9 @@ body {
         }
 
         .card img {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
+            width: 150px;
+            height: auto;
+
             }
 
         .card h3 {
@@ -339,7 +339,7 @@ svg {
   padding: 4px 8px;
   background-color: #f9f9f9;
   position: relative;
-  max-width: clamp( 150px, 200px, 250px);
+  max-width: 100%;
 }
 
 .copy-text {
@@ -372,11 +372,11 @@ svg {
     /*width: 80%;*/
 }
 .user-literal {
-    background-color: #cce8b6;
+    background-color: #31edae;
     border-radius: 100%;
     display: flex;
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 3.5rem;
+    height: 3.5rem;
     aspect-ratio: 1 / 1;
     align-items: center;
     justify-content: center;
