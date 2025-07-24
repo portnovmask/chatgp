@@ -13,7 +13,7 @@ from models.tokens import tokens_collection
 from models.user_data import users_data_collection
 from models.chats import chats_collection
 from settings import *
-from mail import EmailTemplate, send_email, generate_confirmation_token
+from mail import EmailTemplate, send_email, send_email_direct, generate_confirmation_token
 from urllib.parse import urlencode
 
 router = APIRouter(prefix="/api")
@@ -313,8 +313,16 @@ async def register(request: Request,
     status = "trial"
     tokens = 0
     csrf_token_cookie = request.cookies.get("csrf_token")
-    if not csrf_token_cookie or not csrf_token or csrf_token_cookie != csrf_token or not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY):
-        logger.info(f"/register  - def register - ошибка csrf_token не совпадает или просрочен\n")
+    if not csrf_token:
+        logger.info("CSRF failed: отсутствует csrf_token из формы")
+        return RedirectResponse(url="/", status_code=303)
+
+    if csrf_token_cookie != csrf_token:
+        logger.info("CSRF failed: csrf_token из cookie не совпадает с формой")
+        return RedirectResponse(url="/", status_code=303)
+
+    if not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY):
+        logger.info("CSRF failed: токен не прошёл проверку подписи или просрочен")
         return RedirectResponse(url="/", status_code=303)
     token = generate_confirmation_token(email)
     confirm_url = f"{request.base_url}/api/confirm-email?token={token}"
@@ -416,10 +424,16 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     """Авторизация с проверкой пароля"""
     csrf_token_cookie = request.cookies.get("csrf_token")
     is_fetch = request.headers.get("accept") == "application/json"
-    if not csrf_token_cookie or not csrf_token or csrf_token_cookie != csrf_token or not verify_csrf_token(csrf_token,
-                                                                                                           "guest",
-                                                                                                           CSRF_SECRET_KEY):
-        logger.info(f"/login  - def login - ошибка csrf_token не совпадает или просрочен\n")
+    if not csrf_token:
+        logger.info("CSRF failed: отсутствует csrf_token из формы")
+        return RedirectResponse(url="/", status_code=303)
+
+    if csrf_token_cookie != csrf_token:
+        logger.info("CSRF failed: csrf_token из cookie не совпадает с формой")
+        return RedirectResponse(url="/", status_code=303)
+
+    if not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY):
+        logger.info("CSRF failed: токен не прошёл проверку подписи или просрочен")
         return RedirectResponse(url="/", status_code=303)
 
     user = await users_collection.find_one({"email": email})
@@ -497,11 +511,24 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
 async def add_email(request: Request,
                     background_tasks: BackgroundTasks,
                     email: str = Form(...),
+                    csrf_token: str = Form(...),
                     user: dict = Depends(get_user)):
     """Добавление контактного email"""
 
     if user and user.get("contact") != email:
-        token = generate_confirmation_token(email)
+        token = generate_confirmation_token(email=user.get("email"), contact=email)
+        csrf_token_cookie = request.cookies.get("csrf_token")
+        if not csrf_token:
+            logger.info("CSRF failed: отсутствует csrf_token из формы")
+            return RedirectResponse(url="/", status_code=303)
+
+        if csrf_token_cookie != csrf_token:
+            logger.info("CSRF failed: csrf_token из cookie не совпадает с формой")
+            return RedirectResponse(url="/", status_code=303)
+
+        if not verify_csrf_token(csrf_token, user.get("email"), CSRF_SECRET_KEY):
+            logger.info("CSRF failed: токен не прошёл проверку подписи или просрочен")
+            return RedirectResponse(url="/", status_code=303)
         confirm_url = f"{request.base_url}api/confirm-email?token={token}"
         email_template = EmailTemplate(
             logo_url=LOGO_URL,
@@ -517,7 +544,7 @@ async def add_email(request: Request,
 
         logger.info(f"/add_email - пользователь: {user.get('email')} добавил email: {email}")
         html = email_template.render()
-        background_tasks.add_task(send_email, user, "Подтверждение почты", html)
+        background_tasks.add_task(send_email_direct, email, "Подтверждение почты", html)
 
         return JSONResponse({
             "status": "success",

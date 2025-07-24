@@ -611,7 +611,9 @@ async def price(request: Request, user: dict | None = Depends(get_user_optional)
 async def dash(request: Request, user: dict = Depends(get_user)):
     if not user:
         return RedirectResponse('/', status_code=302)
+
     else:
+        csrf_token = request.cookies.get("csrf_token")
         level_index = LEVELS.index(user["status"])
         attempts = ATTEMPT_LIMITS[level_index]
         boosty = user.get("boosty_code")
@@ -626,7 +628,7 @@ async def dash(request: Request, user: dict = Depends(get_user)):
         logger.info(f"/dash  - def dashboard - Пользователь: {user['email']} - зашел в свою панель управления\n")
 
         return templates.TemplateResponse("dash.html",
-                                          {"request": request, "user": user, "plans": plans, "boosty": boosty, "attempts": attempts})
+                                          {"request": request, "user": user, "plans": plans, "boosty": boosty, "attempts": attempts, "csrf_token": csrf_token})
 
 
 @app.get("/post", response_class=HTMLResponse)

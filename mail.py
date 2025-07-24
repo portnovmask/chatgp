@@ -43,20 +43,39 @@ class EmailTemplate:
 
 
 
-def generate_confirmation_token(email: str):
+# def generate_confirmation_token(email: str):
+#     serializer = URLSafeTimedSerializer(EMAIL_CONFIRM_KEY)
+#     return serializer.dumps(email, salt=CONFIRM_SALT)
+
+def generate_confirmation_token(email: str, contact: str):
     serializer = URLSafeTimedSerializer(EMAIL_CONFIRM_KEY)
-    return serializer.dumps(email, salt=CONFIRM_SALT)
+    data = {
+        "email": email,
+        "contact": contact
+    }
+    return serializer.dumps(data, salt=CONFIRM_SALT)
 
 
+
+# def confirm_token(token: str, expiration=45000):
+#     serializer = URLSafeTimedSerializer(EMAIL_CONFIRM_KEY)
+#     try:
+#         email = serializer.loads(token, salt=CONFIRM_SALT, max_age=expiration)
+#     except Exception:
+#         return None
+#     return email
 
 
 def confirm_token(token: str, expiration=45000):
     serializer = URLSafeTimedSerializer(EMAIL_CONFIRM_KEY)
     try:
-        email = serializer.loads(token, salt=CONFIRM_SALT, max_age=expiration)
+        data = serializer.loads(token, salt=CONFIRM_SALT, max_age=expiration)
+        email = data.get("email")
+        contact = data.get("contact")
     except Exception:
         return None
-    return email
+    return email, contact
+
 
 
 # SMTP клиент
@@ -89,6 +108,29 @@ async def send_email(user: dict, subject: str, html_content: str):
     )
     logger.info(
         f"mail  - def send_mail - отправлен email на адрес: {to_email} - на тему {subject}\n")
+
+
+
+
+async def send_email_direct(email: str, subject: str, html_content: str):
+
+    message = EmailMessage()
+    message["From"] = "noreply@example.com"
+    message["To"] = email
+    message["Subject"] = subject
+    message.set_content("HTML only email", subtype="plain")
+    message.add_alternative(html_content, subtype="html")
+
+    await aiosmtplib.send(
+        message,
+        hostname="mailhog",
+        port=1025,  # порт MailHog
+    )
+    logger.info(
+        f"mail  - def send_mail - отправлен email на адрес: {email} - на тему {subject}\n")
+
+
+
 
 # Универсальный маршрут для отправки писем
 async def send_email_internal(background_tasks: BackgroundTasks,
@@ -246,8 +288,8 @@ async def confirm_notice(request: Request):
 
 @router.get("/confirm-email")
 async def confirm_email(request: Request, token: str):
-    email = confirm_token(token)
-    if not email:
+    email, contact = confirm_token(token)  or (None, None)
+    if not email or not contact:
         title = "Подтверждение почты - ошибка"
         header = "Ошибка подтверждения электронной почты"
         subheader = "Срок действия ссылки истёк или она недействительна."
@@ -262,10 +304,10 @@ async def confirm_email(request: Request, token: str):
                                                                   "subheader": subheader,
                                                                   "message": message, "action": action}, status_code=400
                                           )
-    boosty = encrypt_email(email)
+    boosty = encrypt_email(contact)
     result = await users_collection.update_one(
         {"email": email, "contact": {"$in": [None, "not_confirmed"]}},
-        {"$set": {"contact": email,
+        {"$set": {"contact": contact,
          "boosty_code": boosty}
         }
     )
@@ -277,7 +319,7 @@ async def confirm_email(request: Request, token: str):
         message = "Всё готово, теперь вы можете начать пользоваться сервисом полноценно."
         action = "Вернуться на главную"
         logger.info(
-            f"mail  - confirm_email - Пользователь {email} подтвердил email\n")
+            f"mail  - confirm_email - Пользователь: {email} подтвердил email: {contact}\n")
         return templates.TemplateResponse("confirm-notice.html", {"request": request,
                                                                   "title": title,
                                                                   "header": header,
@@ -287,11 +329,11 @@ async def confirm_email(request: Request, token: str):
     else:
         title = "Ошибка подтверждения почты"
         header = "Ваш email уже был подтверждён или не найден"
-        subheader = "Это происходит, еслиЖ"
+        subheader = "Это происходит, если"
         message = "Вы уже подтверждали вашу электронную почту или указали неверный email."
         action = "Попробовать еще раз"
         logger.info(
-            f"mail  - confirm_email - Ошибка подтверждения email пользователя {email} - повторное подтверждение\n")
+            f"mail  - confirm_email - Ошибка подтверждения email: {contact} пользователем: {email} - повторное подтверждение\n")
         return templates.TemplateResponse("confirm-notice.html", {"request": request,
                                                                   "title": title,
                                                                   "header": header,

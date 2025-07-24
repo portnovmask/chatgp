@@ -32,16 +32,23 @@
         {% if user.contact %}
             <div class="flex">
             <span class="user-literal">{{ user.email | initial }}</span>
-            <span class="card-price">{{ user.email }}</span>
+            <span class="card-price">{{ user.email.split('@')[0] }}</span>
             </div>
             <h1>Дашборд</h1>
 
             {% if user.auth_provider != "local" %}
                 <p class="card-medium flex"><img src="/static/img/icons/user.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Авторизация через:&nbsp;{{ user.auth_provider }}</p>
+                <p class="flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">{{ user.contact }}</p>
                 {% else %}
-                    <p class="card-medium flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">{{ user.contact }}</p>
+                    <p class="flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">{{ user.contact }}</p>
             {% endif %}
         {% else %}
+            <div class="flex">
+            <span class="user-literal">{{ user.email | initial }}</span>
+            <span class="card-price">{{ user.email.split('@')[0] }}</span>
+            </div>
+            <h1>Дашборд</h1>
+
             <p class="card-medium">Вы авторизованы через:&nbsp; {{ user.auth_provider }}</p>
             <p class="card-price">Добавьте электронную почту, чтобы оставаться на связи</p>
 
@@ -49,6 +56,7 @@
                 <label class="form_auth_block_label" for="email">Email для связи:</label>
                 <input   type="email" id="email" name="email" placeholder="myemail@example.com"
         autocomplete="email" required>
+                <input type="hidden" id="csrf_token_reg" name="csrf_token" value="{{ csrf_token }}">
 
                 <button id="update-contact" class="form_auth_button" type="submit">Добавить</button>
             </form>
@@ -153,7 +161,7 @@
     <!-- 4 -->
         <div class="card flow bg-primary-400 text-neutral-100">
         <div class="flex">
-            <img src="/static/img/icons/boosty_logo.svg" alt="boosty" style="width: 55px; height: 25px;">
+            <img src="/static/img/icons/boosty-b.svg" alt="boosty" style="width: 25px; height: 25px;">
             <h3>Бусти</h3>
         </div>
                     <p class="card-medium flex"><img src="/static/img/icons/user.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Персональный  код:</p>
@@ -180,21 +188,23 @@
         <div class="card bg-neutral-100 text-secondary-400">
         <div class="flex" style="margin-bottom: 1rem;">
             <img src="/static/img/icons/skateboarding.svg" alt="Settings" style="width: 25px; height: 25px;">
-            <h3>Что входит?</h3>
+            <h3>Что входит в уровень&nbsp;{{ plans[user.original_status] }}?</h3>
         </div>
 
-            <p class="card-medium flex"><img src="/static/img/icons/star.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">Уровень:&nbsp;{{ plans[user.original_status] }}</p>
             {% set desc_items = descriptions[user.original_status].split(',') %}
 
-                  {% for item in desc_items %}
+                  <div class="boosty-row">
+                  <div>
+                      {% for item in desc_items %}
                     <p class="card-price flex"><img src="/static/img/icons/mood-spark.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="✔">&nbsp; {{ item.strip() }}</p>
                   {% endfor %}
-
-            <div class="boosty-row">
-                <div class="card-medium">Ссылка для донатов:</div>
+                    </div>
+                <div class="flex-column">
                 <a href="https://boosty.to/ketome.ru/donate" target="_blank">
                     <img src="/static/img/pics/ketome.ru-donate.png" style="border-radius: unset; width: 150px; height: auto;" alt="boosty">
                 </a>
+                    <p class="card-small">Ссылка для донатов</p>
+                    </div>
         </div>
         </div>
 
@@ -203,6 +213,7 @@
 
         <script>
         const addForm = document.getElementById('add-email');
+        const csrfToken = addForm.csrf_token.value;
 
         if (addForm) {
             addForm.addEventListener('submit', async (e) => {
@@ -221,12 +232,15 @@
                 }
 
                 try {
-                    const response = await fetch('/api/add_email', {
+                    const response = await fetchWithAuth('/api/add_email', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/x-www-form-urlencoded',
                         },
-                        body: new URLSearchParams({email})
+                        body: new URLSearchParams(
+                            {email,
+                            csrf_token: csrfToken
+                            })
                     });
 
                     const result = await response.json();
