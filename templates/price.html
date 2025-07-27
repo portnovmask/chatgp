@@ -9,16 +9,15 @@
         <aside class="sidebar">
             <a href="/" class="logo"></a>
             <h2>Выберите подходящий план</h2>
-            <span><small>Подписка оформляется на 30 дней.
-                Цены приведены в USDT,
-                но расчеты производятся в Тон.
-                При оплате за пол года или год вперед
-                предоставляются скидки - индивидуально.
-                Доступна подписка через Бусти,
-                скопируйте и используйте код для оплаты. Отменить подписку
-                до истечения 30 дней со дня оплаты невозможно.</small></span>
+            <span><small>Подписка доступна только через Бусти и оформляется на 30 дней.
+                Цены приведены в рублях.
+                Скидки и плюшки – индивидуально.
+                Для подтверждения подписки
+                используйте код для оплаты. Отменить подписку
+                до истечения 30 дней со дня оплаты невозможно.
+                Никому не передавайте ваш индивидуальный код.</small></span>
              <div class="links-row">
-                 <a href="/about">О сервисе&nbsp;</a>
+                 <a href="/about">О сайте&nbsp;</a>
                 <a href="/post">Блог&nbsp;</a>
                 <a href="/privacy">Приватность&nbsp;</a>
                 <a href="/api/contact">Контакты&nbsp;</a>
@@ -48,22 +47,42 @@
     "premium": "продвинутая модель 4.1 (до 4 млн. токенов), 7 млн. токенов в день, 500 супер веб-поисков в месяц, чтение фото"
 } %}
 
-
+{#    "trial": 0,#}
+{#    "basic": 18 ,#}
+{#    "advanced": 50,#}
+{#    "business": 140,#}
+{#    "pro": 160,#}
+{#    "premium": 500#}
  {% set prices = {
     "trial": 0,
-    "basic": 18 ,
-    "advanced": 50,
-    "business": 140,
-    "pro": 160,
-    "premium": 500
+    "basic": 2000 ,
+    "advanced": 4800,
+    "business": 13000,
+    "pro": 14500,
+    "premium": 39000
 } %}
+
+{#    "trial": "Бесплатно навсегда",#}
+{#    "basic": (prices['basic'] / ton_to_usdt) | round(2) ~ " TON",#}
+{#    "advanced": (prices['advanced'] / ton_to_usdt) | round(2) ~ " TON",#}
+{#    "business": (prices['business'] / ton_to_usdt) | round(2) ~ " TON",#}
+{#    "pro": (prices['pro'] / ton_to_usdt) | round(2) ~ " TON",#}
+{#    "premium": (prices['premium'] / ton_to_usdt) | round(2) ~ " TON"#}
+
+{#        "trial": "Бесплатно навсегда",#}
+{#    "basic": prices['basic'] ~ " рублей",#}
+{#    "advanced": prices['advanced'] ~ " рублей",#}
+{#    "business": prices['business'] ~ " рублей",#}
+{#    "pro": prices['pro'] ~ " рублей",#}
+{#    "premium": prices['premium'] ~ " рублей"#}
+
 {% set clues = {
     "trial": "Бесплатно навсегда",
-    "basic": (prices['basic'] / ton_to_usdt) | round(2) ~ " TON",
-    "advanced": (prices['advanced'] / ton_to_usdt) | round(2) ~ " TON",
-    "business": (prices['business'] / ton_to_usdt) | round(2) ~ " TON",
-    "pro": (prices['pro'] / ton_to_usdt) | round(2) ~ " TON",
-    "premium": (prices['premium'] / ton_to_usdt) | round(2) ~ " TON"
+    "basic": "Активный пользователь",
+    "advanced": "Необходим в работе",
+    "business": "Эффективность группы",
+    "pro": "Анализ и код",
+    "premium": "Максимальная мощность"
 } %}
 
 {% set logos = {
@@ -83,9 +102,9 @@
         <div class="card {% if user.original_status == plan %}active{% endif %}">
             <img src="{{logos[plan]}}" alt="plan logo">
             <h3>{{ title }}</h3>
-            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}р./месяц</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
-            {% else %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}р./месяц</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
 
@@ -107,11 +126,11 @@
             method: 'get'
             });">
         <div class="card">
-            <img src="/static/img/logo/28.svg" alt="plan logo">
+            <img src="{{logos[plan]}}" alt="plan logo">
             <h3>{{ title }}</h3>
-            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
+            {% if user and user.original_status == plan %}<div class="card-price">{{ prices[plan] }}р./месяц</div>
                 <div class="card-small" style="color: #ff5757;">текущий план</div>
-            {% else %}<div class="card-price">{{ prices[plan] }}USDT/месяц</div>
+            {% else %}<div class="card-price">{{ prices[plan] }}р./месяц</div>
                 <div class="card-small">{{ clues[plan] }}</div>
             {% endif %}
         <ul class="custom-list">

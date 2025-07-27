@@ -5,14 +5,14 @@ from fastapi.templating import Jinja2Templates
 import uuid
 import httpx
 from pymongo import UpdateOne
-import re
+
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
-import random
+
 from auth import get_user
 import locale
-from settings import TON_WALLET, TON_API_KEY, LEVELS, PRETTY_NAMES, PRICES, LOGO_URL, BASE_URL
-from mail import EmailTemplate, send_email, generate_confirmation_token
+from settings import TON_WALLET, TON_API_KEY, LEVELS, PRETTY_NAMES, PRICES, LOGO_URL, BASE_URL, BOOSTY_LINKS
+from mail import EmailTemplate, send_email
 router = APIRouter(prefix="/api")
 templates = Jinja2Templates(directory="templates")
 
@@ -43,7 +43,7 @@ async def get_ton_usdt_price():
 
 # 🔹 Функция для проверки платежа через TON API, когда он будет
 
-import requests
+
 
 async def get_ton_transaction(min_amount_ton: float = 1.0):
     url = f"https://tonapi.io/v2/blockchain/accounts/{TON_WALLET}/transactions"
@@ -126,69 +126,6 @@ async def get_subscription(user: dict = Depends(get_user)):
     return user.get("subscription", {})
 
 
-#  Покупка подписки
-# # @router.post("/subscribe/")
-# # async def subscribe(level: str, user: dict = Depends(get_user)):
-# #     email = user["email"]
-# #     current_status = user.get("status", "trial")
-# #     current_expiry = user.get("subscription", {}).get("expires_at")
-# #     tx_id, sender, amount_ton = None, None, 0
-# #
-# #     current_index = LEVELS.index(current_status)
-# #     new_index = LEVELS.index(level)
-# #     new_price = PRICES[new_index]
-# #
-# #     transactions = get_ton_transactions(new_price).get("transactions", [])
-# #
-# #     if transactions:
-# #         for tx in transactions:
-# #             tx_id = tx.get("hash")
-# #             in_msg = tx.get("in_msg", {})
-# #
-# #             sender = in_msg.get("source") if sender else None
-# #             value = in_msg.get("value")  # в наноTON (1 TON = 1_000_000_000)
-# #
-# #             # Преобразуем значение из строкового в числовой формат (в TON)
-# #             amount_ton = int(value) / 1_000_000_000 if value else 0
-# #
-# #     #  Повышение подписки – списать оплату сразу
-# #     if new_index > current_index:
-# #        # Здесь должна быть реальная транзакция TON
-# #         new_expiry = datetime.now(timezone.utc) + timedelta(days=7)
-# #
-# #         await users_collection.update_one({"email": email}, {
-# #             "$set": {
-# #                 "status": level,
-# #                 "original_status": level,
-# #                 "tokens": 0,
-# #                 "subscription.level": level,
-# #                 "subscription.expires_at": new_expiry,
-# #                 "subscription.next_billing_date": new_expiry,
-# #                 "subscription.is_active": True,
-# #                 "subscription.transaction_id": tx_id,
-# #             },
-# #             "$push": {
-# #                 "subscription.payment_history": {
-# #                     "tx_id": tx_id,
-# #                     "amount": amount_ton, # Реальная сумма
-# #                     "source": sender, # контрагент
-# #                     "date": datetime.now(timezone.utc)
-# #                 }
-# #             }
-# #         })
-# #         return {"message": f"Поздравляем! План '{PRETTY_NAMES[level]}' будет активирован сразу после подтверждения оплаты!", "status": "success"}
-#
-#     #  Понижение подписки – активируем позже
-#     elif new_index < current_index:
-#         await users_collection.update_one({"email": email}, {
-#             "$set": {
-#                 "subscription.pending_level": level,
-#                 "subscription.pending_activation_date": current_expiry,
-#             }
-#         })
-#         return {"message": f"Вы успешно сменили подписку! План '{PRETTY_NAMES[level]}' будет активирован после подтверждения оплаты и вступит в силу после истечения текущей подписки:\n {format_datetime_pretty(current_expiry)}." , "status": "success"}
-#
-#     return {"message": "Вы уже на этом уровне подписки!", "status": "info"}
 
 @router.post("/subscribe/")
 async def subscribe(level: str, user: dict = Depends(get_user)):
@@ -234,25 +171,26 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
         })
     email = user.get("email")
     boosty = user.get("boosty_code", False)
-    usdt_price = await get_ton_usdt_price()
-    price_ton = round((PRICES[LEVELS.index(level)] / usdt_price) * 1.05, 4)  # округляем до 4 знаков TON
-    price_nano = int(price_ton * 1_000_000_000)  # переводим в nanoTON
-    payment = generate_payment_link(email, level, price_nano, payment_id)
+    #usdt_price = await get_ton_usdt_price()
+    #price_ton = round((PRICES[LEVELS.index(level)] / usdt_price) * 1.05, 4)  # округляем до 4 знаков TON
+    price = PRICES[LEVELS.index(level)]  # переводим в nanoTON
+    #payment = generate_payment_link(email, level, price_nano, payment_id)
+    payment = BOOSTY_LINKS[level] if boosty else "https://boosty.to/ketome.ru"
     if not payment:
         logger.info(f"Не удалось сформировать ссылку на оплату, email: {user.get('email')}, level: {level}")
-    qr = generate_qr_base64(payment["url"])
+    qr = generate_qr_base64(payment)
 
     email_template = EmailTemplate(
         logo_url=LOGO_URL,
         header_link=BASE_URL,
         header_text="Вы выбрали подписку!!!",
-        description=f"Уровеень подписки: {PRETTY_NAMES[level]}.",
-        recipient_name=email,
-        body_text=f"Спасибо за выбор подписки {PRETTY_NAMES[level]} на ChatGP по цене {round(price_nano / 1_000_000_000, 2)} Ton!"
-                  "Если вы еще не оплатили по ссылке или qr коду на сайте вы можете провести оплату по ссылке ниже с ценой подписки."
-                  "Для оплаты по ссылке убедитесь, что у вас есть аккаунт в TonKeeper или другом криптовалютном кошельке.",
+        description=f"Уровень подписки: {PRETTY_NAMES[level]}.",
+        recipient_name=email.split('@')[0],
+        body_text=f"Спасибо за выбор подписки {PRETTY_NAMES[level]} на ChatGP по цене {price} рублей!\n"
+                  "Если вы еще не оплатили по ссылке или qr коду на сайте вы можете провести оплату по ссылке ниже с ценой подписки.\n"
+                  "Для оплаты по ссылке убедитесь, что у вас есть аккаунт на boosty.to или создайте новый.\n",
         action_label="ссылка на оплату",
-        action_url=payment["url"],
+        action_url=payment,
         footer_text="Если вы считаете, что письмо пришло вам по ошибке — просто проигнорируйте его."
     )
     html = email_template.render()
@@ -260,7 +198,7 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
 
     return templates.TemplateResponse("payment.html", {
         "request": request,
-        "payment_url": payment["url"],
+        "payment_url": payment,
         "qr_base64": qr,
         "level": level,
         "payment_id": payment_id,
@@ -269,29 +207,6 @@ async def payment_page(request: Request, background_tasks: BackgroundTasks, paym
     })
 
 
-# @router.get("/ton/prepare-payment/")
-# async def prepare_payment(level: str, user: dict = Depends(get_user)):
-#     email = user["email"]
-#     amount_map = {
-#         "basic": 1,
-#         "advanced": 4,
-#         "business": 8,
-#         "pro": 12,
-#         "premium": 32,
-#     }
-#
-#     if level not in amount_map:
-#         return {"error": "Invalid level"}
-#
-#     amount = amount_map[level]
-#     payment = generate_payment_link(email, level, amount)
-#     qr = generate_qr_base64(payment["url"])
-#
-#     return {
-#         "payment_url": payment["url"],
-#         "payment_id": payment["payment_id"],
-#         "qr_base64": qr
-#     }
 
 
 @router.post("/ton/verify-payment/")
@@ -336,9 +251,6 @@ async def verify_ton_payment(request: Request, background_tasks: BackgroundTasks
                 "method": "get"
             }
         })
-
-    # data = transactions.get("transactions", [])
-
 
 
     tx = transactions

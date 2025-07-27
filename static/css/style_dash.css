@@ -351,7 +351,7 @@ h3 {
 }
 
 .user-literal {
-    background-color: #31edae;
+    background-color: #2EE59D;
     border-radius: 100%;
     display: flex;
     width: 3.5rem;
@@ -397,7 +397,8 @@ h3 {
 
 .dropdown-button {
     background-color: lightcyan;
-    border-radius: 8px;
+    border-radius: 45px;
+    height: 45px;
     padding: 10px 15px;
     text-align: center;
     cursor: pointer;
@@ -416,7 +417,7 @@ h3 {
 }
 
 .dropdown-button:hover {
-    background-color: cyan;
+    background-color: #2EE59D;
     opacity: 0.85;
 }
 
@@ -534,4 +535,45 @@ input:focus {
       border-radius: 10px;
       background: #ffffff;
       opacity: 0.7;
+}
+
+.wrap {
+  height: 75px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button {
+  width: 150px;
+  height: 45px;
+  /*font-family: 'Roboto', sans-serif;*/
+  font-size: 11px;
+  /*text-transform: uppercase;*/
+  /*letter-spacing: 2.5px;*/
+  font-weight: 700;
+  color: #000;
+  background-color: #fff;
+  border: solid 1px rgba(46, 229, 157, 0.4);
+  border-radius: 45px;
+  box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease 0s;
+  cursor: pointer;
+  outline: none;
+  }
+
+.button:hover {
+  border: none;
+  background-color: #2EE59D;
+  box-shadow: 0px 15px 20px rgba(46, 229, 157, 0.4);
+  color: #fff;
+  transform: translateY(-7px);
+}
+
+.button:focus {
+  border: none;
+  background-color: #2EE59D;
+  box-shadow: 0px 15px 20px rgba(46, 229, 157, 0.4);
+  color: #fff;
+  transform: translateY(-7px);
 }

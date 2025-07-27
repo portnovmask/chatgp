@@ -166,3 +166,19 @@ body {
     padding: 0.5rem;
   }
 }
+
+.boosty-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    align-content: center;
+    gap: 2rem;
+    padding: 0;
+    /*width: 80%;*/
+}
+
+.flex {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}

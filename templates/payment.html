@@ -8,16 +8,13 @@
         <aside class="sidebar">
             <a href="/" class="logo"></a>
             <h2>Оплата подписки - {{ pretty_name }}</h2>
-            <p><small>Подписка оформляется на 30 дней. Взаиморасчеты
-                выполняются в криптовалюте Тон или в рублях на Boosty.
-                За 3ое суток и за сутки до истечения подписки вам будут оправлены
-                 email уведомления. Так же, информация
-                об истечении подписки будет отображена на странице с вашими чатами.
-                Понижение уровня подписки вступает в силу
-                по истечение периода оплаченной повышенной ступени. Если вы
-                не можете использовать криптовалюту Тон или Бусти по каким-либо причинам, пишите в поддержку.
+            <p><small>Подписка оформляется на сервисе Бусти (boosty.to) на 30 дней. При оформлении дополнительно проверьте
+                информацию об уровне подписки и сумму. Следуйте инструкциям Бусти
+                после оплаты. Ваша подписка подтверждается вручную – на подтверждение может уйти до 1 рабочего дня.
+                Если вы
+                не можете использовать Бусти по каким-либо причинам, пишите в поддержку.
                 По всем вопросам и проблемам с подпиской и списанием
-                средств тоже обращайтесь в поддержку.</small></p>
+                средств тоже обращайтесь в <a href="/api/contact">поддержку</a>.</small></p>
 
         </aside>
 
@@ -37,21 +34,21 @@
      "premium": "/static/img/pics/premium.png"
         } %}
     <div class="right-side">
-        <div class="card" style="width: min(95%, 280px); height: 500px;">
-        <div>
-            <img src="/static/img/icons/toncoin-ton-logo.svg" alt="Settings" style="width: 35px; height: 35px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">
-    <h3 style="text-align: center;">Оплатить c TON</h3>
-            <p class="card-small" style="text-align: center; color: darkcyan;">Не закрывайте эту страницу!</p>
-    <p class="card-small" style="text-align: center">Отсканируйте QR-код</p>
-    <img style="width: 180px; height: 180px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;" src="{{ qr_base64 }}" alt="QR-код">
-    <p class="card-small" style="text-align: center">Или перейдите по ссылке:</p>
-     <a class="card-small" style="text-align: center" href="{{ payment_url }}" target="_blank">Оплатить по ссылке</a>
-    <p class="card-small" style="text-align: center">Вернитесь на эту страницу и нажмите:</p>
-    <form action="/api/ton/verify-payment/?level={{ level }}" method="post">
-        <button class="form_button" style="font-weight: bolder;" type="submit">Я оплатил</button>
-    </form>
-        </div>
-    </div>
+{#        <div class="card" style="width: min(95%, 280px); height: 500px;">#}
+{#        <div>#}
+{#            <img src="/static/img/icons/toncoin-ton-logo.svg" alt="Settings" style="width: 35px; height: 35px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;">#}
+{#    <h3 style="text-align: center;">Оплатить c TON</h3>#}
+{#            <p class="card-small" style="text-align: center; color: darkcyan;">Не закрывайте эту страницу!</p>#}
+{#    <p class="card-small" style="text-align: center">Отсканируйте QR-код</p>#}
+{#    <img style="width: 180px; height: 180px; border-radius: unset; margin: 1rem auto 1rem; display: flex; justify-content: center;" src="{{ qr_base64 }}" alt="QR-код">#}
+{#    <p class="card-small" style="text-align: center">Или перейдите по ссылке:</p>#}
+{#     <a class="card-small" style="text-align: center" href="{{ payment_url }}" target="_blank">Оплатить по ссылке</a>#}
+{#    <p class="card-small" style="text-align: center">Вернитесь на эту страницу и нажмите:</p>#}
+{#    <form action="/api/ton/verify-payment/?level={{ level }}" method="post">#}
+{#        <button class="form_button" style="font-weight: bolder;" type="submit">Я оплатил</button>#}
+{#    </form>#}
+{#        </div>#}
+{#    </div>#}
         <div class="card" style="width: min(95%, 280px); height: 500px;">
         <div>
 

@@ -259,23 +259,30 @@ async def add_user_payment(
                 }
             }
         })
-        user_info = await get_user_updates(user_id)
-        await send_email_internal(background_tasks, user_id,
-                                  "Подписка ChatGP",
-                                  " Поздравляем! Вы теперь подписаны на ChatGP!",
-                                  f"Уважаемый{user_id}",
-                                  f"Это письмо подтверждает, что вы подписаны на план {new_level} на сайте ChatGP.Ru.\n Вы можете повысить или изменить текущий план в вашем дашборде на ChatGP.Ru.",
-                                  "Перейти в дашборд",
-                                  f"{BASE_URL}/dash",
-                                  "Если это письмо пришло вам по ошибке, проигнорируйте его")
-        logger.info(
-            f"admin  - def  add_user_payment - подписка пользователя: {user_id} - обновлена\n")
-        return templates.TemplateResponse("admin-dashboard.html", {
-            "request": request,
-            "user_info": user_info,
-            "csrf_token": csrf_token,
-            "message": {"status": "success", "detail": "Подписка оформлена/обновлена"}
-        })
+        mail_to_user = await users_collection.find_one({"email": user_id})
+        if mail_to_user:
+            user_info = await get_user_updates(user_id)
+            if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed":
+                mail_to = mail_to_user["contact"]
+            else:
+                mail_to = user_id
+
+            await send_email_internal(background_tasks, mail_to,
+                                      "Подписка ChatGP",
+                                      " Поздравляем! Вы теперь подписаны на ChatGP!",
+                                      f"Уважаемый{user_id}",
+                                      f"Это письмо подтверждает, что вы подписаны на план {new_level} на сайте ChatGP.Ru.\n Вы можете повысить или изменить текущий план в вашем дашборде на ChatGP.Ru.",
+                                      "Перейти в дашборд",
+                                      f"{BASE_URL}/dash",
+                                      "Если это письмо пришло вам по ошибке, проигнорируйте его")
+            logger.info(
+                f"admin  - def  add_user_payment - подписка пользователя: {user_id} - обновлена\n")
+            return templates.TemplateResponse("admin-dashboard.html", {
+                "request": request,
+                "user_info": user_info,
+                "csrf_token": csrf_token,
+                "message": {"status": "success", "detail": "Подписка оформлена/обновлена"}
+            })
     logger.info(
         f"admin  - def  add_user_payment - ошибка обновления подписки пользователя: {user_id}\n")
     return templates.TemplateResponse("admin-dashboard.html", {
@@ -345,23 +352,30 @@ async def add_boosty_payment(
                 }
             }
         })
-        user_info = await get_user_updates(user_id)
-        await send_email_internal(background_tasks, user_id,
-                                  "Подписка ChatGP",
-                                  "Поздравляем! Вы подписаны на ChatGP через Boosty!",
-                                  f"Уважаемый{user_id}",
-                                  f"Это письмо подтверждает, что вы подписались на план {new_level} на сайте ChatGP.Ru.\n Вы можете повысить или изменить текущий план в вашем дашборде на ChatGP.Ru. Так же вы можете отменить вашу подписку на boosty.to",
-                                  "Перейти в дашборд",
-        f"{BASE_URL}/dash",
-              "Если это письмо пришло вам по ошибке, проигнорируйте его"                    )
-        logger.info(
-            f"admin  - def  add_boosty_payment - подписка бусти пользователя: {user_id} - обновлена\n")
-        return templates.TemplateResponse("admin-dashboard.html", {
-            "request": request,
-            "user_info": user_info,
-            "csrf_token": csrf_token,
-            "message": {"status": "success", "detail": "Бусти информация обновлена"}
-        })
+        mail_to_user = await users_collection.find_one({"email": user_id})
+        if mail_to_user:
+            user_info = await get_user_updates(user_id)
+            if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed":
+                mail_to = mail_to_user["contact"]
+            else:
+                mail_to = user_id
+
+            await send_email_internal(background_tasks, mail_to,
+                                      "Подписка ChatGP",
+                                      "Поздравляем! Вы подписаны на ChatGP через Boosty!",
+                                      f"Уважаемый{user_id.split('@')[0]}",
+                                      f"Это письмо подтверждает, что вы подписались на план {new_level} на сайте ChatGP.Ru.\n Вы можете повысить или изменить текущий план в вашем дашборде на ChatGP.Ru. Так же вы можете отменить вашу подписку на boosty.to",
+                                      "Перейти в дашборд",
+            f"{BASE_URL}/dash",
+                  "Если это письмо пришло вам по ошибке, проигнорируйте его"                    )
+            logger.info(
+                f"admin  - def  add_boosty_payment - подписка бусти пользователя: {user_id} - обновлена\n")
+            return templates.TemplateResponse("admin-dashboard.html", {
+                "request": request,
+                "user_info": user_info,
+                "csrf_token": csrf_token,
+                "message": {"status": "success", "detail": "Бусти информация обновлена"}
+            })
     logger.info(
         f"admin  - def  add_boosty_payment - ошибка бусти подписки пользователя: {user_id}\n")
     return templates.TemplateResponse("admin-dashboard.html", {
@@ -396,7 +410,11 @@ async def send_angry_email(
 
     if mail_to_user:
         user_info = await get_user_updates(user_id)
-        await send_email_internal(background_tasks, user_id,
+        if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed":
+            mail_to = mail_to_user["contact"]
+        else:
+            mail_to = user_id
+        await send_email_internal(background_tasks, mail_to,
                                   subject,
                                   descr,
                                   name_to,

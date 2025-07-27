@@ -1074,7 +1074,7 @@ margin: 15px; /* Отступы между элементами */
             position: fixed;
             top: 0;
             left: 0;
-            height: 95%;
+            height: 100%;
             width: 250px; /* Фиксированная ширина */
             transform: translateX(-100%);
             /*box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);*/

@@ -67,7 +67,14 @@ PRETTY_NAMES = {
     "pro": "Мыслитель",
     "premium": "Премиум"
 }
-PRICES = [0, 18, 50, 140, 160, 500]
+PRICES = [0, 2000, 4800, 13000, 14500, 39000]
+BOOSTY_LINKS = {
+    "basic": "https://boosty.to/ketome.ru/purchase/3402747?ssource=DIRECT&share=subscription_link",
+    "advanced": "https://boosty.to/ketome.ru/purchase/3402750?ssource=DIRECT&share=subscription_link",
+    "business": "https://boosty.to/ketome.ru/purchase/3402751?ssource=DIRECT&share=subscription_link",
+    "pro": "https://boosty.to/ketome.ru/purchase/3402753?ssource=DIRECT&share=subscription_link",
+     "premium": "https://boosty.to/ketome.ru/purchase/3402756?ssource=DIRECT&share=subscription_link"
+        }
 UPLOAD_DIR = Path("tmp/uploads").resolve()
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
