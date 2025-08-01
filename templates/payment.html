@@ -100,6 +100,25 @@
   }
 
   openModal(modal); // из твоего modal.js
-    }</script>
+    }
+
+    function copyText(button) {
+    const container = button.closest('.copy-container');
+    const text = container.dataset.full;
+
+    navigator.clipboard.writeText(text)
+      .then(() => {
+        button.innerHTML = "<img src='/static/img/icons/copy-check.svg' alt='скопировано' style='width: 18px; height: 18px;'>";
+        showModal("Код скопирован в буфер", "success")
+        setTimeout(() => {
+          button.innerHTML = "<img src='/static/img/icons/copy.svg' alt='копировать' style='width: 18px; height: 18px;'>";
+          closeModal(document.getElementById("modal-feedback"))
+        }, 3500);
+      })
+      .catch(err => {
+        console.error("Ошибка копирования:", err);
+      });
+  }
+    </script>
 {% include "modal_base.html" %}
 {% endblock %}

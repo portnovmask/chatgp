@@ -388,6 +388,27 @@ svg {
     place-self: center;
 }
 
+.user-info {
+    position: absolute;
+    /*margin-left: auto;*/
+    top: 20px;
+    left: 10px;
+    width: 2rem;
+    height: 2rem;
+    background-color: #31edae;
+    border-radius: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold; /* опционально */
+    color: #2a3602; /* или тёмный цвет, если фон светлый */
+    font-size: 0.8rem;
+    text-align: center;
+    overflow: hidden;
+    cursor: pointer;
+    z-index: 100;
+}
+
 .custom-list {
   list-style: none;
   padding-left: 0;

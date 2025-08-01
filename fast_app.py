@@ -18,7 +18,7 @@ from auth import router as auth_router
 from blog_post import router as posts_router
 from mail import router as mail_router
 from admin import admin_router as admin_router
-from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions, notify_expiring_subscriptions
+from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions, notify_expiring_subscriptions, extend_boosty_subscriptions
 from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_token
 import openai
 from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR, ADMIN
@@ -856,7 +856,7 @@ async def cleanup_expired_files():
 async def auto_renew_subscriptions():
     while True:
         try:
-            await renew_subscriptions()
+            await extend_boosty_subscriptions()
         except Exception as e:
             print(f"[SUBSCRIPTIONS] Ошибка обновления: {e}")
         await asyncio.sleep(SUBSCRIPTION_RENEW_INTERVAL)

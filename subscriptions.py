@@ -5,14 +5,15 @@ from fastapi.templating import Jinja2Templates
 import uuid
 import httpx
 from pymongo import UpdateOne
-
+from dateutil.relativedelta import relativedelta
 from models.users import users_collection
 from datetime import datetime, timedelta, timezone
 
 from auth import get_user
 import locale
 from settings import TON_WALLET, TON_API_KEY, LEVELS, PRETTY_NAMES, PRICES, LOGO_URL, BASE_URL, BOOSTY_LINKS
-from mail import EmailTemplate, send_email
+from mail import EmailTemplate, send_email, send_email_direct
+
 router = APIRouter(prefix="/api")
 templates = Jinja2Templates(directory="templates")
 
@@ -450,6 +451,56 @@ async def renew_subscriptions():
     return {"message": "Все отложенные подписки обновлены!"}
 
 
+async def extend_boosty_subscriptions():
+    now = datetime.now(timezone.utc) + timedelta(days=1)
+    logger.info(f" Запущена задача автообновления подписок")
+    # Найти всех пользователей с активной Boosty подпиской, где подходит дата продления
+    try:
+        users = users_collection.find({
+            "subscription.is_active": True,
+            "subscription.transaction_id": {"$exists": True},
+            "subscription.next_billing_date": {"$lte": now}
+        })
+
+        async for user in users:
+            try:
+                email = user["email"]
+                level = user["subscription"]["level"]
+                last_transaction_id = user["subscription"].get("transaction_id", "boosty")
+                now = datetime.now(timezone.utc)
+
+                # Прибавляем ровно 1 календарный месяц
+                next_expiry = now + relativedelta(months=1)
+
+                await users_collection.update_one({"email": email}, {
+                    "$set": {
+                        "status": level,
+                        "original_status": level,
+                        "tokens": 0,
+                        "attempts": 0,
+                        "updated_at": now,
+                        "subscription.level": level,
+                        "subscription.expires_at": next_expiry,
+                        "subscription.next_billing_date": next_expiry,
+                        "subscription.is_active": True,
+                        "subscription.transaction_id": last_transaction_id
+                    },
+                    "$push": {
+                        "subscription.payment_history": {
+                            "boosty_id": last_transaction_id,
+                            "amount": 0,
+                            "source": "boosty-auto",
+                            "date": now
+                        }
+                    }
+                })
+
+                logger.info(f"[boosty_auto_renew] Подписка пользователя {email} продлена до {next_expiry.isoformat()}")
+            except Exception as user_error:
+                logger.error(f" Ошибка продления подписки для пользователя {user.get('email')}: {user_error}")
+    except Exception as db_error:
+        logger.error(f" Ошибка при запросе подписок Boosty: {db_error}")
+
 
 async def notify_expiring_subscriptions(background_tasks: BackgroundTasks = None):
     now = datetime.now(timezone.utc)
@@ -474,30 +525,30 @@ async def notify_expiring_subscriptions(background_tasks: BackgroundTasks = None
             expires_at = user["subscription"]["expires_at"]
             username = user.get("name") or email.split("@")[0]
 
-            subject = f"Ваша подписка истекает через {days_before} день(дня)"
+            subject = f"Ваша подписка автоматически продлится {days_before} день(дня)"
             desc = f"Уровень подписки: {level}. Истекает: {format_datetime_pretty(expires_at)}"
 
             body_text = (
-                f"Ваша подписка уровня {level} истекает {format_datetime_pretty(expires_at)}.\n"
-                f"Продлите её, чтобы не потерять доступ к функциям ChatGP.\n"
-                "Если вы не планируете продлевать, доступ будет ограничен автоматически."
+                f"Ваша подписка уровня {level} автоматически продлится после: {format_datetime_pretty(expires_at)}.\n"
+                f"С вашей стороны никаких действий не требуется.\n"
+                "Все функции ChatGP остаются в рамках вашего плана, а счетчики обнулятся."
             )
 
             email_template = EmailTemplate(
                 logo_url=LOGO_URL,
                 header_link=BASE_URL,
-                header_text="Подписка скоро истекает",
+                header_text="Подписка продлится автоматически",
                 description=desc,
                 recipient_name=username,
                 body_text=body_text,
-                action_label="Продлить подписку",
-                action_url=f"{BASE_URL}/subscribe",
+                action_label="Проверить в личном кабинете",
+                action_url=f"{BASE_URL}/dash",
                 footer_text="Если вы считаете, что письмо пришло по ошибке — просто проигнорируйте его."
             )
             html = email_template.render()
 
             # Отправка письма в фоне
-            background_tasks.add_task(send_email, user, subject, html)
+            background_tasks.add_task(send_email_direct, email, subject, html)
 
             targets.append(UpdateOne(
                 {"email": email},

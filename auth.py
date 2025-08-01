@@ -324,7 +324,7 @@ async def register(request: Request,
     if not verify_csrf_token(csrf_token, "guest", CSRF_SECRET_KEY):
         logger.info("CSRF failed: токен не прошёл проверку подписи или просрочен")
         return RedirectResponse(url="/", status_code=303)
-    token = generate_confirmation_token(email)
+    token = generate_confirmation_token(email, email)
     confirm_url = f"{request.base_url}/api/confirm-email?token={token}"
     email_template = EmailTemplate(
         logo_url=LOGO_URL,
@@ -515,7 +515,7 @@ async def add_email(request: Request,
                     user: dict = Depends(get_user)):
     """Добавление контактного email"""
 
-    if user and user.get("contact") != email:
+    if user and not user.get("contact"):
         token = generate_confirmation_token(email=user.get("email"), contact=email)
         csrf_token_cookie = request.cookies.get("csrf_token")
         if not csrf_token:

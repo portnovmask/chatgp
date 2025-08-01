@@ -40,7 +40,7 @@
                 <p class="card-medium flex"><img src="/static/img/icons/user.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="провайдер">Авторизация через:&nbsp;{{ user.auth_provider }}</p>
                 <p class="flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="почта">{{ user.contact }}</p>
                 {% else %}
-                    <p class="flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="почта">{{ user.contact }}</p>
+                    <p class="flex"><img src="/static/img/icons/mail.svg" class="bullet-icon" style="width: 25px; height: 25px;" alt="почта">{{ user.email }}</p>
             {% endif %}
         {% else %}
             <div class="flex">
@@ -299,9 +299,11 @@
     navigator.clipboard.writeText(text)
       .then(() => {
         button.innerHTML = "<img src='/static/img/icons/copy-check.svg' alt='скопировано' style='width: 18px; height: 18px;'>";
+        showModal("Код скопирован в буфер", "success")
         setTimeout(() => {
           button.innerHTML = "<img src='/static/img/icons/copy.svg' alt='копировать' style='width: 18px; height: 18px;'>";
-        }, 1500);
+          closeModal(document.getElementById("modal-feedback"))
+        }, 3500);
       })
       .catch(err => {
         console.error("Ошибка копирования:", err);

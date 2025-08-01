@@ -262,7 +262,7 @@ async def add_user_payment(
         mail_to_user = await users_collection.find_one({"email": user_id})
         if mail_to_user:
             user_info = await get_user_updates(user_id)
-            if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed":
+            if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed" and mail_to_user["contact"] != "confirmed":
                 mail_to = mail_to_user["contact"]
             else:
                 mail_to = user_id
@@ -355,7 +355,7 @@ async def add_boosty_payment(
         mail_to_user = await users_collection.find_one({"email": user_id})
         if mail_to_user:
             user_info = await get_user_updates(user_id)
-            if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed":
+            if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed" and mail_to_user["contact"] != "confirmed":
                 mail_to = mail_to_user["contact"]
             else:
                 mail_to = user_id
@@ -410,7 +410,7 @@ async def send_angry_email(
 
     if mail_to_user:
         user_info = await get_user_updates(user_id)
-        if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed":
+        if mail_to_user["contact"] and mail_to_user["contact"] != "not_confirmed"  and mail_to_user["contact"] != "confirmed":
             mail_to = mail_to_user["contact"]
         else:
             mail_to = user_id

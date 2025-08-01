@@ -80,7 +80,7 @@ def confirm_token(token: str, expiration=45000):
 
 # SMTP клиент
 async def send_email(user: dict, subject: str, html_content: str):
-    if not user.get("contact") or user.get("contact") == "not_confirmed":
+    if not user.get("contact") or user.get("contact") == "not_confirmed" or user.get("contact") == "confirmed":
         to_email = user.get("email")
     else:
         to_email = user.get("contact")
@@ -304,10 +304,15 @@ async def confirm_email(request: Request, token: str):
                                                                   "subheader": subheader,
                                                                   "message": message, "action": action}, status_code=400
                                           )
-    boosty = encrypt_email(contact)
+    if email == contact:
+        contact_email = "confirmed"
+        boosty = encrypt_email(email)
+    else:
+        contact_email = contact
+        boosty = encrypt_email(contact)
     result = await users_collection.update_one(
         {"email": email, "contact": {"$in": [None, "not_confirmed"]}},
-        {"$set": {"contact": contact,
+        {"$set": {"contact": contact_email,
          "boosty_code": boosty}
         }
     )
