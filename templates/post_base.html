@@ -5,13 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark" />
     <meta name="description" content="{% block description %}Здесь собраны новости и статьи о новых технологиях, искусственном интеллекте, языковых моделях, AI чат ботах, Chat GPT и машинном обучении.{% endblock %}">
+   <link rel="canonical" href="{% if  canonical %} {{ canonical}}  {% else %} {{ request.url }} {% endif %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Manrope:wght@200..800&display=swap" rel="stylesheet">
-<!--    <link rel="stylesheet" href="/static/css/normalize.css">-->
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=Manrope:wght@200..800&display=swap&family=Roboto+Serif:ital,opsz,wght@0,8..144,100..900;1,8..144,100..900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/styles.css">
 {#    <link rel="stylesheet" href="/static/css/prism.css">#}
     <link

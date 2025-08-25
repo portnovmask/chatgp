@@ -15,7 +15,7 @@ from models.chats import chats_collection
 from settings import *
 from mail import EmailTemplate, send_email, send_email_direct, generate_confirmation_token
 from urllib.parse import urlencode
-
+import hashlib
 router = APIRouter(prefix="/api")
 logger = logging.getLogger("app_logger")
 
@@ -144,6 +144,25 @@ def verify_csrf_token(token: str, email, secret_key: str, ttl_seconds: int = 432
         logger.info(f"def verify_csrf_token  - Почта: {email} - ошибка: {e}, токен: {token}")
         return False
 
+
+async def verify_password(input_password, stored_password, email: str):
+    # 1. Проверка по bcrypt (для новых пользователей)
+    if stored_password.startswith("$2b$") or stored_password.startswith("$2a$"):
+        return pwd_context.verify(input_password, stored_password)
+
+    # 2. Проверка старым способом SHA-256
+    hashed_input = hashlib.sha256(input_password.encode()).hexdigest()
+    if hashed_input == stored_password:
+        # При успешной проверке обновляем хэш на bcrypt
+        new_hashed = pwd_context.hash(input_password)
+        # Здесь нужно обновить документ в MongoDB, чтобы в будущем использовать только bcrypt
+        await users_collection.update_one(
+            {"email": email},  # фильтруем по email
+            {"$set": {"password": new_hashed}}
+        )
+        return True
+
+    return False
 
 async def get_user(request: Request):
     """Проверяет access-токен в куках и валидирует его"""
@@ -420,7 +439,11 @@ async def register(request: Request,
 
 
 @router.post("/login")
-async def login(request: Request, email: str = Form(...), password: str = Form(...), csrf_token: str = Form(...)):
+async def login(request: Request,
+                background_tasks: BackgroundTasks,
+                email: str = Form(...),
+                password: str = Form(...),
+                csrf_token: str = Form(...)):
     """Авторизация с проверкой пароля"""
     csrf_token_cookie = request.cookies.get("csrf_token")
     is_fetch = request.headers.get("accept") == "application/json"
@@ -442,16 +465,46 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
             return JSONResponse(status_code=401, content={"detail": "Неверный email или пароль"})
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
 
-    if not user.get("password") or not pwd_context.verify(password, user["password"]):
+    # if not user.get("password") or not pwd_context.verify(password, user["password"]):
+    #     if is_fetch:
+    #         return JSONResponse(status_code=401, content={"detail": "Неверный email или пароль"})
+    #     raise HTTPException(status_code=401, detail="Неверный email или пароль")
+
+    if not user.get("password") or not await verify_password(password, user["password"], user.get("email")):
         if is_fetch:
             return JSONResponse(status_code=401, content={"detail": "Неверный email или пароль"})
         raise HTTPException(status_code=401, detail="Неверный email или пароль")
 
     if user.get("contact") and user.get("contact") == "not_confirmed":
-        logger.info(f"/login  - def login - Пользователь: {email} - не подтвердил email\n")
+        logger.info(f"/login  - def login - Пользователь: {email} - не подтвердил email, отправлена ссылка на почту\n")
+        token = generate_confirmation_token(email, email)
+        confirm_url = f"{request.base_url}/api/confirm-email?token={token}"
+        email_template = EmailTemplate(
+            logo_url=LOGO_URL,
+            header_link=str(request.base_url),
+            header_text="Подтвердите email",
+            description="вы указали адрес электронной почты при регистрации на ChatGP.Ru:",
+            recipient_name=email,
+            body_text="Спасибо за регистрацию на нашем сервисе. Пожалуйста, подтвердите вашу почту.",
+            action_label="Подтвердить Email",
+            action_url=confirm_url,
+            footer_text="Если вы не регистрировались — просто проигнорируйте это письмо."
+        )
+
         if is_fetch:
-            return JSONResponse(status_code=401, content={"detail": "Подтвердите электронную почту"})
-        raise HTTPException(status_code=401, detail="Подтвердите электронную почту")
+            response = JSONResponse(content={"next_url": "/api/confirm-notice"})
+
+            html = email_template.render()
+            background_tasks.add_task(send_email, {"email": email,
+                "contact": "not_confirmed"}, "Подтверждение почты", html)
+            logger.info(f"/register  -  Письмо о подтверждении email отправлено пользователю {email}\n")
+            return response
+        response = RedirectResponse(url="/api/confirm-notice", status_code=303)
+
+        html = email_template.render()
+        background_tasks.add_task(send_email, {"email": email,
+                "contact": "not_confirmed"}, "Подтверждение почты", html)
+        return response
     access_token, access_expires, access_jti = create_access_token(str(user["email"]))
     refresh_token, refresh_expires, refresh_jti = create_refresh_token(str(user["email"]))
     csrf_token = generate_csrf_token(str(user["email"]), CSRF_SECRET_KEY)
@@ -922,7 +975,6 @@ async def yandex_callback(request: Request, background_tasks: BackgroundTasks, c
     return response
 
 
-import hashlib
 import hmac
 
 

@@ -64,6 +64,18 @@
       outline: none;
 }
 
+.telegram-placeholder{
+   display: block;
+      margin: 0 auto 10px;
+      padding-top: 2px;
+      width: 80%;
+      height: 45px;
+      border-radius: 10px;
+      background: #E6E6E6FF;
+      border: 1px solid #436fea;
+      outline: none;
+}
+
 .form_auth_block textarea{
       display: block;
       margin: 0 auto 10px;
@@ -87,7 +99,7 @@ input:hover {
 input:focus {
   color: #000000;
   border-radius: 10px;
-  border: 2px solid #436fea;
+  border: 2px solid darkcyan;
 }
 .form_auth_button{
     display: flex;
@@ -157,6 +169,28 @@ svg {
 /*    border: 1px solid #ccc;*/
 /*    cursor: pointer;*/
 /*}*/
+
+@media (prefers-color-scheme: dark) {
+    .links-row a {
+        color: rgb(244, 244, 244);
+    }
+    .form_auth_button {
+        background-color: #171717;
+    }
+
+    .form_auth_button:hover {}
+
+    .telegram-placeholder{
+       background: #171717;
+       border: none;
+    }
+    input {
+        background: #afabab;
+        color: white;
+    }
+
+    }
+
 
 ::-webkit-input-placeholder {color:#3f3f44; padding-left: 10px;}
 ::-moz-placeholder          {color:#3f3f44; padding-left: 10px;}

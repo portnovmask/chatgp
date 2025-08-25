@@ -224,52 +224,52 @@ class User:
         self.modes = {
             "trial": {
                 "model": "gpt-4o-mini",
-                "max_completion_tokens": 3000,
+                "max_completion_tokens": 10000,
                 "system": "Ты ассистент, но стараешься отвечать кратко и только по делу. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 3000000,
-                "temperature": 0.3,
+                "temperature": 0.4,
                 "search": 2
             },
             "basic": {
-                "model": "gpt-4o",
-                "max_completion_tokens": 4096,
+                "model": "gpt-5-nano",
+                "max_completion_tokens": 12000,
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 1000000,
-                "temperature": 0.2,
+                "temperature": 1.0,
                 "search": 50
             },
             "advanced": {
-                "model": "gpt-4o",
-                "max_completion_tokens": 8000,
+                "model": "gpt-5-mini",
+                "max_completion_tokens": 15000,
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 20000000,
-                "temperature": 0.2,
+                "temperature": 1.0,
                 "search": 150
             },
             "business": {
-                "model": "gpt-4o",
-                "max_completion_tokens": 8000,
+                "model": "gpt-5-nano",
+                "max_completion_tokens": 12000,
                 "system": "Ты ассистент и всегда рад помочь найти нужную информацию и подсказать возможные решения. Даёшь развёрнутые ответы с примерами.",
                 "token_limit": 40000000,
-                "temperature": 0.2,
+                "temperature": 1.0,
                 "search": 400
             },
             "pro": {
-                "model": "gpt-o3-mini",
-                "max_completion_tokens": 8000,
+                "model": "gpt-5-mini",
+                "max_completion_tokens": 20000,
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 2000000,
-                "temperature": 0.1,
+                "temperature": 1.0,
                 "search": 250,
                 "search_model": "gpt-4o-search-preview",
             },
             "premium": {
-                "model": "gpt-4.1",
-                "max_completion_tokens": 10000,
+                "model": "gpt-5",
+                "max_completion_tokens": 100000,
                 "system": "Ты ассистент. Отвечаешь по существу вопроса. Предлагаешь привести примеры или дать дополнительные разъяснения, прежде чем углубляться в подробности.",
                 "token_limit": 4000000,
-                "temperature": 0.3,
-                "search": 1500,
+                "temperature": 1.0,
+                "search": 500,
                 "search_model": "gpt-4o-search-preview",
             },
             "error_code": {
@@ -598,7 +598,7 @@ class User:
         max_completion_tokens = params.get("max_completion_tokens", 3000)
         system=params.get("content", "Ты ассистент")
         token_limits=params.get("tokens", 1000000)
-        temp=params.get("temperature", 0.2)
+        temp=params.get("temperature", 1.0)
         search=params.get("search", 0)
         search_model=params.get("search_model", "gpt-4o-mini-search-preview")
 

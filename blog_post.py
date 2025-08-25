@@ -5,6 +5,8 @@ from qr_utils import slugify
 from settings import ADMIN, BASE_URL
 from models.blog import BlogPost
 import logging
+from datetime import datetime, timezone
+from pathlib import Path
 
 logger = logging.getLogger("app_logger")
 
@@ -22,6 +24,62 @@ def extract_annotations(choice):
             if title and url:
                 links.append({title: url})
     return links
+
+
+
+STATIC_PAGES = ["/", "/about", "/policy", "/help", "/price"]
+SITEMAP_PATH = Path("static/sitemap.xml")
+
+async def update_sitemap(new_slug: str):
+    """
+    Добавляет новый пост в sitemap.xml, создаёт файл, если его нет.
+    """
+    urls = STATIC_PAGES + [f"/post/{new_slug}"]
+
+    # Если файл существует, читаем уже существующие записи
+    if SITEMAP_PATH.exists():
+        import xml.etree.ElementTree as ET
+        tree = ET.parse(SITEMAP_PATH)
+        root = tree.getroot()
+        existing_urls = {el.find("loc").text for el in root.findall("url")}
+        urls = [url for url in urls if f"{BASE_URL}{url}" not in existing_urls]
+    else:
+        # Создаём корень
+        SITEMAP_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    if not urls:
+        return  # всё уже есть
+
+    # Генерируем XML
+    from xml.sax.saxutils import escape
+    lines = []
+    if not SITEMAP_PATH.exists():
+        lines.append('<?xml version="1.0" encoding="UTF-8"?>')
+        lines.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
+
+    for url in urls:
+        lines.append("  <url>")
+        lines.append(f"    <loc>{escape(BASE_URL + url)}</loc>")
+        lines.append(f"    <lastmod>{datetime.now(timezone.utc).date()}</lastmod>")
+        lines.append("    <changefreq>weekly</changefreq>")
+        lines.append("    <priority>0.8</priority>")
+        lines.append("  </url>")
+
+    if not SITEMAP_PATH.exists():
+        lines.append("</urlset>")
+
+    # Если файл уже существует, дописываем в конец файла перед </urlset>
+    if SITEMAP_PATH.exists():
+        content = SITEMAP_PATH.read_text(encoding="utf-8")
+        content = content.replace("</urlset>", "\n" + "\n".join(lines) + "\n</urlset>")
+        SITEMAP_PATH.write_text(content, encoding="utf-8")
+    else:
+        SITEMAP_PATH.write_text("\n".join(lines), encoding="utf-8")
+
+    logger.info(f"Sitemap обновлён с новым постом: {new_slug}")
+
+
+
 
 async def create_blog_post(post: BlogPost) -> dict:
     post.slug = slugify(post.title)
@@ -41,6 +99,10 @@ async def create_blog_post(post: BlogPost) -> dict:
 
     await blog_posts_collection.insert_one(post.dict())
     logger.info(f"Пост {post.title} успешно опубликован")
+
+    # Обновляем sitemap
+    await update_sitemap(post.slug)
+
     return {"status": "ok", "slug": post.slug}
 
 
@@ -64,7 +126,7 @@ async def create_post(post: BlogPost, user: dict = Depends(get_current_user)):
         return {"status": "error", "message": "Access denied"}
     logger.info(f"Пост {post.title} успешно опубликован")
     return await create_blog_post(post)
-    # if user and user.get("email") == ADMIN:
+  # if user and user.get("email") == ADMIN:
     #     post.slug = slugify(post.title)
     #
     #     existing = await blog_posts_collection.find_one({"slug": post.slug})

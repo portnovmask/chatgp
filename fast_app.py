@@ -21,7 +21,7 @@ from admin import admin_router as admin_router
 from subscriptions import router as subscription_router, get_ton_usdt_price, renew_subscriptions, notify_expiring_subscriptions, extend_boosty_subscriptions
 from auth import get_user, get_user_optional, generate_csrf_token, verify_csrf_token
 import openai
-from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR, ADMIN
+from settings import APY_KEY, LEVELS, ATTEMPT_LIMITS, CSRF_SECRET_KEY, UPLOAD_DIR, ADMIN, BASE_URL
 from file_utils import save_uploaded_image
 from modes import (User, get_user_summaries, get_chat_body_by_id, get_last_chat_id,
                    set_chat, reset_chat, delete_chat, get_current_attempts,
@@ -34,26 +34,34 @@ import re
 import html
 import markdown2
 
+# ------------------------
+# Логгер для uvicorn.access
+# ------------------------
 access_logger = logging.getLogger("uvicorn.access")
 
-file_handler = logging.FileHandler("access.log")
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
-access_logger.addHandler(file_handler)
+access_handler = RotatingFileHandler(
+    "access.log", maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+)
+access_handler.setFormatter(logging.Formatter("%(asctime)s - %(message)s"))
 
+if not access_logger.hasHandlers():
+    access_logger.addHandler(access_handler)
 
-
-# Настраиваем логгер (общий для всего проекта)
-logger = logging.getLogger("app_logger")  # Уникальное имя логгера
+# ------------------------
+# Логгер для приложения
+# ------------------------
+logger = logging.getLogger("app_logger")
 logger.setLevel(logging.INFO)
 
-# Обработчик для записи логов в файл с ротацией
-file_handler = RotatingFileHandler("app.log", maxBytes=5*1024*1024, backupCount=3)
-file_handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+app_handler = RotatingFileHandler(
+    "app.log", maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8"
+)
+app_handler.setFormatter(
+    logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+)
 
-# Добавляем обработчик (если он еще не был добавлен)
 if not logger.hasHandlers():
-    logger.addHandler(file_handler)
-
+    logger.addHandler(app_handler)
 
 MAX_FILE_AGE = timedelta(minutes=15)  # 15 минут
 SUBSCRIPTION_RENEW_INTERVAL = 3600  # 1 час
@@ -100,6 +108,8 @@ app.include_router(mail_router)
 app.include_router(subscription_router)
 
 app.include_router(admin_router)
+
+
 
 
 templates = Jinja2Templates(directory="templates")
@@ -207,7 +217,7 @@ async def generate_summary(data, words: int = 2):
 
         if not response.choices or not response.choices[0].message:
             logger.info("Ошибка: Пустой ответ от API OpenAI")
-            return "Ошибка генерации заголовка"
+            return "Без названия"
 
         reply_content = response.choices[0].message.content
         logger.info(f"Summary: \n{reply_content}")
@@ -215,17 +225,17 @@ async def generate_summary(data, words: int = 2):
 
     except Exception as e:
         logger.info(f"Ошибка в generate_summary: {e}")
-        return "Ошибка генерации заголовка"
+        return "Без названия"
 
 
 async def after_stream_processing(chat, prompt, full_reply_content, chat_id, stream_id, user_tokens):
     logger.info(f"Полный ответ after_stream_processing обрезанный: {full_reply_content[0:15]}")
     logger.info(f"def after_stream_processing user tokens: {user_tokens}")
-    if not chat_id or chat_id == "new":  # Если чат новый, создаем summary
+    if not chat_id or chat_id == "new" or chat_id == "Без названия":  # Если чат новый, создаем summary
         summary = await generate_summary(full_reply_content)  # ✅ Дожидаемся результата
         logger.info(f"Создан summary after_stream_processing: {summary}")
     else:
-        summary = None
+        summary = "Без названия"
 
     await chat.add_to_chat_db(prompt, full_reply_content, chat_id, stream_id, summary)  # ✅ Теперь summary — строка
     logger.info(f"Данные сохранены в чат after_stream_processing {chat_id}")
@@ -233,6 +243,7 @@ async def after_stream_processing(chat, prompt, full_reply_content, chat_id, str
     await chat.update_token_count_db(user_tokens)
     logger.info(f"Обновлены токены after_stream_processing: {user_tokens}")
 
+    await chat.refresh()
 
 # def get_ton_usdt_price():
 #     url = "https://api.coinlore.net/api/ticker/?id=54683"
@@ -382,7 +393,7 @@ async def stream(request_data: PromptRequest, user: dict = Depends(get_user)):
                 # {"role": "user", "content": prompt}
                 user_message
             ],
-            temperature=request_params.get("temperature", 0.2),
+            temperature=request_params.get("temperature", 1.0),
             stream=True,
             stream_options={"include_usage": True},
         )
@@ -667,7 +678,7 @@ async def view_post(request: Request, slug: str,
     post = await get_post_by_slug(slug)
     if not post:
         return HTMLResponse("Not found", status_code=404)
-
+    canonical = BASE_URL + "/" + slug
     post["content"] = markdown.markdown(
         post["content"], extensions=["extra", "sane_lists", "nl2br"]
     )
@@ -678,6 +689,7 @@ async def view_post(request: Request, slug: str,
         "request": request,
         "post": post,
         "posts": posts,
+        "canonical": canonical,
         "user": user,
     })
         response.set_cookie("csrf_token", csrf_token, httponly=False, samesite="lax", secure=True, max_age=900)
@@ -686,6 +698,7 @@ async def view_post(request: Request, slug: str,
         "request": request,
         "post": post,
         "posts": posts,
+        "canonical": canonical,
         "user": user,
     })
 

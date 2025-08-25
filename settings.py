@@ -59,7 +59,7 @@ RECAPTCHA_SECRET = os.environ['RECAPTCHA_SECRET']
 LOGO_URL = "https://ketome.ru/wp-content/uploads/2025/04/black-white-minimalist-signature-personal-brand-logo.png"
 BASE_URL = "https://chatgp.ru"
 LEVELS = ["trial", "basic", "advanced", "business", "pro", "premium"]
-ATTEMPT_LIMITS = [2, 50, 150, 400, 200, 500]
+ATTEMPT_LIMITS = [2, 50, 150, 400, 250, 500]
 PRETTY_NAMES = {
     "trial": "Базовый",
     "basic": "Оптимум",

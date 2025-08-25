@@ -6,6 +6,9 @@ __pycache__/
 ads.txt
 robots.txt
 test.py
+user.json
+user.json.zip
+clean_for_mongo.json
 # Docker volumes, caches
 volumes/
 *.pid
